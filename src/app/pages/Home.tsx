@@ -81,7 +81,7 @@ export function Home() {
         }}
       />
       {/* Hero Section */}
-      <section className="relative min-h-[calc(100vh-5rem)] max-h-[100vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-gray-900 pt-14 md:pt-20 lg:pt-24">
+      <section className="relative min-h-screen flex items-start md:items-center justify-center overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-gray-900 pt-[calc(5rem+env(safe-area-inset-top))] md:pt-[calc(6rem+env(safe-area-inset-top))]">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <motion.div
@@ -102,7 +102,7 @@ export function Home() {
           />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 md:py-16 text-center">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}

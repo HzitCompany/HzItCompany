@@ -121,3 +121,28 @@ export async function query<T = unknown>(text: string, params?: unknown[]): Prom
   const result = await pool.query(text, params);
   return result.rows as T[];
 }
+
+export async function insertContactMessage(input: {
+  name: string;
+  email: string;
+  phone?: string;
+  message: string;
+}) {
+  await pool.query(
+    "insert into contact_messages (name, email, phone, message) values ($1,$2,$3,$4)",
+    [input.name, input.email, input.phone ?? null, input.message]
+  );
+}
+
+export async function insertHireRequest(input: {
+  name: string;
+  email: string;
+  service: string;
+  budget?: string;
+  details?: string;
+}) {
+  await pool.query(
+    "insert into hire_requests (name, email, service, budget, details) values ($1,$2,$3,$4,$5)",
+    [input.name, input.email, input.service, input.budget ?? null, input.details ?? null]
+  );
+}

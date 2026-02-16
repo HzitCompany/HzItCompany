@@ -1,5 +1,28 @@
 -- HZ IT Company lead capture schema (Postgres)
 
+-- Spec-required tables
+drop view if exists contact_messages;
+drop view if exists hire_requests;
+
+create table if not exists contact_messages (
+  id serial primary key,
+  name text,
+  email text,
+  phone text,
+  message text,
+  created_at timestamp default now()
+);
+
+create table if not exists hire_requests (
+  id serial primary key,
+  name text,
+  email text,
+  service text,
+  budget text,
+  details text,
+  created_at timestamp default now()
+);
+
 create table if not exists contact_submissions (
   id bigserial primary key,
   created_at timestamptz not null default now(),
@@ -39,41 +62,6 @@ create table if not exists hire_us_submissions (
 
 create index if not exists idx_contact_created_at on contact_submissions (created_at desc);
 create index if not exists idx_hire_created_at on hire_us_submissions (created_at desc);
-
--- Compatibility views for required table names in the platform spec.
-create or replace view contact_messages as
-  select
-    id,
-    created_at,
-    name,
-    email,
-    phone,
-    subject,
-    message,
-    ip,
-    user_agent,
-    referer
-  from contact_submissions;
-
-create or replace view hire_requests as
-  select
-    id,
-    created_at,
-    name,
-    email,
-    phone,
-    company,
-    services,
-    project_name,
-    project_description,
-    budget,
-    timeline,
-    reference_url,
-    additional_notes,
-    ip,
-    user_agent,
-    referer
-  from hire_us_submissions;
 
 -- Pricing
 create table if not exists services_pricing (

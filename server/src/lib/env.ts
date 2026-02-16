@@ -4,7 +4,7 @@ import "dotenv/config";
 const envSchema = z
   .object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  PORT: z.coerce.number().int().positive().default(8080),
+  PORT: z.coerce.number().int().positive().default(8082),
 
   CORS_ORIGINS: z
     .string()
