@@ -4,6 +4,18 @@ import logoImage from "@/assets/d02f6d670ee484ccb5b3f98463b90941b5d1ead6.png";
 import { siteConfig } from "@/app/config/site";
 
 export function Footer() {
+  const phoneDigits = siteConfig.contact.phone.replace(/\D/g, "");
+  const telHref = phoneDigits.length === 10 ? `tel:+91${phoneDigits}` : `tel:+${phoneDigits}`;
+  const addressText = [
+    siteConfig.address.streetAddress,
+    siteConfig.address.addressLocality,
+    siteConfig.address.addressRegion,
+    siteConfig.address.postalCode,
+  ]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(", ");
+
   return (
     <footer className="bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -11,11 +23,13 @@ export function Footer() {
           {/* Company Info */}
           <div>
             <div className="flex items-center mb-4">
-              <img
-                src={logoImage}
-                alt="HZ IT Logo"
-                className="h-12 w-12 object-contain"
-              />
+              <div className="h-12 w-12 rounded-2xl overflow-hidden">
+                <img
+                  src={logoImage}
+                  alt="HZ IT Logo"
+                  className="h-full w-full object-cover origin-center scale-[2.4]"
+                />
+              </div>
               <h3
                 className="ml-3 text-xl font-bold bg-gradient-to-r from-blue-400 to-blue-200 bg-clip-text text-transparent font-poppins"
               >
@@ -62,13 +76,17 @@ export function Footer() {
               Quick Links
             </h4>
             <ul className="space-y-2">
-              {["Home", "About", "Services", "Portfolio", "Careers"].map((item) => (
-                <li key={item}>
-                  <Link
-                    to={item === "Home" ? "/" : `/${item.toLowerCase()}`}
-                    className="text-gray-300 hover:text-blue-400 transition-colors text-sm"
-                  >
-                    {item}
+              {[
+                { label: "Home", to: "/" },
+                { label: "About", to: "/about" },
+                { label: "Services", to: "/services" },
+                { label: "Portfolio", to: "/portfolio" },
+                { label: "Careers", to: "/careers" },
+                { label: "Admin", to: "/admin/login" },
+              ].map((item) => (
+                <li key={item.to}>
+                  <Link to={item.to} className="text-gray-300 hover:text-blue-400 transition-colors text-sm">
+                    {item.label}
                   </Link>
                 </li>
               ))}
@@ -102,15 +120,13 @@ export function Footer() {
               </li>
               <li className="flex items-start space-x-3 text-sm text-gray-300">
                 <Phone size={18} className="mt-0.5 flex-shrink-0 text-blue-400" />
-                <a className="hover:text-blue-300 transition-colors" href={`tel:${siteConfig.contact.phone}`}>
+                <a className="hover:text-blue-300 transition-colors" href={telHref}>
                   {siteConfig.contact.phone}
                 </a>
               </li>
               <li className="flex items-start space-x-3 text-sm text-gray-300">
                 <MapPin size={18} className="mt-0.5 flex-shrink-0 text-blue-400" />
-                <span>
-                  {siteConfig.address.streetAddress}, {siteConfig.address.addressLocality}, {siteConfig.address.addressRegion} {siteConfig.address.postalCode}
-                </span>
+                <span>{addressText}</span>
               </li>
             </ul>
           </div>

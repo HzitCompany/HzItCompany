@@ -8,12 +8,23 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { contactSchema, type ContactFormValues } from "../schemas/contactSchema";
 import { submitContact } from "../services/contactService";
 import { trackEvent } from "../analytics/track";
+import { siteConfig } from "../config/site";
 
 export function Contact() {
   const [submitState, setSubmitState] = useState<{
     status: "idle" | "loading" | "success" | "error";
     message?: string;
   }>({ status: "idle" });
+
+  const addressLine = [
+    siteConfig.address.streetAddress,
+    siteConfig.address.addressLocality,
+    siteConfig.address.addressRegion,
+    siteConfig.address.postalCode,
+  ]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(", ");
 
   const {
     register,
@@ -69,20 +80,17 @@ export function Contact() {
     {
       icon: Mail,
       title: "Email Us",
-      content: "contact@hzit.com",
-      subContent: "support@hzit.com",
+      content: siteConfig.contact.email,
     },
     {
       icon: Phone,
       title: "Call Us",
-      content: "+1 (555) 123-4567",
-      subContent: "+1 (555) 987-6543",
+      content: siteConfig.contact.phone,
     },
     {
       icon: MapPin,
       title: "Visit Us",
-      content: "123 Tech Street",
-      subContent: "San Francisco, CA 94105",
+      content: addressLine || "India",
     },
     {
       icon: Clock,
@@ -151,7 +159,7 @@ export function Contact() {
                   {info.title}
                 </h3>
                 <p className="text-gray-700 text-sm font-medium">{info.content}</p>
-                <p className="text-gray-500 text-sm">{info.subContent}</p>
+                {info.subContent ? <p className="text-gray-500 text-sm">{info.subContent}</p> : null}
               </motion.div>
             ))}
           </div>
@@ -259,7 +267,7 @@ export function Contact() {
                         inputMode="tel"
                         {...register("phone")}
                         className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition-all"
-                        placeholder="+1 (555) 123-4567"
+                        placeholder="+91 8101515185"
                       />
                     </div>
                   </div>
@@ -333,7 +341,7 @@ export function Contact() {
                 <div className="aspect-video bg-gradient-to-br from-blue-600 to-blue-800 relative">
                   <iframe
                     title="Office Location"
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3153.019268820576!2d-122.39948768468204!3d37.79240197975687!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8085807da5c3e085%3A0x9b0f3a4e4e4e4e4e!2sSan%20Francisco%2C%20CA!5e0!3m2!1sen!2sus!4v1234567890123!5m2!1sen!2sus"
+                    src="https://www.google.com/maps?q=India&output=embed"
                     width="100%"
                     height="100%"
                     allowFullScreen

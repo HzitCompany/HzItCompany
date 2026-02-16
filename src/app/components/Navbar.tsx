@@ -21,6 +21,7 @@ export function Navbar() {
       { name: "Portfolio", path: "/portfolio" },
       { name: "Contact", path: "/contact" },
       { name: "Careers", path: "/careers" },
+      { name: "Admin", path: "/admin/login" },
     ],
     []
   );
@@ -162,11 +163,13 @@ export function Navbar() {
             <div className="flex justify-between items-center h-16 md:h-20">
               {/* Logo */}
               <Link to="/" className="flex items-center group">
-                <img
-                  src={logoImage}
-                  alt="HZ IT Logo"
-                  className="h-9 w-9 md:h-10 md:w-10 object-contain"
-                />
+                <div className="h-9 w-9 md:h-10 md:w-10 rounded-xl overflow-hidden">
+                  <img
+                    src={logoImage}
+                    alt="HZ IT Logo"
+                    className="h-full w-full object-cover origin-center scale-[2.4]"
+                  />
+                </div>
                 <span
                   className="ml-3 text-base sm:text-xl font-bold bg-gradient-to-r from-blue-700 to-blue-900 bg-clip-text text-transparent font-poppins whitespace-nowrap"
                 >

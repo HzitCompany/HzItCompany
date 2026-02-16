@@ -340,7 +340,7 @@ export function HireUs() {
                           "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
                           (errors.phone ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
                         }
-                        placeholder="+1 (555) 123-4567"
+                        placeholder="+91 8101515185"
                       />
                       {errors.phone ? (
                         <p id="hire-phone-error" className="mt-2 text-sm text-rose-700">

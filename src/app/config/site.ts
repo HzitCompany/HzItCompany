@@ -6,19 +6,19 @@ export const siteConfig = {
   defaultTitle: "HZ IT Company | IT Services & Software Development",
   defaultDescription:
     "HZ IT Company builds secure, high-performance web and mobile products. We provide custom software development, cloud, cybersecurity, UI/UX, and IT consulting.",
-  locale: "en_US",
+  locale: "en_IN",
   themeColor: "#2563eb",
   contact: {
-    email: "contact@hzit.com",
-    phone: "+1 (555) 123-4567",
-    whatsapp: "+15551234567",
+    email: "Hzitcompany@gmail.com",
+    phone: "+91 8101515185",
+    whatsapp: "+91 8101515185",
   },
   address: {
-    streetAddress: "123 Tech Street",
-    addressLocality: "San Francisco",
-    addressRegion: "CA",
-    postalCode: "94105",
-    addressCountry: "US",
+    streetAddress: "India",
+    addressLocality: "India",
+    addressRegion: "",
+    postalCode: "",
+    addressCountry: "IN",
   },
   socials: {
     linkedin: "https://www.linkedin.com/company/hz-it-company",

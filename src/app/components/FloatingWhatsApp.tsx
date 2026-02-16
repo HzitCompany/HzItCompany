@@ -3,8 +3,9 @@ import { siteConfig } from "@/app/config/site";
 import { trackEvent } from "@/app/analytics/track";
 
 export function FloatingWhatsApp() {
-  const phoneDigits = siteConfig.contact.whatsapp.replace(/\D/g, "");
-  const href = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(
+  const digits = siteConfig.contact.whatsapp.replace(/\D/g, "");
+  const waDigits = digits.length === 10 ? `91${digits}` : digits;
+  const href = `https://wa.me/${waDigits}?text=${encodeURIComponent(
     "Hi HZ IT Company — I’d like to discuss a project."
   )}`;
 
