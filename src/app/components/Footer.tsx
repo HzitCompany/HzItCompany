@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { Mail, Phone, MapPin, Linkedin, Twitter, Instagram, Facebook, Youtube } from "lucide-react";
-import logoImage from "@/assets/d02f6d670ee484ccb5b3f98463b90941b5d1ead6.png";
+import logoImage from "../../assets/d02f6d670ee484ccb5b3f98463b90941b5d1ead6.png";
 import { siteConfig } from "@/app/config/site";
 import { useAuthGuard } from "../auth/useAuthGuard";
 

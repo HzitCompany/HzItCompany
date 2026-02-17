@@ -4,6 +4,7 @@ import cors from "cors";
 import compression from "compression";
 
 import { env } from "./lib/env.js";
+import { pool } from "./lib/db.js";
 import { apiRateLimit } from "./middleware/rateLimit.js";
 import { requestLogger } from "./middleware/requestContext.js";
 import { HttpError } from "./middleware/errorHandler.js";
@@ -69,7 +70,14 @@ export function createApp() {
 
   // Health check
   app.get("/health", (_req, res) => res.json({ ok: true }));
-  app.get("/api/health", (_req, res) => res.json({ ok: true }));
+  app.get("/api/health", async (_req, res) => {
+    try {
+      await pool.query("select 1 as ok");
+      return res.json({ ok: true, db: true });
+    } catch {
+      return res.status(503).json({ ok: false, db: false });
+    }
+  });
 
   return app;
 }

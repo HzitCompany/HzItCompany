@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { Link, useLocation } from "react-router";
 import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import logoImage from "@/assets/d02f6d670ee484ccb5b3f98463b90941b5d1ead6.png";
+import logoImage from "../../assets/d02f6d670ee484ccb5b3f98463b90941b5d1ead6.png";
 import { useAuth } from "../auth/AuthProvider";
 import { useAuthGuard } from "../auth/useAuthGuard";
 
