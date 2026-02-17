@@ -1,10 +1,19 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router";
-import { motion } from "motion/react";
+import { Link, useNavigate } from "react-router-dom";
 
+import { motion } from "framer-motion";
 import { Seo } from "../components/Seo";
 import { login } from "../services/platformService";
 import { setSession } from "../auth/session";
+
+function getErrorMessage(err: unknown) {
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object") {
+    const anyErr = err as any;
+    if (typeof anyErr.message === "string" && anyErr.message.trim()) return anyErr.message;
+  }
+  return "Login failed";
+}
 
 export function AdminLogin() {
   const navigate = useNavigate();
@@ -14,18 +23,35 @@ export function AdminLogin() {
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit() {
+    if (loading) return;
     setError(null);
     setLoading(true);
     try {
-      const r = await login({ email: email.trim(), password });
-      if (r.role !== "admin") {
+      const trimmedEmail = email.trim().toLowerCase();
+      if (!trimmedEmail || !password) {
+        setError("Enter your email and password.");
+        return;
+      }
+
+      const r = await login({ email: trimmedEmail, password });
+
+      const role = (r as any)?.role;
+      const token = (r as any)?.token;
+
+      if (role !== "admin") {
         setError("This account is not an admin.");
         return;
       }
-      setSession(r.token, r.role);
+
+      if (typeof token !== "string" || token.length < 10) {
+        setError("Unexpected login response. Please try again.");
+        return;
+      }
+
+      setSession(token, "admin");
       navigate("/admin");
-    } catch (e: any) {
-      setError(e?.message ?? "Login failed");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
     } finally {
       setLoading(false);
     }
