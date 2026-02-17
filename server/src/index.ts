@@ -48,6 +48,7 @@ async function main() {
   app.use(errorHandler);
 
   const port = resolveListenPort();
+  logger.info({ corsOrigins: env.CORS_ORIGINS }, "CORS configured");
   app.listen(port, "0.0.0.0", () => {
     logger.info({ port, env: env.NODE_ENV }, "API server listening");
   });

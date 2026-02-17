@@ -7,6 +7,17 @@ import { apiRateLimit } from "./middleware/rateLimit.js";
 import { requestLogger } from "./middleware/requestContext.js";
 import { HttpError } from "./middleware/errorHandler.js";
 
+function isOriginAllowed(origin: string, allowed: string[]) {
+  return allowed.some((entry) => {
+    if (entry === "*") return true;
+    if (!entry.includes("*")) return entry === origin;
+
+    // Support a single '*' wildcard (prefix*suffix)
+    const [prefix, suffix] = entry.split("*");
+    return origin.startsWith(prefix) && origin.endsWith(suffix ?? "");
+  });
+}
+
 export function createApp() {
   const app = express();
 
@@ -28,16 +39,11 @@ export function createApp() {
       origin: (origin, callback) => {
         if (!origin) return callback(null, true);
         const allowed = env.CORS_ORIGINS;
-        const isAllowed = allowed.some((entry) => {
-          if (entry === "*") return true;
-          if (!entry.includes("*")) return entry === origin;
 
-          // Support a single '*' wildcard (prefix*suffix)
-          const [prefix, suffix] = entry.split("*");
-          return origin.startsWith(prefix) && origin.endsWith(suffix ?? "");
-        });
-
-        if (isAllowed) return callback(null, true);
+        if (isOriginAllowed(origin, allowed)) {
+          // Return the explicit origin to ensure the header is set.
+          return callback(null, origin);
+        }
         return callback(
           new HttpError(
             403,
@@ -48,7 +54,7 @@ export function createApp() {
       },
       credentials: false,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
+      // Avoid being too strict here; let the middleware reflect request headers.
       maxAge: 600
     })
   );
