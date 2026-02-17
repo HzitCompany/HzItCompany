@@ -173,7 +173,7 @@ export function Navbar() {
                   <img
                     src={logoImage}
                     alt="HZ IT Logo"
-                    className="h-full w-full object-cover origin-center scale-[2.4]"
+                    className="h-full w-full object-contain"
                   />
                 </div>
                 <span

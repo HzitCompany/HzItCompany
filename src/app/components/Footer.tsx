@@ -29,7 +29,7 @@ export function Footer() {
                 <img
                   src={logoImage}
                   alt="HZ IT Logo"
-                  className="h-full w-full object-cover origin-center scale-[2.4]"
+                  className="h-full w-full object-contain"
                 />
               </div>
               <h3
@@ -175,7 +175,7 @@ export function Footer() {
         <div className="border-t border-white/10 mt-8 pt-8 text-sm text-gray-400">
           <div className="flex items-center justify-center gap-3">
             <div className="h-7 w-7 rounded-lg overflow-hidden bg-white/10">
-              <img src={logoImage} alt="HZ IT Logo" className="h-full w-full object-cover origin-center scale-[2.4]" />
+              <img src={logoImage} alt="HZ IT Logo" className="h-full w-full object-contain" />
             </div>
             <p>&copy; 2026 HZ IT Company. All rights reserved.</p>
           </div>

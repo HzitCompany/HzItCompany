@@ -119,7 +119,7 @@ Validate:
 
 Send (async fire-and-forget, with error logging):
 1) Applicant confirmation
-2) Company notification to `Hzitcompany@gmail.com`
+2) Company notification to `hzitcompany@gmail.com`
 
 Also store record in DB for admin dashboard.
 

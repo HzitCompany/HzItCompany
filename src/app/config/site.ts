@@ -9,7 +9,7 @@ export const siteConfig = {
   locale: "en_IN",
   themeColor: "#2563eb",
   contact: {
-    email: "Hzitcompany@gmail.com",
+    email: "hzitcompany@gmail.com",
     phone: "+91 8101515185",
     whatsapp: "+91 8101515185",
   },
