@@ -177,10 +177,9 @@ export function Navbar() {
                   />
                 </div>
                 <span
-                  className="ml-3 text-base sm:text-xl font-bold bg-gradient-to-r from-blue-700 to-blue-900 bg-clip-text text-transparent font-poppins whitespace-nowrap"
+                  className="ml-3 text-sm sm:text-xl font-bold bg-gradient-to-r from-blue-700 to-blue-900 bg-clip-text text-transparent font-poppins whitespace-nowrap"
                 >
-                  <span className="hidden sm:inline">HZ IT Company</span>
-                  <span className="sm:hidden">HZ IT</span>
+                  HZ IT Company
                 </span>
               </Link>
 

@@ -41,6 +41,8 @@ export type CareerApplyPayload = {
   email: string;
   phone: string;
   position: string;
+  linkedinUrl: string;
+  whyHireYou: string;
   message?: string;
   experience?: string;
   portfolioUrl?: string;

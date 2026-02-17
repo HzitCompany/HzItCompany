@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useLocation, useNavigate } from "react-router";
 
 import { clearSession, getSessionToken, getSessionRole, setSession } from "./session";
-import { getJson } from "../services/apiClient";
+import { getJson, patchJson } from "../services/apiClient";
 
 export type MeUser = {
   id: string;
@@ -22,6 +22,9 @@ type AuthContextValue = {
   user: MeUser | null;
   isLoading: boolean;
   isAuthed: boolean;
+
+  refreshMe: () => Promise<void>;
+  updateProfile: (input: { name?: string; email?: string }) => Promise<void>;
 
   isAuthModalOpen: boolean;
   openAuthModal: (opts?: { afterAuthNavigateTo?: string }) => void;
@@ -54,6 +57,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setRole(me.user.role);
     },
     []
+  );
+
+  const refreshMeSelf = useCallback(async () => {
+    if (!token) return;
+    await refreshMe(token);
+  }, [refreshMe, token]);
+
+  const updateProfile = useCallback(
+    async (input: { name?: string; email?: string }) => {
+      if (!token) throw new Error("Unauthorized");
+      const r = await patchJson<{ name?: string; email?: string }, MeResponse>("/api/me", input, { token });
+      setUser(r.user);
+      setRole(r.user.role);
+      setSession(token, r.user.role);
+    },
+    [token]
   );
 
   useEffect(() => {
@@ -122,6 +141,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       isAuthed,
 
+      refreshMe: refreshMeSelf,
+      updateProfile,
+
       isAuthModalOpen,
       openAuthModal,
       closeAuthModal,
@@ -129,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       logout,
     }),
-    [token, role, user, isLoading, isAuthed, isAuthModalOpen, openAuthModal, closeAuthModal, onOtpVerified, logout]
+    [token, role, user, isLoading, isAuthed, refreshMeSelf, updateProfile, isAuthModalOpen, openAuthModal, closeAuthModal, onOtpVerified, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

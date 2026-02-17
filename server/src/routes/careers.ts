@@ -102,12 +102,14 @@ const applySchema = z
     email: z.string().email().max(254),
     phone: z.string().min(8).max(20),
     position: z.string().min(2).max(120),
+    linkedinUrl: z.string().url().max(500),
+    whyHireYou: z.string().min(10).max(5000),
     message: z.string().max(5000).optional(),
 
     experience: z.string().max(120).optional(),
     portfolioUrl: z.string().url().max(500).optional(),
 
-    resumePath: z.string().max(800).optional(),
+    resumePath: z.string().min(1).max(800),
     cvPath: z.string().max(800).optional(),
 
     honeypot: z.string().max(200).optional()
@@ -150,6 +152,8 @@ careersRouter.post("/apply", requireAuth, async (req: AuthedRequest, res, next) 
       email,
       phone: parsed.data.phone,
       position: parsed.data.position,
+      linkedinUrl: parsed.data.linkedinUrl,
+      whyHireYou: parsed.data.whyHireYou,
       message: parsed.data.message ?? null,
       experience: parsed.data.experience ?? null,
       portfolioUrl: parsed.data.portfolioUrl ?? null,
@@ -183,6 +187,9 @@ careersRouter.post("/apply", requireAuth, async (req: AuthedRequest, res, next) 
         {
           experience: parsed.data.experience ?? null,
           portfolioUrl: parsed.data.portfolioUrl ?? null
+          ,
+          linkedinUrl: parsed.data.linkedinUrl,
+          whyHireYou: parsed.data.whyHireYou
         }
       ]
     );

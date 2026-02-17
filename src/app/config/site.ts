@@ -25,8 +25,7 @@ export const siteConfig = {
     x: "https://x.com/hzitcompany",
     facebook: "https://www.facebook.com/share/1av6JvLBCq/",
     youtube: "https://youtube.com/@hzitcompany?si=2_3dECFCpkkOgNpr",
-    linkedin:
-      "https://www.linkedin.com/in/hzitcompany?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
+    linkedin: "https://www.linkedin.com/in/hzitcompany?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
   },
   // Put a real hosted image in /public for best SEO. This path assumes you add it later.
   defaultOgImage: "/og-image.png",

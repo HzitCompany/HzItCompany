@@ -41,7 +41,7 @@ export function Footer() {
             <p className="text-gray-300 text-sm mb-4">
               Transforming businesses through innovative IT solutions and digital excellence.
             </p>
-            <div className="flex space-x-4">
+            <div className="flex flex-wrap gap-4">
               <a
                 href={siteConfig.socials.instagram}
                 target="_blank"

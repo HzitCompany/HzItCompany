@@ -46,8 +46,10 @@ export function Careers() {
       phone: "",
       role: "",
       experience: "",
+      linkedinUrl: "",
       portfolioUrl: "",
       resumeFile: undefined,
+      whyHireYou: "",
       message: "",
       companyWebsite: "",
     },
@@ -70,24 +72,25 @@ export function Careers() {
       const resumeFileList = (values as any).resumeFile as FileList | undefined;
       const resumeFile = resumeFileList?.item(0) ?? undefined;
 
-      let resumePath: string | undefined;
-      if (resumeFile) {
-        const upload = await createCareerUploadUrlAuthed(token, {
-          kind: "resume",
-          fileName: resumeFile.name,
-          fileType: resumeFile.type,
-          fileSize: resumeFile.size,
-        });
+      if (!resumeFile) throw new Error("Resume is required.");
 
-        await uploadFileToSignedUrl(upload.signedUrl, resumeFile);
-        resumePath = upload.path;
-      }
+      const upload = await createCareerUploadUrlAuthed(token, {
+        kind: "resume",
+        fileName: resumeFile.name,
+        fileType: resumeFile.type,
+        fileSize: resumeFile.size,
+      });
+
+      await uploadFileToSignedUrl(upload.signedUrl, resumeFile);
+      const resumePath = upload.path;
 
       await submitCareerApplyAuthed(token, {
         fullName: values.name,
         email: values.email,
         phone: values.phone,
         position: values.role,
+        linkedinUrl: values.linkedinUrl,
+        whyHireYou: values.whyHireYou,
         experience: values.experience || undefined,
         portfolioUrl: values.portfolioUrl || undefined,
         resumePath,
@@ -152,20 +155,28 @@ export function Careers() {
                 <h2 className="text-2xl font-bold text-gray-900 font-poppins">Open roles</h2>
                 <ul className="mt-5 grid gap-3 text-gray-700">
                   <li className="rounded-xl bg-white border border-gray-200 px-4 py-3">
-                    <div className="font-semibold text-gray-900">Frontend Developer</div>
-                    <div className="text-sm text-gray-600">React • TypeScript • Tailwind</div>
+                    <div className="font-semibold text-gray-900">Software Developer</div>
+                    <div className="text-sm text-gray-600">Web & app development</div>
                   </li>
                   <li className="rounded-xl bg-white border border-gray-200 px-4 py-3">
-                    <div className="font-semibold text-gray-900">Backend Developer</div>
-                    <div className="text-sm text-gray-600">Node/Express • PostgreSQL • APIs</div>
+                    <div className="font-semibold text-gray-900">Digital marketing</div>
+                    <div className="text-sm text-gray-600">SEO • Social • Ads</div>
                   </li>
                   <li className="rounded-xl bg-white border border-gray-200 px-4 py-3">
-                    <div className="font-semibold text-gray-900">UI/UX Designer</div>
-                    <div className="text-sm text-gray-600">Figma • Design systems • Web UX</div>
+                    <div className="font-semibold text-gray-900">Web Designer/Ui-Ux</div>
+                    <div className="text-sm text-gray-600">Figma • Design systems</div>
                   </li>
                   <li className="rounded-xl bg-white border border-gray-200 px-4 py-3">
-                    <div className="font-semibold text-gray-900">Sales / Business Development</div>
-                    <div className="text-sm text-gray-600">Lead generation • Client communication</div>
+                    <div className="font-semibold text-gray-900">Data&Cloud Operator</div>
+                    <div className="text-sm text-gray-600">Cloud ops • Data handling</div>
+                  </li>
+                  <li className="rounded-xl bg-white border border-gray-200 px-4 py-3">
+                    <div className="font-semibold text-gray-900">Cyber Security(1+)</div>
+                    <div className="text-sm text-gray-600">Security monitoring • Hardening</div>
+                  </li>
+                  <li className="rounded-xl bg-white border border-gray-200 px-4 py-3">
+                    <div className="font-semibold text-gray-900">Trainer of cources(2+)</div>
+                    <div className="text-sm text-gray-600">Training • Mentorship</div>
                   </li>
                 </ul>
                 <p className="mt-4 text-sm text-gray-600">If you don’t see your role, still apply with your preferred position.</p>
@@ -275,6 +286,24 @@ export function Careers() {
                   </div>
 
                   <div>
+                    <label htmlFor="linkedinUrl" className="block text-sm font-medium text-gray-700 mb-2">
+                      LinkedIn link *
+                    </label>
+                    <input
+                      id="linkedinUrl"
+                      type="url"
+                      inputMode="url"
+                      {...register("linkedinUrl")}
+                      className={
+                        "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
+                        (errors.linkedinUrl ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
+                      }
+                      placeholder="https://www.linkedin.com/in/..."
+                    />
+                    {errors.linkedinUrl ? <p className="mt-2 text-sm text-rose-700">{errors.linkedinUrl.message}</p> : null}
+                  </div>
+
+                  <div>
                     <label htmlFor="experience" className="block text-sm font-medium text-gray-700 mb-2">
                       Experience (optional)
                     </label>
@@ -313,7 +342,7 @@ export function Careers() {
                     </div>
                     <div>
                       <label htmlFor="resumeFile" className="block text-sm font-medium text-gray-700 mb-2">
-                        Resume (optional)
+                        Resume *
                       </label>
                       <input
                         id="resumeFile"
@@ -327,6 +356,23 @@ export function Careers() {
                       />
                       {errors.resumeFile ? <p className="mt-2 text-sm text-rose-700">{String(errors.resumeFile.message ?? "Invalid file")}</p> : null}
                     </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="whyHireYou" className="block text-sm font-medium text-gray-700 mb-2">
+                      Why should we hire you? *
+                    </label>
+                    <textarea
+                      id="whyHireYou"
+                      rows={4}
+                      {...register("whyHireYou")}
+                      className={
+                        "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 resize-y " +
+                        (errors.whyHireYou ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
+                      }
+                      placeholder="Tell us in 2-4 lines"
+                    />
+                    {errors.whyHireYou ? <p className="mt-2 text-sm text-rose-700">{errors.whyHireYou.message}</p> : null}
                   </div>
 
                   <div>

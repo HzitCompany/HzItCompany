@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 
 import { Seo } from "../components/Seo";
 import { useAuth } from "../auth/AuthProvider";
@@ -42,63 +43,88 @@ export function Submissions() {
   }, [token]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Seo title="My Submissions" description="View your recent submissions." path="/submissions" />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 font-poppins">My Submissions</h1>
-          <p className="mt-2 text-gray-600">Contact, hire, and career requests you’ve sent.</p>
+      {/* Hero */}
+      <section className="relative pt-32 pb-16 bg-gradient-to-br from-blue-900 via-blue-800 to-gray-900 text-white overflow-hidden">
+        <div className="absolute inset-0">
+          <motion.div
+            animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
+            transition={{ duration: 20, repeat: Infinity }}
+            className="absolute top-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"
+          />
+          <motion.div
+            animate={{ scale: [1.2, 1, 1.2], rotate: [90, 0, 90] }}
+            transition={{ duration: 16, repeat: Infinity }}
+            className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl"
+          />
         </div>
 
-        <div className="mt-8 bg-white rounded-2xl border border-gray-200 overflow-hidden">
-          {error ? (
-            <div className="p-6 text-sm text-rose-700 bg-rose-50 border-b border-rose-100">{error}</div>
-          ) : null}
+        <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+            <h1 className="text-5xl md:text-6xl font-bold mb-4 font-poppins">My Submissions</h1>
+            <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto">
+              Contact, hire, and career requests you’ve sent.
+            </p>
+          </motion.div>
+        </div>
+      </section>
 
-          {loading ? (
-            <div className="p-6 text-gray-700">Loading…</div>
-          ) : items.length === 0 ? (
-            <div className="p-6 text-gray-700">No submissions yet.</div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {items.map((item) => {
-                const data = (item.data ?? {}) as any;
-                const title =
-                  item.type === "contact"
-                    ? data.subject || "Contact"
-                    : item.type === "hire"
-                      ? data.projectName || "Hire Us"
-                      : data.role || "Career";
+      {/* Content */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xl">
+              {error ? (
+                <div className="p-6 text-sm text-rose-700 bg-rose-50 border-b border-rose-100">{error}</div>
+              ) : null}
 
-                const subtitle =
-                  item.type === "contact"
-                    ? data.email
-                    : item.type === "hire"
-                      ? data.budget
-                      : data.email;
+              {loading ? (
+                <div className="p-6 text-gray-700">Loading…</div>
+              ) : items.length === 0 ? (
+                <div className="p-6 text-gray-700">No submissions yet.</div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {items.map((item) => {
+                    const data = (item.data ?? {}) as any;
+                    const title =
+                      item.type === "contact"
+                        ? data.subject || "Contact"
+                        : item.type === "hire"
+                          ? data.projectName || "Hire Us"
+                          : data.role || "Career";
 
-                return (
-                  <div key={item.id} className="p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                      <div>
-                        <div className="text-sm font-semibold text-gray-900">
-                          {String(title || item.type)}
-                        </div>
-                        <div className="mt-1 text-xs text-gray-600">
-                          {String(item.type).toUpperCase()} • {formatDate(item.created_at)}
-                          {subtitle ? ` • ${String(subtitle)}` : ""}
+                    const subtitle =
+                      item.type === "contact"
+                        ? data.email
+                        : item.type === "hire"
+                          ? data.budget
+                          : data.email;
+
+                    return (
+                      <div key={item.id} className="p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900">
+                              {String(title || item.type)}
+                            </div>
+                            <div className="mt-1 text-xs text-gray-600">
+                              {String(item.type).toUpperCase()} • {formatDate(item.created_at)}
+                              {subtitle ? ` • ${String(subtitle)}` : ""}
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-500">#{item.id}</div>
                         </div>
                       </div>
-                      <div className="text-xs text-gray-500">#{item.id}</div>
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
+          </motion.div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
