@@ -10,6 +10,7 @@ export const invoiceRouter = Router();
 invoiceRouter.get("/invoice/:orderId", requireAuth, async (req: AuthedRequest, res, next) => {
   try {
     if (!req.user) throw new HttpError(401, "Unauthorized", true);
+    if (!req.user.email && req.user.role !== "admin") throw new HttpError(401, "Unauthorized", true);
 
     const orderId = Number(req.params.orderId);
     if (!Number.isFinite(orderId) || orderId <= 0) throw new HttpError(400, "Invalid order id", true);
@@ -31,7 +32,7 @@ invoiceRouter.get("/invoice/:orderId", requireAuth, async (req: AuthedRequest, r
     const order = rows[0];
     if (!order) throw new HttpError(404, "Order not found", true);
 
-    const isOwner = order.email.toLowerCase() === req.user.email.toLowerCase();
+    const isOwner = !!req.user.email && order.email.toLowerCase() === req.user.email.toLowerCase();
     const isAdmin = req.user.role === "admin";
     if (!isOwner && !isAdmin) throw new HttpError(403, "Forbidden", true);
 

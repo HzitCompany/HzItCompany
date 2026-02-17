@@ -3,6 +3,8 @@ import { Link, useLocation } from "react-router";
 import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import logoImage from "@/assets/d02f6d670ee484ccb5b3f98463b90941b5d1ead6.png";
+import { useAuth } from "../auth/AuthProvider";
+import { useAuthGuard } from "../auth/useAuthGuard";
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -19,14 +21,17 @@ export function Navbar() {
       { name: "About", path: "/about" },
       { name: "Services", path: "/services" },
       { name: "Portfolio", path: "/portfolio" },
-      { name: "Contact", path: "/contact" },
-      { name: "Careers", path: "/careers" },
-      { name: "Admin", path: "/admin/login" },
+      { name: "Contact", path: "/contact", protected: true },
+      { name: "Careers", path: "/careers", protected: true },
     ],
     []
   );
 
   const activePath = location.pathname;
+
+  const { user, isAuthed, logout } = useAuth();
+  const { guardNavigate } = useAuthGuard();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   useEffect(() => {
     let lastScrolled = window.scrollY > 8;
@@ -79,6 +84,7 @@ export function Navbar() {
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    setIsProfileOpen(false);
     window.requestAnimationFrame(() => setIsScrolled(window.scrollY > 8));
   }, [location.pathname]);
 
@@ -180,29 +186,111 @@ export function Navbar() {
 
               {/* Desktop Navigation */}
               <div className="hidden md:flex items-center space-x-8">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    className={
-                      "relative text-sm font-medium transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white/60 " +
-                      (activePath === link.path
-                        ? "text-blue-800"
-                        : "text-gray-900/80 hover:text-blue-800")
-                    }
-                  >
-                    {link.name}
-                    {activePath === link.path && (
-                      <motion.div
-                        layoutId="navbar-indicator"
-                        className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full bg-blue-700"
-                        transition={{ type: "spring", stiffness: 520, damping: 38, mass: 0.6 }}
-                      />
-                    )}
-                  </Link>
-                ))}
+                {navLinks.map((link) =>
+                  link.protected ? (
+                    <button
+                      key={link.path}
+                      type="button"
+                      onClick={() => guardNavigate(link.path)}
+                      className={
+                        "relative text-sm font-medium transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white/60 " +
+                        (activePath === link.path
+                          ? "text-blue-800"
+                          : "text-gray-900/80 hover:text-blue-800")
+                      }
+                    >
+                      {link.name}
+                      {activePath === link.path && (
+                        <motion.div
+                          layoutId="navbar-indicator"
+                          className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full bg-blue-700"
+                          transition={{ type: "spring", stiffness: 520, damping: 38, mass: 0.6 }}
+                        />
+                      )}
+                    </button>
+                  ) : (
+                    <Link
+                      key={link.path}
+                      to={link.path}
+                      className={
+                        "relative text-sm font-medium transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white/60 " +
+                        (activePath === link.path
+                          ? "text-blue-800"
+                          : "text-gray-900/80 hover:text-blue-800")
+                      }
+                    >
+                      {link.name}
+                      {activePath === link.path && (
+                        <motion.div
+                          layoutId="navbar-indicator"
+                          className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full bg-blue-700"
+                          transition={{ type: "spring", stiffness: 520, damping: 38, mass: 0.6 }}
+                        />
+                      )}
+                    </Link>
+                  )
+                )}
+
+                {isAuthed ? (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsProfileOpen((v) => !v)}
+                      className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white/60 hover:bg-white/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white/60"
+                      aria-label="Profile"
+                    >
+                      <span className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-white inline-flex items-center justify-center font-bold">
+                        {(user?.name?.trim()?.[0] ?? user?.email?.trim()?.[0] ?? "U").toUpperCase()}
+                      </span>
+                    </button>
+
+                    <AnimatePresence>
+                      {isProfileOpen ? (
+                        <motion.div
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 8 }}
+                          transition={{ duration: 0.14 }}
+                          className="absolute right-0 mt-2 w-56 rounded-2xl border border-gray-200 bg-white shadow-xl overflow-hidden"
+                        >
+                          <div className="px-4 py-3 border-b border-gray-100">
+                            <div className="text-sm font-semibold text-gray-900">{user?.name ?? "My Account"}</div>
+                            <div className="text-xs text-gray-600 truncate">{user?.phone ?? user?.email ?? ""}</div>
+                          </div>
+
+                          <button
+                            type="button"
+                            className="w-full text-left px-4 py-3 text-sm text-gray-900 hover:bg-gray-50"
+                            onClick={() => guardNavigate("/profile")}
+                          >
+                            My Profile
+                          </button>
+                          <button
+                            type="button"
+                            className="w-full text-left px-4 py-3 text-sm text-gray-900 hover:bg-gray-50"
+                            onClick={() => guardNavigate("/submissions")}
+                          >
+                            My Submissions
+                          </button>
+                          <button
+                            type="button"
+                            className="w-full text-left px-4 py-3 text-sm text-rose-700 hover:bg-rose-50"
+                            onClick={() => logout()}
+                          >
+                            Logout
+                          </button>
+                        </motion.div>
+                      ) : null}
+                    </AnimatePresence>
+                  </div>
+                ) : null}
+
                 <Link
-                  to="/hire-us"
+                  to="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    guardNavigate("/hire-us");
+                  }}
                   className="min-h-11 inline-flex items-center justify-center px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl shadow-sm hover:shadow-lg hover:scale-[1.03] transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white/60"
                 >
                   Hire Us

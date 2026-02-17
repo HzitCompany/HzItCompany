@@ -140,6 +140,7 @@ ordersRouter.post("/payments/verify", async (req, res, next) => {
 ordersRouter.get("/portal/orders", requireAuth, async (req: AuthedRequest, res, next) => {
   try {
     if (!req.user) throw new HttpError(401, "Unauthorized", true);
+    if (!req.user.email) throw new HttpError(401, "Unauthorized", true);
 
     const rows = await query(
       "select id, created_at, service_name, plan_name, price_inr, payment_status, project_status from orders where email = $1 order by created_at desc",

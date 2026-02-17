@@ -6,11 +6,15 @@ import { env } from "./env.js";
 
 export type AuthRole = "client" | "admin";
 
+export type AuthProvider = "password" | "otp";
+
 export type AuthTokenPayload = {
   sub: string;
-  email: string;
+  email?: string;
   role: AuthRole;
   name?: string;
+  phone?: string;
+  provider?: AuthProvider;
 };
 
 export function hashPassword(plain: string) {

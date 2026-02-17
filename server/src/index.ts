@@ -10,6 +10,8 @@ import { otpRouter } from "./routes/otp.js";
 import { ordersRouter } from "./routes/orders.js";
 import { invoiceRouter } from "./routes/invoice.js";
 import { adminRouter } from "./routes/admin.js";
+import { meRouter } from "./routes/me.js";
+import { submissionsRouter } from "./routes/submissions.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
 
 function isAddrInUseError(err: unknown) {
@@ -56,6 +58,8 @@ async function main() {
   // Existing platform endpoints
   app.use("/api", authRouter);
   app.use("/api/auth/otp", otpRouter);
+  app.use("/api", meRouter);
+  app.use("/api", submissionsRouter);
   app.use("/api", ordersRouter);
   app.use("/api", invoiceRouter);
   app.use("/api", adminRouter);

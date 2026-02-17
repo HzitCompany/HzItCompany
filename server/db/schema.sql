@@ -88,15 +88,58 @@ create table if not exists users (
   id bigserial primary key,
   created_at timestamptz not null default now(),
 
-  name text not null,
-  email text not null unique,
+  name text null,
+  email text null,
   phone text null,
 
   is_verified boolean not null default false,
   password_hash text null
 );
 
+-- Allow nullable emails while keeping uniqueness for non-null emails.
+do $$
+begin
+  -- If the legacy unique constraint exists, drop it and replace with a partial unique index.
+  if exists (
+    select 1
+    from pg_constraint
+    where conname = 'users_email_key'
+  ) then
+    alter table users drop constraint users_email_key;
+  end if;
+exception
+  when undefined_table then
+    -- ignore
+end $$;
+
+create unique index if not exists idx_users_email_unique_not_null on users (email) where email is not null;
+
 create unique index if not exists idx_users_phone_unique on users (phone) where phone is not null;
+
+-- Sessions (hashed JWT) for OTP-authenticated flows.
+create table if not exists sessions (
+  id bigserial primary key,
+  created_at timestamptz not null default now(),
+  user_id bigint not null references users(id) on delete cascade,
+  token_hash text not null unique,
+  expires_at timestamptz not null,
+  revoked_at timestamptz null
+);
+
+create index if not exists idx_sessions_user_expires on sessions (user_id, expires_at desc);
+create index if not exists idx_sessions_expires on sessions (expires_at desc);
+
+-- Unified submissions
+create table if not exists submissions (
+  id bigserial primary key,
+  created_at timestamptz not null default now(),
+  user_id bigint not null references users(id) on delete cascade,
+  type text not null check (type in ('contact','hire','career')),
+  data jsonb not null
+);
+
+create index if not exists idx_submissions_user_created_at on submissions (user_id, created_at desc);
+create index if not exists idx_submissions_type_created_at on submissions (type, created_at desc);
 
 -- OTP codes
 create table if not exists otp_codes (
@@ -104,6 +147,8 @@ create table if not exists otp_codes (
   created_at timestamptz not null default now(),
 
   user_id bigint not null references users(id) on delete cascade,
+  channel text not null default 'sms' check (channel in ('sms','email')),
+  destination text null,
   otp_hash text not null,
   otp_salt text not null,
   expires_at timestamptz not null,
@@ -111,6 +156,7 @@ create table if not exists otp_codes (
 );
 
 create index if not exists idx_otp_user_expires on otp_codes (user_id, expires_at desc);
+create index if not exists idx_otp_user_channel_expires on otp_codes (user_id, channel, expires_at desc);
 
 -- Clients
 create table if not exists clients (
