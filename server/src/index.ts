@@ -28,25 +28,47 @@ function resolveListenPort() {
 
 async function main() {
   await initDb();
-  await ensureSchemaOrThrow();
-
   const app = createApp();
 
-  // Required mounts (frontend calls these exact endpoints)
-  app.use("/api/pricing", pricingRoutes);
-  app.use("/api/contact", contactRoutes);
-  app.use("/api/hire-us", hireUsRoutes);
+  // Always expose schema diagnostics (even if migrations are missing).
   app.use("/api/schema", schemaStatusRouter);
 
-  // Existing platform endpoints
-  app.use("/api", authRouter);
-  app.use("/api/auth/otp", otpRouter);
-  app.use("/api", meRouter);
-  app.use("/api", submissionsRouter);
-  app.use("/api/careers", careersRouter);
-  app.use("/api", ordersRouter);
-  app.use("/api", invoiceRouter);
-  app.use("/api", adminRouter);
+  let schemaReady = true;
+  try {
+    await ensureSchemaOrThrow();
+  } catch (err) {
+    schemaReady = false;
+    logger.error(
+      { err },
+      "Database schema missing; starting in diagnostics-only mode (apply server/db/schema.sql)"
+    );
+  }
+
+  if (schemaReady) {
+    // Required mounts (frontend calls these exact endpoints)
+    app.use("/api/pricing", pricingRoutes);
+    app.use("/api/contact", contactRoutes);
+    app.use("/api/hire-us", hireUsRoutes);
+
+    // Existing platform endpoints
+    app.use("/api", authRouter);
+    app.use("/api/auth/otp", otpRouter);
+    app.use("/api", meRouter);
+    app.use("/api", submissionsRouter);
+    app.use("/api/careers", careersRouter);
+    app.use("/api", ordersRouter);
+    app.use("/api", invoiceRouter);
+    app.use("/api", adminRouter);
+  } else {
+    // Avoid crash loops on platforms like Render.
+    // Keep /api/health and /api/schema working; everything else returns 503.
+    app.use("/api", (_req, res) => {
+      return res.status(503).json({
+        ok: false,
+        error: "Database schema is missing or out of date. Apply server/db/schema.sql and redeploy."
+      });
+    });
+  }
 
   app.use(notFound);
   app.use(errorHandler);

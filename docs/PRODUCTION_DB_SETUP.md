@@ -72,3 +72,12 @@ If schema is missing/out-of-date (HTTP `503`):
 ```json
 { "ok": false, "missing": ["users", "submissions"] }
 ```
+
+## 6) If Render crashes on deploy
+
+The backend now starts in a **diagnostics-only** mode when core tables are missing.
+
+- `/api/health` and `/api/schema` still work.
+- All other `/api/*` endpoints return `503` until you apply `server/db/schema.sql`.
+
+This prevents crash-loops and makes it obvious which table is missing.
