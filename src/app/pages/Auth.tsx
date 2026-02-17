@@ -7,7 +7,7 @@ import { z } from "zod";
 
 import { Seo } from "../components/Seo";
 import { requestOtp, verifyOtp } from "../services/otpService";
-import { setSession } from "../auth/session";
+import { useAuth } from "../auth/AuthProvider";
 
 const requestSchema = z
   .object({
@@ -31,6 +31,7 @@ type Step = "request" | "verify";
 
 export function Auth() {
   const navigate = useNavigate();
+  const { onOtpVerified } = useAuth();
 
   const [step, setStep] = useState<Step>("request");
   const [phoneForVerify, setPhoneForVerify] = useState<string>("");
@@ -90,7 +91,7 @@ export function Auth() {
 
     try {
       const r = await verifyOtp({ phone: phoneForVerify, otp: values.otp.trim() });
-      setSession(r.token, "client");
+      await onOtpVerified(r.token);
       navigate("/portal");
     } catch (e: any) {
       setStatus({ kind: "error", message: e?.message ?? "OTP verification failed" });

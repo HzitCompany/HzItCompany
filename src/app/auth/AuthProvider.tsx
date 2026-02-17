@@ -87,10 +87,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const onOtpVerified = useCallback(
     async (newToken: string) => {
-      setSession(newToken, "client");
       setToken(newToken);
-      setRole("client");
-      await refreshMe(newToken);
+      const me = await getJson<MeResponse>("/api/me", { token: newToken });
+      setUser(me.user);
+      setRole(me.user.role);
+      setSession(newToken, me.user.role);
 
       setIsAuthModalOpen(false);
 
@@ -100,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         navigate(target);
       }
     },
-    [location.pathname, navigate, refreshMe]
+    [location.pathname, navigate]
   );
 
   const logout = useCallback(() => {

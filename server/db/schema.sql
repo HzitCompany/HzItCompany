@@ -1,8 +1,30 @@
 -- HZ IT Company lead capture schema (Postgres)
 
 -- Spec-required tables
-drop view if exists contact_messages;
-drop view if exists hire_requests;
+do $$
+begin
+  if exists (
+    select 1
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public'
+      and c.relname = 'contact_messages'
+      and c.relkind = 'v'
+  ) then
+    execute 'drop view if exists public.contact_messages';
+  end if;
+
+  if exists (
+    select 1
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public'
+      and c.relname = 'hire_requests'
+      and c.relkind = 'v'
+  ) then
+    execute 'drop view if exists public.hire_requests';
+  end if;
+end $$;
 
 create table if not exists contact_messages (
   id serial primary key,

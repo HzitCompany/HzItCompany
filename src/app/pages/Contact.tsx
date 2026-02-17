@@ -6,11 +6,13 @@ import { Seo } from "../components/Seo";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { contactSchema, type ContactFormValues } from "../schemas/contactSchema";
-import { submitContact } from "../services/contactService";
+import { submitContactAuthed } from "../services/contactService";
 import { trackEvent } from "../analytics/track";
 import { siteConfig } from "../config/site";
+import { useAuth } from "../auth/AuthProvider";
 
 export function Contact() {
+  const { token } = useAuth();
   const [submitState, setSubmitState] = useState<{
     status: "idle" | "loading" | "success" | "error";
     message?: string;
@@ -56,7 +58,9 @@ export function Contact() {
     }
 
     try {
-      await submitContact({
+      if (!token) throw new Error("Please verify first.");
+
+      await submitContactAuthed(token, {
         name: values.name,
         email: values.email,
         phone: values.phone || undefined,

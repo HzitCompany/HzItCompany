@@ -1,4 +1,4 @@
-import { getJson, postJson } from "./apiClient";
+import { deleteJson, getJson, postJson } from "./apiClient";
 
 export type PricingItem = {
   id: number;
@@ -76,4 +76,20 @@ export async function fetchAdminContactLeads(token: string) {
 
 export async function fetchAdminHireLeads(token: string) {
   return getJson<{ ok: true; items: any[] }>("/api/admin/leads/hire", { token });
+}
+
+export async function fetchAdminSubmissions(
+  token: string,
+  opts?: { type?: "contact" | "hire" | "career"; q?: string; limit?: number }
+) {
+  const params = new URLSearchParams();
+  if (opts?.type) params.set("type", opts.type);
+  if (opts?.q) params.set("q", opts.q);
+  if (typeof opts?.limit === "number") params.set("limit", String(opts.limit));
+  const q = params.toString();
+  return getJson<{ ok: true; items: any[] }>(`/api/admin/submissions${q ? `?${q}` : ""}`, { token });
+}
+
+export async function deleteAdminSubmission(token: string, id: number) {
+  return deleteJson<{ ok: true }>(`/api/admin/submissions/${id}`, { token });
 }

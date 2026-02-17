@@ -4,6 +4,7 @@ import { z } from "zod";
 import { query } from "../lib/db.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errorHandler.js";
+import { sendAdminSubmissionEmail, sendUserSubmissionEmail } from "../lib/email/resend.js";
 
 export const submissionsRouter = Router();
 
@@ -59,6 +60,24 @@ submissionsRouter.post("/submissions", requireAuth, async (req: AuthedRequest, r
       "insert into submissions (user_id, type, data) values ($1,$2,$3) returning id, created_at",
       [userId, parsed.data.type, parsed.data.data]
     );
+
+    const createdId = inserted[0]?.id;
+    const createdAt = inserted[0]?.created_at;
+    const userEmail = maybeEmail ?? req.user.email ?? null;
+    const userPhone = req.user.phone ?? null;
+
+    void sendAdminSubmissionEmail({
+      submissionType: parsed.data.type,
+      submissionId: createdId,
+      createdAt,
+      userEmail,
+      userPhone,
+      data: parsed.data.data
+    }).catch(() => undefined);
+
+    if (userEmail) {
+      void sendUserSubmissionEmail({ to: userEmail, submissionType: parsed.data.type }).catch(() => undefined);
+    }
 
     return res.json({ ok: true, id: inserted[0]?.id, createdAt: inserted[0]?.created_at });
   } catch (err) {

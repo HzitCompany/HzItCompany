@@ -10,10 +10,12 @@ import {
   fetchAdminOrders,
   fetchAdminPricing,
   fetchAdminSummary,
+  fetchAdminSubmissions,
   upsertAdminPricing,
+  deleteAdminSubmission,
 } from "../services/platformService";
 
-type Tab = "summary" | "orders" | "pricing" | "leads";
+type Tab = "summary" | "orders" | "pricing" | "leads" | "submissions";
 
 export function AdminDashboard() {
   const token = getSessionToken();
@@ -40,6 +42,10 @@ export function AdminDashboard() {
 
   const [contactLeads, setContactLeads] = useState<any[]>([]);
   const [hireLeads, setHireLeads] = useState<any[]>([]);
+
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [submissionSearch, setSubmissionSearch] = useState("");
+  const [submissionType, setSubmissionType] = useState<"all" | "contact" | "hire" | "career">("all");
 
   const [loading, setLoading] = useState(false);
 
@@ -74,12 +80,20 @@ export function AdminDashboard() {
         setContactLeads(c.items);
         setHireLeads(h.items);
       }
+      if (tab === "submissions") {
+        const r = await fetchAdminSubmissions(token, {
+          q: submissionSearch,
+          type: submissionType === "all" ? undefined : submissionType,
+          limit: 200,
+        });
+        setSubmissions(r.items);
+      }
     };
 
     load()
       .catch((e: any) => setError(e?.message ?? "Failed to load"))
       .finally(() => setLoading(false));
-  }, [token, role, tab, orderSearch]);
+  }, [token, role, tab, orderSearch, submissionSearch, submissionType]);
 
   const filteredOrders = useMemo(() => {
     const q = orderSearch.trim().toLowerCase();
@@ -192,6 +206,9 @@ export function AdminDashboard() {
                 <button className={`text-left rounded-lg px-3 py-2 ${tab === "leads" ? "bg-gray-900 text-white" : "hover:bg-gray-50"}`} onClick={() => setTab("leads")}>
                   Leads
                 </button>
+                <button className={`text-left rounded-lg px-3 py-2 ${tab === "submissions" ? "bg-gray-900 text-white" : "hover:bg-gray-50"}`} onClick={() => setTab("submissions")}>
+                  Submissions
+                </button>
               </nav>
               <button onClick={logout} className="mt-6 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-700 hover:bg-gray-50">
                 Logout
@@ -202,7 +219,15 @@ export function AdminDashboard() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900 font-poppins">
-                    {tab === "summary" ? "Dashboard" : tab === "orders" ? "Orders" : tab === "pricing" ? "Pricing" : "Leads"}
+                    {tab === "summary"
+                      ? "Dashboard"
+                      : tab === "orders"
+                        ? "Orders"
+                        : tab === "pricing"
+                          ? "Pricing"
+                          : tab === "leads"
+                            ? "Leads"
+                            : "Submissions"}
                   </h1>
                   <p className="mt-1 text-gray-600">Manage the IT services platform.</p>
                 </div>
@@ -369,6 +394,92 @@ export function AdminDashboard() {
                         </tbody>
                       </table>
                     </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {tab === "submissions" ? (
+                <div className="mt-6">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+                    <input
+                      className="w-full sm:max-w-sm rounded-lg border border-gray-300 px-3 py-2"
+                      placeholder="Search submissions…"
+                      value={submissionSearch}
+                      onChange={(e) => setSubmissionSearch(e.target.value)}
+                    />
+                    <select
+                      className="w-full sm:w-auto rounded-lg border border-gray-300 px-3 py-2"
+                      aria-label="Submission type"
+                      value={submissionType}
+                      onChange={(e) => setSubmissionType(e.target.value as any)}
+                    >
+                      <option value="all">All types</option>
+                      <option value="contact">Contact</option>
+                      <option value="hire">Hire</option>
+                      <option value="career">Career</option>
+                    </select>
+                  </div>
+
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead className="text-left text-gray-600">
+                        <tr>
+                          <th className="py-2">ID</th>
+                          <th className="py-2">Type</th>
+                          <th className="py-2">Created</th>
+                          <th className="py-2">User</th>
+                          <th className="py-2">Summary</th>
+                          <th className="py-2">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {submissions.map((s) => {
+                          const data = (s.data ?? {}) as any;
+                          const summary =
+                            s.type === "contact"
+                              ? data.subject
+                              : s.type === "hire"
+                                ? data.projectName
+                                : data.role;
+
+                          return (
+                            <tr key={s.id} className="border-t border-gray-100">
+                              <td className="py-3 font-medium text-gray-900">#{s.id}</td>
+                              <td className="py-3 text-gray-800">{String(s.type)}</td>
+                              <td className="py-3 text-gray-800">{String(s.created_at ?? "")}</td>
+                              <td className="py-3 text-gray-800">{String(s.user_email ?? "—")} • {String(s.user_phone ?? "—")}</td>
+                              <td className="py-3 text-gray-800">{summary ? String(summary) : "—"}</td>
+                              <td className="py-3">
+                                <button
+                                  className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-rose-700 hover:bg-rose-100"
+                                  onClick={async () => {
+                                    if (!token) return;
+                                    if (!confirm("Delete this submission?")) return;
+                                    setError(null);
+                                    setLoading(true);
+                                    try {
+                                      await deleteAdminSubmission(token, Number(s.id));
+                                      const r = await fetchAdminSubmissions(token, {
+                                        q: submissionSearch,
+                                        type: submissionType === "all" ? undefined : submissionType,
+                                        limit: 200,
+                                      });
+                                      setSubmissions(r.items);
+                                    } catch (e: any) {
+                                      setError(e?.message ?? "Failed to delete");
+                                    } finally {
+                                      setLoading(false);
+                                    }
+                                  }}
+                                >
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               ) : null}

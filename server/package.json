@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "db:schema": "tsx src/scripts/applySchema.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "lint": "node -e \"console.log('No linter configured')\""

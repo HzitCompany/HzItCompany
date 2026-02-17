@@ -341,6 +341,35 @@ export function Navbar() {
                   <div className="space-y-1">
                     {navLinks.map((link) => {
                       const isActive = activePath === link.path;
+                      if (link.protected) {
+                        return (
+                          <button
+                            key={link.path}
+                            type="button"
+                            onClick={() => {
+                              setIsMobileMenuOpen(false);
+                              guardNavigate(link.path);
+                            }}
+                            className={
+                              "min-h-11 w-full px-3 rounded-xl flex items-center text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white/60 " +
+                              (isActive
+                                ? "bg-blue-50 text-blue-800"
+                                : "text-gray-900 hover:bg-gray-50")
+                            }
+                          >
+                            <span className="flex-1 text-left">{link.name}</span>
+                            {isActive ? (
+                              <motion.span
+                                layoutId="mobile-active-dot"
+                                className="h-2 w-2 rounded-full bg-blue-700"
+                                transition={{ type: "spring", stiffness: 520, damping: 40, mass: 0.6 }}
+                              />
+                            ) : (
+                              <span className="h-2 w-2 rounded-full bg-transparent" />
+                            )}
+                          </button>
+                        );
+                      }
                       return (
                         <Link
                           key={link.path}
@@ -369,13 +398,16 @@ export function Navbar() {
                   </div>
 
                   <div className="pt-4">
-                    <Link
-                      to="/hire-us"
-                      onClick={() => setIsMobileMenuOpen(false)}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        guardNavigate("/hire-us");
+                      }}
                       className="min-h-11 w-full inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-center shadow-sm hover:shadow-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white/60"
                     >
                       Hire Us
-                    </Link>
+                    </button>
                   </div>
 
                   <button

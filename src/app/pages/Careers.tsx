@@ -1,8 +1,21 @@
 import { Seo } from "../components/Seo";
 import { siteConfig } from "../config/site";
 import { motion } from "motion/react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { careerSchema, type CareerFormValues } from "../schemas/careerSchema";
+import { submitCareerAuthed } from "../services/contactService";
+import { useAuth } from "../auth/AuthProvider";
+import { trackEvent } from "../analytics/track";
 
 export function Careers() {
+  const { token } = useAuth();
+  const [submitState, setSubmitState] = useState<{
+    status: "idle" | "loading" | "success" | "error";
+    message?: string;
+  }>({ status: "idle" });
+
   const email = siteConfig.contact.email;
   const phoneDigits = siteConfig.contact.phone.replace(/\D/g, "");
   const whatsappDigitsRaw = siteConfig.contact.whatsapp.replace(/\D/g, "");
@@ -19,6 +32,67 @@ export function Careers() {
   const whatsappHref = `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(
     "Hi HZ IT Company, I want to apply for a job. Please share next steps."
   )}`;
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<CareerFormValues>({
+    resolver: zodResolver(careerSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      role: "",
+      experience: "",
+      portfolioUrl: "",
+      resumeUrl: "",
+      message: "",
+      companyWebsite: "",
+    },
+    mode: "onTouched",
+  });
+
+  const onSubmit = async (values: CareerFormValues) => {
+    setSubmitState({ status: "loading" });
+
+    if (values.companyWebsite && values.companyWebsite.trim().length > 0) {
+      setSubmitState({ status: "success", message: "Thanks — we’ll get back to you shortly." });
+      trackEvent("career_submit", { result: "honeypot" });
+      reset();
+      return;
+    }
+
+    try {
+      if (!token) throw new Error("Please verify first.");
+
+      await submitCareerAuthed(token, {
+        name: values.name,
+        email: values.email,
+        phone: values.phone,
+        role: values.role,
+        experience: values.experience || undefined,
+        portfolioUrl: values.portfolioUrl || undefined,
+        resumeUrl: values.resumeUrl || undefined,
+        message: values.message || undefined,
+        honeypot: values.companyWebsite || undefined,
+      });
+
+      setSubmitState({
+        status: "success",
+        message: "Application received. We’ll contact you soon with next steps.",
+      });
+      trackEvent("career_submit", { result: "success" });
+      reset();
+    } catch (e: any) {
+      setSubmitState({
+        status: "error",
+        message: typeof e?.message === "string" ? e.message : "Something went wrong. Please try again.",
+      });
+      trackEvent("career_submit", { result: "error" });
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -83,39 +157,208 @@ export function Careers() {
             </motion.div>
 
             <motion.div initial={{ opacity: 0, x: 24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
-              <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-200">
-                <h2 className="text-2xl font-bold text-gray-900 font-poppins">How to apply</h2>
-                <p className="mt-3 text-gray-600">Send your resume/CV and a short message about the role you want.</p>
+              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-gray-200">
+                <h2 className="text-2xl font-bold text-gray-900 font-poppins">Application form</h2>
+                <p className="mt-2 text-gray-600">Fill this like a quick Google Form — we’ll reach out soon.</p>
 
-                <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                  <a
-                    href={mailtoHref}
-                    className="min-h-11 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+                {submitState.status !== "idle" ? (
+                  <div
+                    className={
+                      "mt-6 rounded-xl px-4 py-3 text-sm border " +
+                      (submitState.status === "success"
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                        : submitState.status === "error"
+                          ? "bg-rose-50 border-rose-200 text-rose-900"
+                          : "bg-gray-50 border-gray-200 text-gray-800")
+                    }
+                    role="status"
+                    aria-live="polite"
                   >
-                    Apply via Email
-                  </a>
-                  <a
-                    href={whatsappHref}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="min-h-11 inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50"
+                    {submitState.message ?? (submitState.status === "loading" ? "Submitting…" : "")}
+                  </div>
+                ) : null}
+
+                <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5" noValidate>
+                  <div className="sr-only" aria-hidden="true">
+                    <label htmlFor="companyWebsite">Company Website</label>
+                    <input id="companyWebsite" type="text" tabIndex={-1} autoComplete="off" {...register("companyWebsite")} />
+                  </div>
+
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                      Full name *
+                    </label>
+                    <input
+                      id="name"
+                      type="text"
+                      autoComplete="name"
+                      {...register("name")}
+                      className={
+                        "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
+                        (errors.name ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
+                      }
+                      placeholder="Your name"
+                    />
+                    {errors.name ? <p className="mt-2 text-sm text-rose-700">{errors.name.message}</p> : null}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                        Email *
+                      </label>
+                      <input
+                        id="email"
+                        type="email"
+                        inputMode="email"
+                        autoComplete="email"
+                        {...register("email")}
+                        className={
+                          "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
+                          (errors.email ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
+                        }
+                        placeholder="you@example.com"
+                      />
+                      {errors.email ? <p className="mt-2 text-sm text-rose-700">{errors.email.message}</p> : null}
+                    </div>
+                    <div>
+                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone *
+                      </label>
+                      <input
+                        id="phone"
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        {...register("phone")}
+                        className={
+                          "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
+                          (errors.phone ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
+                        }
+                        placeholder={siteConfig.contact.phone}
+                      />
+                      {errors.phone ? <p className="mt-2 text-sm text-rose-700">{errors.phone.message}</p> : null}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
+                      Role you’re applying for *
+                    </label>
+                    <input
+                      id="role"
+                      type="text"
+                      {...register("role")}
+                      className={
+                        "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
+                        (errors.role ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
+                      }
+                      placeholder="Frontend Developer"
+                    />
+                    {errors.role ? <p className="mt-2 text-sm text-rose-700">{errors.role.message}</p> : null}
+                  </div>
+
+                  <div>
+                    <label htmlFor="experience" className="block text-sm font-medium text-gray-700 mb-2">
+                      Experience (optional)
+                    </label>
+                    <input
+                      id="experience"
+                      type="text"
+                      {...register("experience")}
+                      className={
+                        "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
+                        (errors.experience ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
+                      }
+                      placeholder="e.g., 2 years"
+                    />
+                    {errors.experience ? <p className="mt-2 text-sm text-rose-700">{errors.experience.message}</p> : null}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="portfolioUrl" className="block text-sm font-medium text-gray-700 mb-2">
+                        Portfolio URL (optional)
+                      </label>
+                      <input
+                        id="portfolioUrl"
+                        type="url"
+                        inputMode="url"
+                        {...register("portfolioUrl")}
+                        className={
+                          "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
+                          (errors.portfolioUrl ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
+                        }
+                        placeholder="https://..."
+                      />
+                      {errors.portfolioUrl ? (
+                        <p className="mt-2 text-sm text-rose-700">{errors.portfolioUrl.message}</p>
+                      ) : null}
+                    </div>
+                    <div>
+                      <label htmlFor="resumeUrl" className="block text-sm font-medium text-gray-700 mb-2">
+                        Resume URL (optional)
+                      </label>
+                      <input
+                        id="resumeUrl"
+                        type="url"
+                        inputMode="url"
+                        {...register("resumeUrl")}
+                        className={
+                          "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
+                          (errors.resumeUrl ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
+                        }
+                        placeholder="https://..."
+                      />
+                      {errors.resumeUrl ? <p className="mt-2 text-sm text-rose-700">{errors.resumeUrl.message}</p> : null}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+                      Message (optional)
+                    </label>
+                    <textarea
+                      id="message"
+                      rows={4}
+                      {...register("message")}
+                      className={
+                        "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 resize-y " +
+                        (errors.message ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
+                      }
+                      placeholder="A short note about you"
+                    />
+                    {errors.message ? <p className="mt-2 text-sm text-rose-700">{errors.message.message}</p> : null}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className={
+                      "min-h-11 w-full inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-lg hover:shadow-xl transition-all " +
+                      (isSubmitting ? "opacity-70 cursor-not-allowed" : "")
+                    }
                   >
-                    WhatsApp Us
-                  </a>
-                </div>
+                    Submit application
+                  </button>
+                </form>
 
                 <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-                  <div className="font-semibold text-gray-900">Contact</div>
-                  <div className="mt-1">
-                    Email: <a className="text-blue-700 hover:underline" href={`mailto:${email}`}>{email}</a>
-                  </div>
-                  <div>
-                    Phone:{" "}
+                  <div className="font-semibold text-gray-900">Prefer email or WhatsApp?</div>
+                  <div className="mt-2 flex flex-col sm:flex-row gap-3">
                     <a
-                      className="text-blue-700 hover:underline"
-                      href={phoneDigits.length === 10 ? `tel:+91${phoneDigits}` : phoneDigits ? `tel:+${phoneDigits}` : undefined}
+                      href={mailtoHref}
+                      className="min-h-11 inline-flex items-center justify-center rounded-xl bg-white border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50"
                     >
-                      {siteConfig.contact.phone}
+                      Apply via Email
+                    </a>
+                    <a
+                      href={whatsappHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="min-h-11 inline-flex items-center justify-center rounded-xl bg-white border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50"
+                    >
+                      WhatsApp Us
                     </a>
                   </div>
                 </div>

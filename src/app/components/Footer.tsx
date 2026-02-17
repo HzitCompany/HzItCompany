@@ -2,8 +2,10 @@ import { Link } from "react-router";
 import { Mail, Phone, MapPin, Linkedin, Twitter, Github } from "lucide-react";
 import logoImage from "@/assets/d02f6d670ee484ccb5b3f98463b90941b5d1ead6.png";
 import { siteConfig } from "@/app/config/site";
+import { useAuthGuard } from "../auth/useAuthGuard";
 
 export function Footer() {
+  const { guardNavigate } = useAuthGuard();
   const phoneDigits = siteConfig.contact.phone.replace(/\D/g, "");
   const telHref = phoneDigits.length === 10 ? `tel:+91${phoneDigits}` : `tel:+${phoneDigits}`;
   const addressText = [
@@ -76,20 +78,40 @@ export function Footer() {
               Quick Links
             </h4>
             <ul className="space-y-2">
-              {[
-                { label: "Home", to: "/" },
-                { label: "About", to: "/about" },
-                { label: "Services", to: "/services" },
-                { label: "Portfolio", to: "/portfolio" },
-                { label: "Careers", to: "/careers" },
-                { label: "Admin", to: "/admin/login" },
-              ].map((item) => (
-                <li key={item.to}>
-                  <Link to={item.to} className="text-gray-300 hover:text-blue-400 transition-colors text-sm">
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link to="/" className="text-gray-300 hover:text-blue-400 transition-colors text-sm">
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link to="/about" className="text-gray-300 hover:text-blue-400 transition-colors text-sm">
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link to="/services" className="text-gray-300 hover:text-blue-400 transition-colors text-sm">
+                  Services
+                </Link>
+              </li>
+              <li>
+                <Link to="/portfolio" className="text-gray-300 hover:text-blue-400 transition-colors text-sm">
+                  Portfolio
+                </Link>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => guardNavigate("/careers")}
+                  className="text-gray-300 hover:text-blue-400 transition-colors text-sm"
+                >
+                  Careers
+                </button>
+              </li>
+              <li>
+                <Link to="/admin/login" className="text-gray-300 hover:text-blue-400 transition-colors text-sm">
+                  Admin
+                </Link>
+              </li>
             </ul>
           </div>
 

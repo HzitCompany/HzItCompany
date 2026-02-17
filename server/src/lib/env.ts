@@ -17,7 +17,22 @@ const envSchema = z
 
   DATABASE_URL: z.string().url(),
 
+  // Dev helper: auto-apply db/schema.sql on startup if core tables are missing.
+  // Keep this disabled in production unless you explicitly want the server to run DDL.
+  DB_AUTO_SCHEMA: z
+    .preprocess(
+      (v) => (typeof v === "string" ? v.trim().toLowerCase() : v),
+      z.enum(["true", "false"]).optional()
+    )
+    .transform((v) => v === "true"),
+
   JWT_SECRET: z.string().min(32),
+
+  // Admin
+  ADMIN_EMAIL: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().email().optional()
+  ),
 
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),

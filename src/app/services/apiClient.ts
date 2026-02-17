@@ -5,7 +5,8 @@ export type ApiError = {
 };
 
 function getBaseUrl() {
-  const base = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
+  const envAny = (import.meta as any).env ?? {};
+  const base = (envAny.VITE_API_BASE_URL as string | undefined) ?? (envAny.VITE_API_URL as string | undefined);
   return base?.replace(/\/$/, "") ?? "";
 }
 
@@ -84,4 +85,8 @@ export async function postJson<TRequest extends Record<string, unknown>, TRespon
     signal: options?.signal,
     token: options?.token,
   });
+}
+
+export function deleteJson<TResponse>(path: string, options?: { signal?: AbortSignal; token?: string }) {
+  return requestJson<TResponse>("DELETE", path, { signal: options?.signal, token: options?.token });
 }

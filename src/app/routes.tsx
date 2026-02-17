@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router";
 import { Layout } from "./components/Layout";
+import { RequireAuth } from "./auth/RequireAuth";
 
 export const router = createBrowserRouter([
   {
@@ -24,15 +25,24 @@ export const router = createBrowserRouter([
       },
       {
         path: "contact",
-        lazy: async () => ({ Component: (await import("./pages/Contact")).Contact }),
+        lazy: async () => {
+          const { Contact } = await import("./pages/Contact");
+          return { Component: () => <RequireAuth><Contact /></RequireAuth> };
+        },
       },
       {
         path: "hire-us",
-        lazy: async () => ({ Component: (await import("./pages/HireUs")).HireUs }),
+        lazy: async () => {
+          const { HireUs } = await import("./pages/HireUs");
+          return { Component: () => <RequireAuth><HireUs /></RequireAuth> };
+        },
       },
       {
         path: "careers",
-        lazy: async () => ({ Component: (await import("./pages/Careers")).Careers }),
+        lazy: async () => {
+          const { Careers } = await import("./pages/Careers");
+          return { Component: () => <RequireAuth><Careers /></RequireAuth> };
+        },
       },
       {
         path: "checkout",
@@ -53,6 +63,20 @@ export const router = createBrowserRouter([
       {
         path: "portal",
         lazy: async () => ({ Component: (await import("./pages/PortalDashboard")).PortalDashboard }),
+      },
+      {
+        path: "profile",
+        lazy: async () => {
+          const { Profile } = await import("./pages/Profile");
+          return { Component: () => <RequireAuth><Profile /></RequireAuth> };
+        },
+      },
+      {
+        path: "submissions",
+        lazy: async () => {
+          const { Submissions } = await import("./pages/Submissions");
+          return { Component: () => <RequireAuth><Submissions /></RequireAuth> };
+        },
       },
       {
         path: "admin/login",

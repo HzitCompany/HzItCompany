@@ -15,10 +15,12 @@ import { Seo } from "../components/Seo";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { hireUsSchema, type HireUsFormValues } from "../schemas/hireUsSchema";
-import { submitHireUs } from "../services/contactService";
+import { submitHireUsAuthed } from "../services/contactService";
 import { trackEvent } from "../analytics/track";
+import { useAuth } from "../auth/AuthProvider";
 
 export function HireUs() {
+  const { token } = useAuth();
   const [step, setStep] = useState(1);
   const [submitState, setSubmitState] = useState<{
     status: "idle" | "loading" | "success" | "error";
@@ -125,7 +127,9 @@ export function HireUs() {
     }
 
     try {
-      await submitHireUs({
+      if (!token) throw new Error("Please verify first.");
+
+      await submitHireUsAuthed(token, {
         name: values.name,
         email: values.email,
         phone: values.phone,

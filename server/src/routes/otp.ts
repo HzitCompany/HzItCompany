@@ -75,9 +75,17 @@ otpRouter.post("/request", async (req, res, next) => {
       [userId, phoneE164, otpHash, salt, expiresAt.toISOString()]
     );
 
-    // For local testing only: skip provider call and return OTP.
-    if (env.NODE_ENV !== "production" && env.OTP_DEBUG_RETURN) {
-      return res.json({ ok: true, debugOtp: otp, expiresInSeconds: env.OTP_EXPIRES_SECONDS });
+    // Dev fallback: if we're not in production, allow returning OTP when explicitly enabled,
+    // or when the SMS provider is not configured.
+    if (env.NODE_ENV !== "production") {
+      if (env.OTP_DEBUG_RETURN || !env.MSG91_AUTH_KEY) {
+        return res.json({
+          ok: true,
+          debugOtp: otp,
+          expiresInSeconds: env.OTP_EXPIRES_SECONDS,
+          providerConfigured: Boolean(env.MSG91_AUTH_KEY)
+        });
+      }
     }
 
     await sendOtpSmsMsg91({ phone: phoneE164, otp });
@@ -132,10 +140,15 @@ otpRouter.post("/verify", async (req, res, next) => {
     await query("update otp_codes set consumed_at = now() where id = $1", [code.id]);
     await query("update users set is_verified = true where id = $1", [user.id]);
 
+    const role =
+      env.ADMIN_EMAIL && user.email && user.email.toLowerCase() === env.ADMIN_EMAIL.toLowerCase()
+        ? "admin"
+        : "client";
+
     const token = signToken({
       sub: String(user.id),
       email: user.email ?? undefined,
-      role: "client",
+      role,
       name: user.name ?? undefined,
       phone: phoneE164,
       provider: "otp"
@@ -217,7 +230,7 @@ otpRouter.post("/request-both", async (req, res, next) => {
       [userId, email, emailHash, emailSalt, expiresAt.toISOString()]
     );
 
-    if (env.NODE_ENV !== "production" && env.OTP_DEBUG_RETURN) {
+    if (env.NODE_ENV !== "production" && (env.OTP_DEBUG_RETURN || !env.MSG91_AUTH_KEY || !env.RESEND_API_KEY)) {
       return res.json({
         ok: true,
         debug: { smsOtp, emailOtp },
@@ -300,10 +313,12 @@ otpRouter.post("/verify-both", async (req, res, next) => {
     await query("update otp_codes set consumed_at = now() where id = $1", [emailCode.id]);
     await query("update users set is_verified = true where id = $1", [user.id]);
 
+    const role = env.ADMIN_EMAIL && email.toLowerCase() === env.ADMIN_EMAIL.toLowerCase() ? "admin" : "client";
+
     const token = signToken({
       sub: String(user.id),
       email,
-      role: "client",
+      role,
       name: user.name ?? undefined,
       phone: phoneE164,
       provider: "otp"

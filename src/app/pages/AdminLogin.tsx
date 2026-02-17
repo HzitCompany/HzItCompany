@@ -8,7 +8,7 @@ import { setSession } from "../auth/session";
 
 export function AdminLogin() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("Hzitcompany@gmail.com");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

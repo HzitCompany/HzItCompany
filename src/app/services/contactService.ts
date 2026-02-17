@@ -24,11 +24,50 @@ export type HireUsPayload = {
   honeypot?: string;
 };
 
-export async function submitContact(payload: ContactPayload) {
-  // Backend contract placeholder: adjust path/shape when API is ready.
-  return postJson<ContactPayload, { ok: true }>("/api/contact", payload);
+export type CareerPayload = {
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  experience?: string;
+  portfolioUrl?: string;
+  resumeUrl?: string;
+  message?: string;
+  honeypot?: string;
+};
+
+export async function submitContactAuthed(token: string, payload: ContactPayload) {
+  return postJson<{ type: "contact"; data: ContactPayload; honeypot?: string }, { ok: true; id?: number }>(
+    "/api/submissions",
+    {
+      type: "contact",
+      data: payload,
+      honeypot: payload.honeypot,
+    },
+    { token }
+  );
 }
 
-export async function submitHireUs(payload: HireUsPayload) {
-  return postJson<HireUsPayload, { ok: true }>("/api/hire-us", payload);
+export async function submitHireUsAuthed(token: string, payload: HireUsPayload) {
+  return postJson<{ type: "hire"; data: HireUsPayload; honeypot?: string }, { ok: true; id?: number }>(
+    "/api/submissions",
+    {
+      type: "hire",
+      data: payload,
+      honeypot: payload.honeypot,
+    },
+    { token }
+  );
+}
+
+export async function submitCareerAuthed(token: string, payload: CareerPayload) {
+  return postJson<{ type: "career"; data: CareerPayload; honeypot?: string }, { ok: true; id?: number }>(
+    "/api/submissions",
+    {
+      type: "career",
+      data: payload,
+      honeypot: payload.honeypot,
+    },
+    { token }
+  );
 }

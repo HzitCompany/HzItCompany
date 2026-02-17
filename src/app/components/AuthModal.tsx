@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
-import { requestOtpBoth, verifyOtpBoth } from "../services/otpService";
+import { requestOtp, verifyOtp } from "../services/otpService";
 import { useAuth } from "../auth/AuthProvider";
 
 type Step = "phone" | "otp";
@@ -12,11 +12,10 @@ export function AuthModal() {
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [smsOtp, setSmsOtp] = useState("");
-  const [emailOtp, setEmailOtp] = useState("");
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [debug, setDebug] = useState<{ smsOtp: string; emailOtp: string } | null>(null);
+  const [debugOtp, setDebugOtp] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthModalOpen) return;
@@ -41,29 +40,25 @@ export function AuthModal() {
       setStep("phone");
       setPhone("");
       setEmail("");
-      setSmsOtp("");
-      setEmailOtp("");
+      setOtp("");
       setLoading(false);
       setError(null);
-      setDebug(null);
+      setDebugOtp(null);
     }
   }, [isAuthModalOpen]);
 
   const canSend = useMemo(() => phone.trim().length >= 8 && email.trim().length >= 6 && !loading, [phone, email, loading]);
-  const canVerify = useMemo(
-    () => /^\d{6}$/.test(smsOtp.trim()) && /^\d{6}$/.test(emailOtp.trim()) && !loading,
-    [smsOtp, emailOtp, loading]
-  );
+  const canVerify = useMemo(() => /^\d{6}$/.test(otp.trim()) && !loading, [otp, loading]);
 
   async function send() {
     if (!canSend) return;
     setError(null);
-    setDebug(null);
+    setDebugOtp(null);
     setLoading(true);
 
     try {
-      const r = await requestOtpBoth({ phone: phone.trim(), email: email.trim(), name: undefined });
-      if (r.debug) setDebug(r.debug);
+      const r = await requestOtp({ phone: phone.trim(), email: email.trim(), name: undefined });
+      if (r.debugOtp) setDebugOtp(r.debugOtp);
       setStep("otp");
     } catch (e: any) {
       setError(typeof e?.message === "string" ? e.message : "Failed to send OTP");
@@ -78,12 +73,7 @@ export function AuthModal() {
     setLoading(true);
 
     try {
-      const r = await verifyOtpBoth({
-        phone: phone.trim(),
-        email: email.trim(),
-        smsOtp: smsOtp.trim(),
-        emailOtp: emailOtp.trim()
-      });
+      const r = await verifyOtp({ phone: phone.trim(), otp: otp.trim() });
       await onOtpVerified(r.token);
     } catch (e: any) {
       setError(typeof e?.message === "string" ? e.message : "OTP verification failed");
@@ -117,7 +107,7 @@ export function AuthModal() {
               onMouseDown={(e) => e.stopPropagation()}
             >
               <h2 className="text-2xl font-bold text-gray-900 font-poppins">Verify with OTP</h2>
-              <p className="mt-2 text-sm text-gray-600">Verify both phone and email to continue.</p>
+              <p className="mt-2 text-sm text-gray-600">Verify your phone number to continue.</p>
 
               {error ? (
                 <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-900 text-sm">
@@ -125,11 +115,10 @@ export function AuthModal() {
                 </div>
               ) : null}
 
-              {debug ? (
+              {debugOtp ? (
                 <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 text-sm">
                   <div className="font-semibold">Dev OTP</div>
-                  <div className="mt-1">SMS: {debug.smsOtp}</div>
-                  <div className="mt-1">Email: {debug.emailOtp}</div>
+                  <div className="mt-1">{debugOtp}</div>
                 </div>
               ) : null}
 
@@ -178,28 +167,13 @@ export function AuthModal() {
                   <div className="text-sm text-gray-600">
                     OTP sent to <span className="font-semibold text-gray-900">{phone.trim() || "—"}</span>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    Email sent to <span className="font-semibold text-gray-900">{email.trim() || "—"}</span>
-                  </div>
+                  <div className="text-sm text-gray-600">Email on file: <span className="font-semibold text-gray-900">{email.trim() || "—"}</span></div>
 
                   <label className="block">
-                    <span className="text-sm font-medium text-gray-700">SMS OTP (6 digits)</span>
+                    <span className="text-sm font-medium text-gray-700">OTP (6 digits)</span>
                     <input
-                      value={smsOtp}
-                      onChange={(e) => setSmsOtp(e.target.value)}
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      placeholder="123456"
-                      maxLength={6}
-                      className="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none tracking-widest focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
-                    />
-                  </label>
-
-                  <label className="block">
-                    <span className="text-sm font-medium text-gray-700">Email OTP (6 digits)</span>
-                    <input
-                      value={emailOtp}
-                      onChange={(e) => setEmailOtp(e.target.value)}
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
                       inputMode="numeric"
                       autoComplete="one-time-code"
                       placeholder="123456"
@@ -213,8 +187,7 @@ export function AuthModal() {
                       type="button"
                       onClick={() => {
                         setStep("phone");
-                        setSmsOtp("");
-                        setEmailOtp("");
+                        setOtp("");
                         setError(null);
                       }}
                       disabled={loading}
