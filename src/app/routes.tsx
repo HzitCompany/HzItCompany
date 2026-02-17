@@ -47,6 +47,10 @@ export const router = createBrowserRouter([
         lazy: async () => ({ Component: (await import("./pages/PortalLogin")).PortalLogin }),
       },
       {
+        path: "auth",
+        lazy: async () => ({ Component: (await import("./pages/Auth")).Auth }),
+      },
+      {
         path: "portal",
         lazy: async () => ({ Component: (await import("./pages/PortalDashboard")).PortalDashboard }),
       },

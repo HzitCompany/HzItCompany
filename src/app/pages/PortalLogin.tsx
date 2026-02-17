@@ -98,6 +98,10 @@ export function PortalLogin() {
               {loading ? "Please wait…" : mode === "login" ? "Login" : "Create account"}
             </button>
 
+            <Link to="/auth" className="text-center text-sm text-blue-700 hover:underline">
+              Login with OTP
+            </Link>
+
             <Link to="/" className="text-center text-sm text-gray-600 hover:underline">
               Back to website
             </Link>
