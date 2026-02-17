@@ -79,18 +79,17 @@ const envSchema = z
     z.string().min(1).optional()
   ),
   OTP_EXPIRES_SECONDS: z.coerce.number().int().positive().default(300),
-  OTP_DEBUG_RETURN: z
-    .preprocess(
-      (v) => (typeof v === "string" ? v.trim().toLowerCase() : v),
-      z.enum(["true", "false"]).optional()
-    )
-    .transform((v) => v === "true")
-
-  ,
   // Supabase Storage (private resumes)
   SUPABASE_URL: z.preprocess(
     (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
     z.string().url().optional()
+  ),
+  // Supabase Auth (OTP)
+  // Public anon key used server-side only to initiate/verify OTP.
+  // Keep this in backend env vars (not in frontend).
+  SUPABASE_ANON_KEY: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().min(1).optional()
   ),
   SUPABASE_SERVICE_ROLE_KEY: z.preprocess(
     (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),

@@ -15,7 +15,7 @@
 - Set env vars from `server/.env.example`.
 - Run behind a reverse proxy / load balancer.
 - Keep compression enabled (the API uses `compression` middleware).
-- Enable health checks (`GET /health`).
+- Enable health checks (`GET /api/health`).
 
 ## CDN recommendations
 - Use Cloudflare/Fastly/AWS CloudFront for caching and WAF.

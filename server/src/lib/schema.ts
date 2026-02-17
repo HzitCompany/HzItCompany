@@ -37,22 +37,36 @@ async function isCoreSchemaPresent() {
       "to_regclass('public.users') as users,",
       "to_regclass('public.otp_codes') as otp_codes,",
       "to_regclass('public.sessions') as sessions,",
+      "to_regclass('public.submissions') as submissions,",
+      "to_regclass('public.admin_users') as admin_users,",
       "to_regclass('public.contact_submissions') as contact_submissions,",
       "to_regclass('public.hire_us_submissions') as hire_us_submissions,",
-      "to_regclass('public.submissions') as submissions,",
       "to_regclass('public.career_applications') as career_applications,",
-      "to_regclass('public.admin_users') as admin_users,",
       "to_regclass('public.site_content') as site_content,",
       "to_regclass('public.services_pricing') as services_pricing"
     ].join("\n")
   );
 
   const row = result.rows[0] ?? {};
-  const missing = Object.entries(row)
-    .filter(([, value]) => !value)
-    .map(([key]) => key);
 
-  return { ok: missing.length === 0, missing };
+  const requiredKeys = ["users", "sessions", "submissions", "admin_users"] as const;
+  const optionalKeys = [
+    "otp_codes",
+    "contact_submissions",
+    "hire_us_submissions",
+    "career_applications",
+    "site_content",
+    "services_pricing"
+  ] as const;
+
+  const missingRequired = requiredKeys.filter((key) => !row[key]);
+  const missingOptional = optionalKeys.filter((key) => !row[key]);
+
+  return {
+    ok: missingRequired.length === 0,
+    missingRequired: [...missingRequired],
+    missingOptional: [...missingOptional]
+  };
 }
 
 export async function getSchemaStatus() {
@@ -67,7 +81,7 @@ export async function ensureSchemaOrThrow() {
     throw new Error(
       [
         "Database schema is missing or out of date.",
-        state.missing.length ? `Missing: ${state.missing.join(", ")}` : "",
+        state.missingRequired.length ? `Missing: ${state.missingRequired.join(", ")}` : "",
         "Apply server/db/schema.sql to your Postgres/Supabase database, or set DB_AUTO_SCHEMA=true and restart the server."
       ]
         .filter(Boolean)
@@ -82,7 +96,11 @@ export async function ensureSchemaOrThrow() {
   await pool.query(sql);
 
   const after = await isCoreSchemaPresent();
-  if (!after.ok) throw new Error(`Schema apply finished, but tables are still missing: ${after.missing.join(", ")}`);
+  if (!after.ok) {
+    throw new Error(
+      `Schema apply finished, but required tables are still missing: ${after.missingRequired.join(", ")}`
+    );
+  }
 
   logger.info("Database schema applied successfully");
 }

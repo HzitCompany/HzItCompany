@@ -15,7 +15,8 @@ export function AuthModal() {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [debugOtp, setDebugOtp] = useState<string | null>(null);
+  const [resendAvailableAt, setResendAvailableAt] = useState<number>(0);
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
   useEffect(() => {
     if (!isAuthModalOpen) return;
@@ -43,9 +44,16 @@ export function AuthModal() {
       setOtp("");
       setLoading(false);
       setError(null);
-      setDebugOtp(null);
+      setResendAvailableAt(0);
     }
   }, [isAuthModalOpen]);
+
+  useEffect(() => {
+    if (!isAuthModalOpen) return;
+    if (step !== "otp") return;
+    const t = window.setInterval(() => setNowMs(Date.now()), 250);
+    return () => window.clearInterval(t);
+  }, [isAuthModalOpen, step]);
 
   const canSend = useMemo(() => phone.trim().length >= 8 && email.trim().length >= 6 && !loading, [phone, email, loading]);
   const canVerify = useMemo(() => /^\d{6}$/.test(otp.trim()) && !loading, [otp, loading]);
@@ -53,13 +61,12 @@ export function AuthModal() {
   async function send() {
     if (!canSend) return;
     setError(null);
-    setDebugOtp(null);
     setLoading(true);
 
     try {
-      const r = await requestOtp({ phone: phone.trim(), email: email.trim(), name: undefined });
-      if (r.debugOtp) setDebugOtp(r.debugOtp);
+      await requestOtp({ phone: phone.trim(), email: email.trim(), name: undefined });
       setStep("otp");
+      setResendAvailableAt(Date.now() + 30_000);
     } catch (e: any) {
       setError(typeof e?.message === "string" ? e.message : "Failed to send OTP");
     } finally {
@@ -81,6 +88,12 @@ export function AuthModal() {
       setLoading(false);
     }
   }
+
+  const resendSecondsLeft = useMemo(() => {
+    const ms = resendAvailableAt - nowMs;
+    if (ms <= 0) return 0;
+    return Math.ceil(ms / 1000);
+  }, [resendAvailableAt, nowMs]);
 
   return (
     <AnimatePresence>
@@ -112,13 +125,6 @@ export function AuthModal() {
               {error ? (
                 <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-900 text-sm">
                   {error}
-                </div>
-              ) : null}
-
-              {debugOtp ? (
-                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 text-sm">
-                  <div className="font-semibold">Dev OTP</div>
-                  <div className="mt-1">{debugOtp}</div>
                 </div>
               ) : null}
 
@@ -160,6 +166,14 @@ export function AuthModal() {
                     }
                   >
                     {loading ? "Sending…" : "Send OTP"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={closeAuthModal}
+                    className="w-full rounded-xl px-4 py-3 font-semibold border border-gray-300 bg-white text-gray-900 hover:bg-gray-50"
+                  >
+                    Continue as guest
                   </button>
                 </div>
               ) : (
@@ -210,6 +224,26 @@ export function AuthModal() {
                       {loading ? "Verifying…" : "Verify"}
                     </button>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={send}
+                    disabled={loading || resendSecondsLeft > 0}
+                    className={
+                      "w-full rounded-xl px-4 py-3 font-semibold border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 " +
+                      (loading || resendSecondsLeft > 0 ? "opacity-70 cursor-not-allowed" : "")
+                    }
+                  >
+                    {resendSecondsLeft > 0 ? `Resend in ${resendSecondsLeft}s` : "Resend OTP"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={closeAuthModal}
+                    className="w-full rounded-xl px-4 py-3 font-semibold border border-gray-300 bg-white text-gray-900 hover:bg-gray-50"
+                  >
+                    Continue as guest
+                  </button>
                 </div>
               )}
             </motion.div>

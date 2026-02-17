@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router";
 import { motion } from "motion/react";
 import { useForm } from "react-hook-form";
@@ -35,8 +35,16 @@ export function Auth() {
 
   const [step, setStep] = useState<Step>("request");
   const [phoneForVerify, setPhoneForVerify] = useState<string>("");
-  const [debugOtp, setDebugOtp] = useState<string | null>(null);
+  const [lastRequest, setLastRequest] = useState<{ name?: string; email: string; phone: string } | null>(null);
   const [status, setStatus] = useState<{ kind: "idle" | "success" | "error"; message?: string }>({ kind: "idle" });
+  const [resendAvailableAt, setResendAvailableAt] = useState<number>(0);
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
+
+  useEffect(() => {
+    if (step !== "verify") return;
+    const t = window.setInterval(() => setNowMs(Date.now()), 250);
+    return () => window.clearInterval(t);
+  }, [step]);
 
   const {
     register: registerRequest,
@@ -67,7 +75,6 @@ export function Auth() {
 
   async function onRequest(values: RequestValues) {
     setStatus({ kind: "idle" });
-    setDebugOtp(null);
 
     const payload = {
       name: values.name?.trim() ? values.name.trim() : undefined,
@@ -76,13 +83,42 @@ export function Auth() {
     };
 
     try {
-      const r = await requestOtp(payload);
+      await requestOtp(payload);
+      setLastRequest(payload);
       setPhoneForVerify(payload.phone);
       setStep("verify");
-      if (r.debugOtp) setDebugOtp(r.debugOtp);
+      setResendAvailableAt(Date.now() + 30_000);
       setStatus({ kind: "success", message: "OTP sent. Please check your phone." });
     } catch (e: any) {
-      setStatus({ kind: "error", message: e?.message ?? "Failed to send OTP" });
+      const statusCode = typeof e?.status === "number" ? e.status : undefined;
+      const msg =
+        statusCode === 429
+          ? "Too many OTP requests. Please wait a bit and try again."
+          : typeof e?.message === "string"
+            ? e.message
+            : "Failed to send OTP";
+      setStatus({ kind: "error", message: msg });
+    }
+  }
+
+  async function onResend() {
+    if (!lastRequest) return;
+    if (Date.now() < resendAvailableAt) return;
+    setStatus({ kind: "idle" });
+
+    try {
+      await requestOtp(lastRequest);
+      setResendAvailableAt(Date.now() + 30_000);
+      setStatus({ kind: "success", message: "OTP resent. Please check your phone." });
+    } catch (e: any) {
+      const statusCode = typeof e?.status === "number" ? e.status : undefined;
+      const msg =
+        statusCode === 429
+          ? "Too many OTP requests. Please wait a bit and try again."
+          : typeof e?.message === "string"
+            ? e.message
+            : "Failed to resend OTP";
+      setStatus({ kind: "error", message: msg });
     }
   }
 
@@ -94,9 +130,22 @@ export function Auth() {
       await onOtpVerified(r.token);
       navigate("/portal");
     } catch (e: any) {
-      setStatus({ kind: "error", message: e?.message ?? "OTP verification failed" });
+      const statusCode = typeof e?.status === "number" ? e.status : undefined;
+      const msg =
+        statusCode === 429
+          ? "Too many attempts. Please wait and try again."
+          : typeof e?.message === "string"
+            ? e.message
+            : "OTP verification failed";
+      setStatus({ kind: "error", message: msg });
     }
   }
+
+  const resendSecondsLeft = useMemo(() => {
+    const ms = resendAvailableAt - nowMs;
+    if (ms <= 0) return 0;
+    return Math.ceil(ms / 1000);
+  }, [resendAvailableAt, nowMs]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -175,13 +224,6 @@ export function Auth() {
               </div>
             ) : null}
 
-            {debugOtp ? (
-              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 text-sm">
-                <div className="font-semibold">Dev OTP</div>
-                <div className="mt-1">{debugOtp}</div>
-              </div>
-            ) : null}
-
             {step === "request" ? (
               <form className="mt-8 space-y-5" onSubmit={handleSubmitRequest(onRequest)} noValidate>
                 <div>
@@ -245,9 +287,14 @@ export function Auth() {
                   <Link to="/admin/login" className="hover:underline">
                     Admin login
                   </Link>
-                  <Link to="/" className="hover:underline">
-                    Back to website
-                  </Link>
+                  <div className="flex gap-4">
+                    <button type="button" className="hover:underline" onClick={() => navigate(-1)}>
+                      Back
+                    </button>
+                    <button type="button" className="hover:underline" onClick={() => navigate("/") }>
+                      Continue as guest
+                    </button>
+                  </div>
                 </div>
               </form>
             ) : (
@@ -302,18 +349,15 @@ export function Auth() {
                 <div className="flex justify-between text-sm text-gray-600">
                   <button
                     type="button"
-                    className="hover:underline"
-                    onClick={() => {
-                      setStep("request");
-                      setStatus({ kind: "idle" });
-                      setDebugOtp(null);
-                    }}
+                    className={"hover:underline" + (resendSecondsLeft > 0 || loading ? " opacity-60 cursor-not-allowed" : "")}
+                    disabled={resendSecondsLeft > 0 || loading}
+                    onClick={onResend}
                   >
-                    Resend OTP
+                    {resendSecondsLeft > 0 ? `Resend in ${resendSecondsLeft}s` : "Resend OTP"}
                   </button>
-                  <Link to="/" className="hover:underline">
-                    Back to website
-                  </Link>
+                  <button type="button" className="hover:underline" onClick={() => navigate(-1)}>
+                    Back
+                  </button>
                 </div>
               </form>
             )}

@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router";
 import { Layout } from "./components/Layout";
 import { RequireAuth } from "./auth/RequireAuth";
+import { RequireAdmin } from "./auth/RequireAdmin";
 
 export const router = createBrowserRouter([
   {
@@ -86,69 +87,78 @@ export const router = createBrowserRouter([
         path: "admin",
         lazy: async () => {
           const { AdminDashboard } = await import("./pages/AdminDashboard");
-          return { Component: () => <AdminDashboard initialTab="summary" /> };
+          return { Component: () => <RequireAdmin><AdminDashboard initialTab="summary" /></RequireAdmin> };
         },
       },
       {
         path: "admin/dashboard",
         lazy: async () => {
           const { AdminDashboard } = await import("./pages/AdminDashboard");
-          return { Component: () => <AdminDashboard initialTab="summary" /> };
+          return { Component: () => <RequireAdmin><AdminDashboard initialTab="summary" /></RequireAdmin> };
         },
       },
       {
         path: "admin/contact",
         lazy: async () => {
           const { AdminDashboard } = await import("./pages/AdminDashboard");
-          return { Component: () => <AdminDashboard initialTab="leads" /> };
+          return { Component: () => <RequireAdmin><AdminDashboard initialTab="leads" /></RequireAdmin> };
         },
       },
       {
         path: "admin/hire",
         lazy: async () => {
           const { AdminDashboard } = await import("./pages/AdminDashboard");
-          return { Component: () => <AdminDashboard initialTab="leads" /> };
+          return { Component: () => <RequireAdmin><AdminDashboard initialTab="leads" /></RequireAdmin> };
         },
       },
       {
         path: "admin/orders",
         lazy: async () => {
           const { AdminDashboard } = await import("./pages/AdminDashboard");
-          return { Component: () => <AdminDashboard initialTab="orders" /> };
+          return { Component: () => <RequireAdmin><AdminDashboard initialTab="orders" /></RequireAdmin> };
         },
       },
       {
         path: "admin/pricing",
         lazy: async () => {
           const { AdminDashboard } = await import("./pages/AdminDashboard");
-          return { Component: () => <AdminDashboard initialTab="pricing" /> };
+          return { Component: () => <RequireAdmin><AdminDashboard initialTab="pricing" /></RequireAdmin> };
         },
       },
       {
         path: "admin/leads",
         lazy: async () => {
           const { AdminDashboard } = await import("./pages/AdminDashboard");
-          return { Component: () => <AdminDashboard initialTab="leads" /> };
+          return { Component: () => <RequireAdmin><AdminDashboard initialTab="leads" /></RequireAdmin> };
         },
       },
       {
         path: "admin/submissions",
         lazy: async () => {
           const { AdminDashboard } = await import("./pages/AdminDashboard");
-          return { Component: () => <AdminDashboard initialTab="submissions" /> };
+          return { Component: () => <RequireAdmin><AdminDashboard initialTab="submissions" /></RequireAdmin> };
         },
       },
       {
         path: "admin/careers",
-        lazy: async () => ({ Component: (await import("./pages/AdminCareers")).AdminCareers }),
+        lazy: async () => {
+          const { AdminCareers } = await import("./pages/AdminCareers");
+          return { Component: () => <RequireAdmin><AdminCareers /></RequireAdmin> };
+        },
       },
       {
         path: "admin/content",
-        lazy: async () => ({ Component: (await import("./pages/AdminContent")).AdminContent }),
+        lazy: async () => {
+          const { AdminContent } = await import("./pages/AdminContent");
+          return { Component: () => <RequireAdmin><AdminContent /></RequireAdmin> };
+        },
       },
       {
         path: "admin/otp",
-        lazy: async () => ({ Component: (await import("./pages/AdminOtp")).AdminOtp }),
+        lazy: async () => {
+          const { AdminOtp } = await import("./pages/AdminOtp");
+          return { Component: () => <RequireAdmin><AdminOtp /></RequireAdmin> };
+        },
       },
     ],
   },

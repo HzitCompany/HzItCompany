@@ -29,15 +29,14 @@ async function locateSchemaSqlPath() {
 async function assertCoreTablesExist() {
   const result = await pool.query<{
     users: string | null;
-    otp_codes: string | null;
     sessions: string | null;
   }>(
-    "select to_regclass('public.users') as users, to_regclass('public.otp_codes') as otp_codes, to_regclass('public.sessions') as sessions"
+    "select to_regclass('public.users') as users, to_regclass('public.sessions') as sessions"
   );
 
   const row = result.rows[0];
-  if (!row?.users || !row?.otp_codes || !row?.sessions) {
-    throw new Error("Schema applied but core tables are still missing (users/otp_codes/sessions)");
+  if (!row?.users || !row?.sessions) {
+    throw new Error("Schema applied but core tables are still missing (users/sessions)");
   }
 }
 

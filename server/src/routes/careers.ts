@@ -7,6 +7,7 @@ import { query } from "../lib/db.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errorHandler.js";
 import { getResumesBucketId, getSupabaseAdmin } from "../lib/supabase.js";
+import { getSchemaStatus } from "../lib/schema.js";
 
 export const careersRouter = Router();
 
@@ -118,6 +119,11 @@ const applySchema = z
 
 careersRouter.post("/apply", requireAuth, async (req: AuthedRequest, res, next) => {
   try {
+    const schema = await getSchemaStatus();
+    if (schema.missingOptional.includes("career_applications")) {
+      throw new HttpError(503, "Database schema is missing career_applications. Apply server/db/schema.sql and redeploy.", true);
+    }
+
     const parsed = applySchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ ok: false, error: "Invalid request", details: parsed.error.flatten() });

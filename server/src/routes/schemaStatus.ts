@@ -9,8 +9,12 @@ export const schemaStatusRouter = Router();
 schemaStatusRouter.get("/", async (_req, res, next) => {
   try {
     const status = await getSchemaStatus();
-    if (status.ok) return res.json({ ok: true, missing: [] as string[] });
-    return res.status(503).json({ ok: false, missing: status.missing });
+    if (status.ok) {
+      return res.json({ ok: true, missingRequired: [] as string[], missingOptional: status.missingOptional });
+    }
+    return res
+      .status(503)
+      .json({ ok: false, missingRequired: status.missingRequired, missingOptional: status.missingOptional });
   } catch (err) {
     return next(err);
   }
