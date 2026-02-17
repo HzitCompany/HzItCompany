@@ -173,6 +173,12 @@ export function AdminCareers() {
                 <Link className="text-left rounded-lg px-3 py-2 bg-gray-900 text-white" to="/admin/careers">
                   Careers
                 </Link>
+                <Link className="text-left rounded-lg px-3 py-2 hover:bg-gray-50" to="/admin/otp">
+                  OTP Logs
+                </Link>
+                <Link className="text-left rounded-lg px-3 py-2 hover:bg-gray-50" to="/admin/content">
+                  Content
+                </Link>
               </nav>
               <button onClick={logout} className="mt-6 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-700 hover:bg-gray-50">
                 Logout

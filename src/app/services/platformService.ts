@@ -129,6 +129,12 @@ export async function fetchAdminContent(token: string) {
   return getJson<{ ok: true; items: Array<{ key: string; value: unknown; updated_at: string }> }>("/api/admin/content", { token });
 }
 
+export async function fetchAdminOtpLogs(token: string, opts?: { limit?: number }) {
+  const q = new URLSearchParams();
+  if (opts?.limit) q.set("limit", String(opts.limit));
+  return getJson<{ ok: true; items: any[] }>(`/api/admin/otp${q.toString() ? `?${q}` : ""}`, { token });
+}
+
 export async function upsertAdminContent(token: string, input: { key: string; value: unknown }) {
   return putJson<typeof input, { ok: true }>("/api/admin/content", input, { token });
 }

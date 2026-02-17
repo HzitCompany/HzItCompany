@@ -70,6 +70,10 @@ const envSchema = z
     (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
     z.string().min(1).optional()
   ),
+  MSG91_SENDER_ID: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().min(1).max(30).optional()
+  ),
   MSG91_TEMPLATE_ID: z.preprocess(
     (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
     z.string().min(1).optional()

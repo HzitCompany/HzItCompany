@@ -31,25 +31,43 @@ async function locateSchemaSqlPath() {
 }
 
 async function isCoreSchemaPresent() {
-  const result = await pool.query<{
-    users: string | null;
-    otp_codes: string | null;
-    sessions: string | null;
-  }>(
-    "select to_regclass('public.users') as users, to_regclass('public.otp_codes') as otp_codes, to_regclass('public.sessions') as sessions"
+  const result = await pool.query<Record<string, string | null>>(
+    [
+      "select",
+      "to_regclass('public.users') as users,",
+      "to_regclass('public.otp_codes') as otp_codes,",
+      "to_regclass('public.sessions') as sessions,",
+      "to_regclass('public.contact_submissions') as contact_submissions,",
+      "to_regclass('public.hire_us_submissions') as hire_us_submissions,",
+      "to_regclass('public.submissions') as submissions,",
+      "to_regclass('public.career_applications') as career_applications,",
+      "to_regclass('public.admin_users') as admin_users,",
+      "to_regclass('public.site_content') as site_content,",
+      "to_regclass('public.services_pricing') as services_pricing"
+    ].join("\n")
   );
 
-  const row = result.rows[0];
-  return Boolean(row?.users && row?.otp_codes && row?.sessions);
+  const row = result.rows[0] ?? {};
+  const missing = Object.entries(row)
+    .filter(([, value]) => !value)
+    .map(([key]) => key);
+
+  return { ok: missing.length === 0, missing };
 }
 
 export async function ensureSchemaOrThrow() {
-  const ok = await isCoreSchemaPresent();
-  if (ok) return;
+  const state = await isCoreSchemaPresent();
+  if (state.ok) return;
 
   if (!env.DB_AUTO_SCHEMA) {
     throw new Error(
-      "Database schema is missing (e.g. table 'users'). Apply server/db/schema.sql to your Postgres/Supabase database, or set DB_AUTO_SCHEMA=true in server/.env."
+      [
+        "Database schema is missing or out of date.",
+        state.missing.length ? `Missing: ${state.missing.join(", ")}` : "",
+        "Apply server/db/schema.sql to your Postgres/Supabase database, or set DB_AUTO_SCHEMA=true and restart the server."
+      ]
+        .filter(Boolean)
+        .join(" ")
     );
   }
 
@@ -59,10 +77,8 @@ export async function ensureSchemaOrThrow() {
   const sql = await fs.readFile(schemaPath, "utf8");
   await pool.query(sql);
 
-  const okAfter = await isCoreSchemaPresent();
-  if (!okAfter) {
-    throw new Error("Schema apply finished, but core tables are still missing");
-  }
+  const after = await isCoreSchemaPresent();
+  if (!after.ok) throw new Error(`Schema apply finished, but tables are still missing: ${after.missing.join(", ")}`);
 
   logger.info("Database schema applied successfully");
 }

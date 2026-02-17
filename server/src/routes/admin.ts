@@ -176,6 +176,29 @@ adminRouter.put("/admin/content", requireAuth, requireAdmin, async (req: AuthedR
 
 const careerStatusSchema = z.enum(["new", "reviewing", "shortlisted", "rejected", "hired"]);
 
+adminRouter.get("/admin/otp", requireAuth, requireAdmin, async (req: AuthedRequest, res, next) => {
+  try {
+    const limitRaw = typeof req.query.limit === "string" ? Number(req.query.limit) : 200;
+    const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(500, Math.floor(limitRaw))) : 200;
+
+    const rows = await query(
+      [
+        "select o.id, o.created_at, o.user_id, o.channel, o.destination, o.expires_at, o.consumed_at,",
+        "u.email as user_email, u.phone as user_phone",
+        "from otp_codes o",
+        "join users u on u.id = o.user_id",
+        "order by o.created_at desc",
+        "limit $1"
+      ].join("\n"),
+      [limit]
+    );
+
+    return res.json({ ok: true, items: rows });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 adminRouter.get("/admin/careers", requireAuth, requireAdmin, async (req: AuthedRequest, res, next) => {
   try {
     const q = typeof req.query.q === "string" ? req.query.q.trim() : "";

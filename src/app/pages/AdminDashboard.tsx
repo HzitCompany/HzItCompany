@@ -217,6 +217,9 @@ export function AdminDashboard({ initialTab }: { initialTab?: Tab }) {
                 <Link className="text-left rounded-lg px-3 py-2 hover:bg-gray-50" to="/admin/careers">
                   Careers
                 </Link>
+                <Link className="text-left rounded-lg px-3 py-2 hover:bg-gray-50" to="/admin/otp">
+                  OTP Logs
+                </Link>
                 <Link className="text-left rounded-lg px-3 py-2 hover:bg-gray-50" to="/admin/content">
                   Content
                 </Link>

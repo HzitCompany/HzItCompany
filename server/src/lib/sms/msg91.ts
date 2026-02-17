@@ -28,13 +28,32 @@ export async function sendOtpSmsMsg91(input: { phone: string; otp: string }) {
     body: JSON.stringify({
       mobile: `91${national}`,
       otp: input.otp,
-      template_id: env.MSG91_TEMPLATE_ID
+      template_id: env.MSG91_TEMPLATE_ID,
+      sender: env.MSG91_SENDER_ID
     })
   });
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`MSG91 request failed (${res.status}): ${text}`);
+  }
+
+  // MSG91 sometimes returns HTTP 200 with an error payload. Treat it as failure.
+  const text = await res.text().catch(() => "");
+  if (!text) return;
+  try {
+    const json = JSON.parse(text) as any;
+    const type = typeof json?.type === "string" ? json.type.toLowerCase() : undefined;
+    const message = typeof json?.message === "string" ? json.message : undefined;
+    if (type && type !== "success") {
+      throw new Error(`MSG91 response type=${json.type}${message ? ` message=${message}` : ""}`);
+    }
+    if (json?.error) {
+      throw new Error(`MSG91 error: ${typeof json.error === "string" ? json.error : JSON.stringify(json.error)}`);
+    }
+  } catch (e) {
+    // If it isn't JSON, ignore. If it is JSON and indicates failure, throw.
+    if (e instanceof Error && e.message.startsWith("MSG91")) throw e;
   }
 }
 

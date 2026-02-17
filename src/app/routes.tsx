@@ -146,6 +146,10 @@ export const router = createBrowserRouter([
         path: "admin/content",
         lazy: async () => ({ Component: (await import("./pages/AdminContent")).AdminContent }),
       },
+      {
+        path: "admin/otp",
+        lazy: async () => ({ Component: (await import("./pages/AdminOtp")).AdminOtp }),
+      },
     ],
   },
 ]);

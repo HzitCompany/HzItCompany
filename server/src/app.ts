@@ -69,6 +69,7 @@ export function createApp() {
 
   // Health check
   app.get("/health", (_req, res) => res.json({ ok: true }));
+  app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
   return app;
 }
