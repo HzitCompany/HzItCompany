@@ -4,6 +4,7 @@ import { z } from "zod";
 import { query } from "../lib/db.js";
 import { HttpError } from "../middleware/errorHandler.js";
 import { hashPassword, signToken, verifyPassword } from "../lib/auth.js";
+import { env } from "../lib/env.js";
 
 export const authRouter = Router();
 
@@ -50,6 +51,23 @@ authRouter.post("/auth/login", async (req, res, next) => {
     }
 
     const email = parsed.data.email.toLowerCase();
+
+    // Canonical admin (single credential): ADMIN_EMAIL + ADMIN_PASSWORD.
+    // This path does not require a corresponding client account.
+    if (env.ADMIN_EMAIL && env.ADMIN_PASSWORD && email === env.ADMIN_EMAIL.toLowerCase()) {
+      if (parsed.data.password !== env.ADMIN_PASSWORD) {
+        throw new HttpError(401, "Invalid credentials", true);
+      }
+
+      const upsertRows = await query<{ id: number; email: string; name: string | null; is_active: boolean }>(
+        "insert into admin_users (email, is_active) values ($1, true) on conflict (email) do update set is_active = true returning id, email, name, is_active",
+        [email]
+      );
+
+      const admin = upsertRows[0];
+      const token = signToken({ sub: String(admin?.id ?? 0), email, role: "admin", name: admin?.name ?? "Admin" });
+      return res.json({ ok: true, token, role: "admin" });
+    }
 
     // Admin: email allowlist table.
     const adminRows = await query<{ id: number; email: string; name: string | null; is_active: boolean }>(

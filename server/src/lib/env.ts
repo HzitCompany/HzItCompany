@@ -34,6 +34,11 @@ const envSchema = z
     z.string().email().optional()
   ),
 
+  ADMIN_PASSWORD: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().min(8).max(200).optional()
+  ),
+
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
 
@@ -102,6 +107,10 @@ const envSchema = z
     // SMS: if template is set, auth key must be set.
     if (val.MSG91_TEMPLATE_ID && !val.MSG91_AUTH_KEY) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["MSG91_AUTH_KEY"], message: "Required when MSG91_TEMPLATE_ID is set" });
+    }
+
+    if (val.ADMIN_EMAIL && !val.ADMIN_PASSWORD) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["ADMIN_PASSWORD"], message: "Required when ADMIN_EMAIL is set" });
     }
   });
 
