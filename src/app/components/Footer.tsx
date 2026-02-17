@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { Mail, Phone, MapPin, Linkedin, Twitter, Github } from "lucide-react";
+import { Mail, Phone, MapPin, Linkedin, Twitter, Instagram, Facebook, Youtube } from "lucide-react";
 import logoImage from "@/assets/d02f6d670ee484ccb5b3f98463b90941b5d1ead6.png";
 import { siteConfig } from "@/app/config/site";
 import { useAuthGuard } from "../auth/useAuthGuard";
@@ -43,6 +43,42 @@ export function Footer() {
             </p>
             <div className="flex space-x-4">
               <a
+                href={siteConfig.socials.instagram}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="HZ IT Company on Instagram"
+                className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-blue-600 transition-all duration-200 hover:scale-110"
+              >
+                <Instagram size={18} />
+              </a>
+              <a
+                href={siteConfig.socials.x}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="HZ IT Company on X"
+                className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-blue-600 transition-all duration-200 hover:scale-110"
+              >
+                <Twitter size={18} />
+              </a>
+              <a
+                href={siteConfig.socials.facebook}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="HZ IT Company on Facebook"
+                className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-blue-600 transition-all duration-200 hover:scale-110"
+              >
+                <Facebook size={18} />
+              </a>
+              <a
+                href={siteConfig.socials.youtube}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="HZ IT Company on YouTube"
+                className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-blue-600 transition-all duration-200 hover:scale-110"
+              >
+                <Youtube size={18} />
+              </a>
+              <a
                 href={siteConfig.socials.linkedin}
                 target="_blank"
                 rel="noreferrer"
@@ -50,24 +86,6 @@ export function Footer() {
                 className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-blue-600 transition-all duration-200 hover:scale-110"
               >
                 <Linkedin size={18} />
-              </a>
-              <a
-                href={siteConfig.socials.twitter}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="HZ IT Company on Twitter"
-                className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-blue-600 transition-all duration-200 hover:scale-110"
-              >
-                <Twitter size={18} />
-              </a>
-              <a
-                href={siteConfig.socials.github}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="HZ IT Company on GitHub"
-                className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-blue-600 transition-all duration-200 hover:scale-110"
-              >
-                <Github size={18} />
               </a>
             </div>
           </div>
@@ -154,8 +172,13 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-white/10 mt-8 pt-8 text-center text-sm text-gray-400">
-          <p>&copy; 2026 HZ IT Company. All rights reserved.</p>
+        <div className="border-t border-white/10 mt-8 pt-8 text-sm text-gray-400">
+          <div className="flex items-center justify-center gap-3">
+            <div className="h-7 w-7 rounded-lg overflow-hidden bg-white/10">
+              <img src={logoImage} alt="HZ IT Logo" className="h-full w-full object-cover origin-center scale-[2.4]" />
+            </div>
+            <p>&copy; 2026 HZ IT Company. All rights reserved.</p>
+          </div>
         </div>
       </div>
     </footer>

@@ -77,7 +77,13 @@ export function Home() {
             postalCode: siteConfig.address.postalCode,
             addressCountry: siteConfig.address.addressCountry,
           },
-          sameAs: [siteConfig.socials.linkedin, siteConfig.socials.twitter, siteConfig.socials.github],
+          sameAs: [
+            siteConfig.socials.linkedin,
+            siteConfig.socials.instagram,
+            siteConfig.socials.x,
+            siteConfig.socials.facebook,
+            siteConfig.socials.youtube,
+          ],
         }}
       />
       {/* Hero Section */}
