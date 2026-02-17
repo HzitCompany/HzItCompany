@@ -13,6 +13,7 @@ import { invoiceRouter } from "./routes/invoice.js";
 import { adminRouter } from "./routes/admin.js";
 import { meRouter } from "./routes/me.js";
 import { submissionsRouter } from "./routes/submissions.js";
+import { careersRouter } from "./routes/careers.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
 
 function resolveListenPort() {
@@ -40,6 +41,7 @@ async function main() {
   app.use("/api/auth/otp", otpRouter);
   app.use("/api", meRouter);
   app.use("/api", submissionsRouter);
+  app.use("/api/careers", careersRouter);
   app.use("/api", ordersRouter);
   app.use("/api", invoiceRouter);
   app.use("/api", adminRouter);

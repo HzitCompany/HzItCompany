@@ -157,10 +157,23 @@ otpRouter.post("/verify", async (req, res, next) => {
     await query("update otp_codes set consumed_at = now() where id = $1", [code.id]);
     await query("update users set is_verified = true where id = $1", [user.id]);
 
-    const role =
-      env.ADMIN_EMAIL && user.email && user.email.toLowerCase() === env.ADMIN_EMAIL.toLowerCase()
-        ? "admin"
-        : "client";
+    let role: "admin" | "client" = "client";
+    const userEmail = user.email?.toLowerCase();
+    if (userEmail) {
+      // Backwards-compatible bootstrap: if ADMIN_EMAIL matches, ensure it's present in admin_users.
+      if (env.ADMIN_EMAIL && userEmail === env.ADMIN_EMAIL.toLowerCase()) {
+        await query(
+          "insert into admin_users (email, is_active) values ($1, true) on conflict (email) do update set is_active = true",
+          [userEmail]
+        ).catch(() => undefined);
+      }
+
+      const adminRows = await query<{ ok: number }>(
+        "select 1 as ok from admin_users where email = $1 and is_active = true limit 1",
+        [userEmail]
+      );
+      if (adminRows[0]?.ok) role = "admin";
+    }
 
     const token = signToken({
       sub: String(user.id),

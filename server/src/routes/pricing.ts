@@ -1,19 +1,22 @@
 import { Router } from "express";
 
+import { query } from "../lib/db.js";
+
 export const pricingRoutes = Router();
 
-pricingRoutes.get("/", async (_req, res) => {
+pricingRoutes.get("/", async (_req, res, next) => {
   try {
-    return res.json({
-      services: [
-        { name: "Website Development", price: 15000 },
-        { name: "E-commerce Development", price: 30000 },
-        { name: "Mobile App Development", price: 50000 },
-        { name: "UI/UX Design", price: 8000 },
-        { name: "SEO Optimization", price: 7000 }
-      ]
-    });
-  } catch (_err) {
-    return res.status(500).json({ success: false, error: "Internal server error" });
+    const rows = await query(
+      [
+        "select id, service_key, service_name, plan_key, plan_name, price_inr",
+        "from services_pricing",
+        "where is_active = true",
+        "order by sort_order asc, service_key asc, plan_key asc"
+      ].join("\n")
+    );
+
+    return res.json({ ok: true, items: rows });
+  } catch (err) {
+    return next(err);
   }
 });

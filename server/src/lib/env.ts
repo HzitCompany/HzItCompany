@@ -76,6 +76,22 @@ const envSchema = z
       z.enum(["true", "false"]).optional()
     )
     .transform((v) => v === "true")
+
+  ,
+  // Supabase Storage (private resumes)
+  SUPABASE_URL: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().url().optional()
+  ),
+  SUPABASE_SERVICE_ROLE_KEY: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().min(1).optional()
+  ),
+  SUPABASE_STORAGE_BUCKET: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().min(1).optional()
+  ),
+  CAREER_UPLOAD_MAX_BYTES: z.coerce.number().int().positive().default(5 * 1024 * 1024)
   })
   .superRefine((val, ctx) => {
     // Only enforce MAIL_FROM/MAIL_TO when RESEND_API_KEY is set.

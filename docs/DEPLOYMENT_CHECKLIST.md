@@ -14,6 +14,7 @@
 - Apply `server/db/schema.sql`.
 - Set env vars from `server/.env.example`.
 - Run behind a reverse proxy / load balancer.
+- Keep compression enabled (the API uses `compression` middleware).
 - Enable health checks (`GET /health`).
 
 ## CDN recommendations

@@ -163,6 +163,31 @@ create table if not exists submissions (
 create index if not exists idx_submissions_user_created_at on submissions (user_id, created_at desc);
 create index if not exists idx_submissions_type_created_at on submissions (type, created_at desc);
 
+-- Career applications (private resume storage paths)
+create table if not exists career_applications (
+  id bigserial primary key,
+  created_at timestamptz not null default now(),
+
+  user_id bigint not null references users(id) on delete cascade,
+  submission_id bigint null references submissions(id) on delete set null,
+
+  full_name text not null,
+  email text not null,
+  phone text not null,
+  position text not null,
+  message text null,
+
+  resume_path text null,
+  cv_path text null,
+
+  status text not null default 'new' check (status in ('new','reviewing','shortlisted','rejected','hired')),
+  metadata jsonb not null default '{}'::jsonb
+);
+
+create index if not exists idx_career_applications_created on career_applications (created_at desc);
+create index if not exists idx_career_applications_status_created on career_applications (status, created_at desc);
+create index if not exists idx_career_applications_user_created on career_applications (user_id, created_at desc);
+
 -- OTP codes
 create table if not exists otp_codes (
   id bigserial primary key,

@@ -1,6 +1,7 @@
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
+import compression from "compression";
 
 import { env } from "./lib/env.js";
 import { apiRateLimit } from "./middleware/rateLimit.js";
@@ -58,6 +59,8 @@ export function createApp() {
       maxAge: 600
     })
   );
+
+  app.use(compression());
 
   app.use(express.json({ limit: "200kb" }));
 

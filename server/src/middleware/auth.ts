@@ -3,6 +3,7 @@ import type { NextFunction, Request, Response } from "express";
 import { HttpError } from "./errorHandler.js";
 import { getBearerToken, verifyToken, type AuthTokenPayload } from "../lib/auth.js";
 import { isOtpSessionActive } from "../lib/sessions.js";
+import { query } from "../lib/db.js";
 
 export type AuthedRequest = Request & { user?: AuthTokenPayload };
 
@@ -31,5 +32,17 @@ export function requireAuth(req: AuthedRequest, _res: Response, next: NextFuncti
 export function requireAdmin(req: AuthedRequest, _res: Response, next: NextFunction) {
   if (!req.user) return next(new HttpError(401, "Unauthorized", true));
   if (req.user.role !== "admin") return next(new HttpError(403, "Forbidden", true));
-  return next();
+
+  const email = req.user.email?.toLowerCase();
+  if (!email) return next(new HttpError(403, "Forbidden", true));
+
+  void (async () => {
+    const rows = await query<{ ok: number }>(
+      "select 1 as ok from admin_users where email = $1 and is_active = true limit 1",
+      [email]
+    );
+
+    if (!rows[0]?.ok) return next(new HttpError(403, "Forbidden", true));
+    return next();
+  })().catch(() => next(new HttpError(403, "Forbidden", true)));
 }
