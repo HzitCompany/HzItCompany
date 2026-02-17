@@ -87,6 +87,30 @@ export async function postJson<TRequest extends Record<string, unknown>, TRespon
   });
 }
 
+export async function putJson<TRequest extends Record<string, unknown>, TResponse>(
+  path: string,
+  body: TRequest,
+  options?: { signal?: AbortSignal; token?: string }
+): Promise<TResponse> {
+  return requestJson<TResponse>("PUT", path, {
+    body,
+    signal: options?.signal,
+    token: options?.token,
+  });
+}
+
+export async function patchJson<TRequest extends Record<string, unknown>, TResponse>(
+  path: string,
+  body: TRequest,
+  options?: { signal?: AbortSignal; token?: string }
+): Promise<TResponse> {
+  return requestJson<TResponse>("PATCH", path, {
+    body,
+    signal: options?.signal,
+    token: options?.token,
+  });
+}
+
 export function deleteJson<TResponse>(path: string, options?: { signal?: AbortSignal; token?: string }) {
   return requestJson<TResponse>("DELETE", path, { signal: options?.signal, token: options?.token });
 }

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { careerSchema, type CareerFormValues } from "../schemas/careerSchema";
-import { submitCareerAuthed } from "../services/contactService";
+import { createCareerUploadUrlAuthed, submitCareerApplyAuthed, uploadFileToSignedUrl } from "../services/careersService";
 import { useAuth } from "../auth/AuthProvider";
 import { trackEvent } from "../analytics/track";
 
@@ -47,7 +47,7 @@ export function Careers() {
       role: "",
       experience: "",
       portfolioUrl: "",
-      resumeUrl: "",
+      resumeFile: undefined,
       message: "",
       companyWebsite: "",
     },
@@ -67,14 +67,30 @@ export function Careers() {
     try {
       if (!token) throw new Error("Please verify first.");
 
-      await submitCareerAuthed(token, {
-        name: values.name,
+      const resumeFileList = (values as any).resumeFile as FileList | undefined;
+      const resumeFile = resumeFileList?.item(0) ?? undefined;
+
+      let resumePath: string | undefined;
+      if (resumeFile) {
+        const upload = await createCareerUploadUrlAuthed(token, {
+          kind: "resume",
+          fileName: resumeFile.name,
+          fileType: resumeFile.type,
+          fileSize: resumeFile.size,
+        });
+
+        await uploadFileToSignedUrl(upload.signedUrl, resumeFile);
+        resumePath = upload.path;
+      }
+
+      await submitCareerApplyAuthed(token, {
+        fullName: values.name,
         email: values.email,
         phone: values.phone,
-        role: values.role,
+        position: values.role,
         experience: values.experience || undefined,
         portfolioUrl: values.portfolioUrl || undefined,
-        resumeUrl: values.resumeUrl || undefined,
+        resumePath,
         message: values.message || undefined,
         honeypot: values.companyWebsite || undefined,
       });
@@ -296,21 +312,20 @@ export function Careers() {
                       ) : null}
                     </div>
                     <div>
-                      <label htmlFor="resumeUrl" className="block text-sm font-medium text-gray-700 mb-2">
-                        Resume URL (optional)
+                      <label htmlFor="resumeFile" className="block text-sm font-medium text-gray-700 mb-2">
+                        Resume (optional)
                       </label>
                       <input
-                        id="resumeUrl"
-                        type="url"
-                        inputMode="url"
-                        {...register("resumeUrl")}
+                        id="resumeFile"
+                        type="file"
+                        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        {...register("resumeFile")}
                         className={
                           "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
-                          (errors.resumeUrl ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
+                          (errors.resumeFile ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
                         }
-                        placeholder="https://..."
                       />
-                      {errors.resumeUrl ? <p className="mt-2 text-sm text-rose-700">{errors.resumeUrl.message}</p> : null}
+                      {errors.resumeFile ? <p className="mt-2 text-sm text-rose-700">{String(errors.resumeFile.message ?? "Invalid file")}</p> : null}
                     </div>
                   </div>
 

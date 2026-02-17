@@ -10,10 +10,7 @@ export const careerSchema = z.object({
     .string()
     .optional()
     .refine((v) => !v || /^https?:\/\//i.test(v), "Portfolio URL must start with http(s)://"),
-  resumeUrl: z
-    .string()
-    .optional()
-    .refine((v) => !v || /^https?:\/\//i.test(v), "Resume URL must start with http(s)://"),
+  resumeFile: z.any().optional(),
   message: z.string().optional(),
   companyWebsite: z.string().optional(),
 });

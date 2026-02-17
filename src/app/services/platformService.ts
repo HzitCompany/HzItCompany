@@ -1,4 +1,4 @@
-import { deleteJson, getJson, postJson } from "./apiClient";
+import { deleteJson, getJson, patchJson, postJson, putJson } from "./apiClient";
 
 export type PricingItem = {
   id: number;
@@ -92,4 +92,43 @@ export async function fetchAdminSubmissions(
 
 export async function deleteAdminSubmission(token: string, id: number) {
   return deleteJson<{ ok: true }>(`/api/admin/submissions/${id}`, { token });
+}
+
+export type CareerApplicationStatus = "new" | "reviewing" | "shortlisted" | "rejected" | "hired";
+
+export async function fetchAdminCareers(
+  token: string,
+  opts?: { q?: string; status?: CareerApplicationStatus; limit?: number }
+) {
+  const params = new URLSearchParams();
+  if (opts?.q) params.set("q", opts.q);
+  if (opts?.status) params.set("status", opts.status);
+  if (typeof opts?.limit === "number") params.set("limit", String(opts.limit));
+  const q = params.toString();
+  return getJson<{ ok: true; items: any[] }>(`/api/admin/careers${q ? `?${q}` : ""}`, { token });
+}
+
+export async function updateAdminCareerStatus(token: string, id: number, status: CareerApplicationStatus) {
+  return patchJson<{ status: CareerApplicationStatus }, { ok: true }>(`/api/admin/careers/${id}`, { status }, { token });
+}
+
+export async function createAdminCareerDownloadUrl(
+  token: string,
+  id: number,
+  kind: "resume" | "cv",
+  expiresInSeconds?: number
+) {
+  const params = new URLSearchParams();
+  params.set("kind", kind);
+  if (typeof expiresInSeconds === "number") params.set("expiresInSeconds", String(expiresInSeconds));
+  const q = params.toString();
+  return getJson<{ ok: true; url: string; expiresInSeconds: number }>(`/api/admin/careers/${id}/download-url?${q}`, { token });
+}
+
+export async function fetchAdminContent(token: string) {
+  return getJson<{ ok: true; items: Array<{ key: string; value: unknown; updated_at: string }> }>("/api/admin/content", { token });
+}
+
+export async function upsertAdminContent(token: string, input: { key: string; value: unknown }) {
+  return putJson<typeof input, { ok: true }>("/api/admin/content", input, { token });
 }

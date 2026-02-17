@@ -84,7 +84,67 @@ export const router = createBrowserRouter([
       },
       {
         path: "admin",
-        lazy: async () => ({ Component: (await import("./pages/AdminDashboard")).AdminDashboard }),
+        lazy: async () => {
+          const { AdminDashboard } = await import("./pages/AdminDashboard");
+          return { Component: () => <AdminDashboard initialTab="summary" /> };
+        },
+      },
+      {
+        path: "admin/dashboard",
+        lazy: async () => {
+          const { AdminDashboard } = await import("./pages/AdminDashboard");
+          return { Component: () => <AdminDashboard initialTab="summary" /> };
+        },
+      },
+      {
+        path: "admin/contact",
+        lazy: async () => {
+          const { AdminDashboard } = await import("./pages/AdminDashboard");
+          return { Component: () => <AdminDashboard initialTab="leads" /> };
+        },
+      },
+      {
+        path: "admin/hire",
+        lazy: async () => {
+          const { AdminDashboard } = await import("./pages/AdminDashboard");
+          return { Component: () => <AdminDashboard initialTab="leads" /> };
+        },
+      },
+      {
+        path: "admin/orders",
+        lazy: async () => {
+          const { AdminDashboard } = await import("./pages/AdminDashboard");
+          return { Component: () => <AdminDashboard initialTab="orders" /> };
+        },
+      },
+      {
+        path: "admin/pricing",
+        lazy: async () => {
+          const { AdminDashboard } = await import("./pages/AdminDashboard");
+          return { Component: () => <AdminDashboard initialTab="pricing" /> };
+        },
+      },
+      {
+        path: "admin/leads",
+        lazy: async () => {
+          const { AdminDashboard } = await import("./pages/AdminDashboard");
+          return { Component: () => <AdminDashboard initialTab="leads" /> };
+        },
+      },
+      {
+        path: "admin/submissions",
+        lazy: async () => {
+          const { AdminDashboard } = await import("./pages/AdminDashboard");
+          return { Component: () => <AdminDashboard initialTab="submissions" /> };
+        },
+      },
+      {
+        path: "admin/careers",
+        lazy: async () => ({ Component: (await import("./pages/AdminCareers")).AdminCareers }),
+      },
+      {
+        path: "admin/content",
+        lazy: async () => ({ Component: (await import("./pages/AdminContent")).AdminContent }),
       },
     ],
   },

@@ -17,11 +17,11 @@ import {
 
 type Tab = "summary" | "orders" | "pricing" | "leads" | "submissions";
 
-export function AdminDashboard() {
+export function AdminDashboard({ initialTab }: { initialTab?: Tab }) {
   const token = getSessionToken();
   const role = getSessionRole();
 
-  const [tab, setTab] = useState<Tab>("summary");
+  const [tab, setTab] = useState<Tab>(initialTab ?? "summary");
   const [error, setError] = useState<string | null>(null);
 
   const [summary, setSummary] = useState<{ orders: number; paidOrders: number; revenueInr: number } | null>(null);
@@ -48,6 +48,11 @@ export function AdminDashboard() {
   const [submissionType, setSubmissionType] = useState<"all" | "contact" | "hire" | "career">("all");
 
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!initialTab) return;
+    setTab(initialTab);
+  }, [initialTab]);
 
   function logout() {
     clearSession();
@@ -194,21 +199,27 @@ export function AdminDashboard() {
                 Admin
               </div>
               <nav className="mt-4 grid gap-2">
-                <button className={`text-left rounded-lg px-3 py-2 ${tab === "summary" ? "bg-gray-900 text-white" : "hover:bg-gray-50"}`} onClick={() => setTab("summary")}>
+                <Link className={`text-left rounded-lg px-3 py-2 ${tab === "summary" ? "bg-gray-900 text-white" : "hover:bg-gray-50"}`} to="/admin/dashboard">
                   Dashboard
-                </button>
-                <button className={`text-left rounded-lg px-3 py-2 ${tab === "orders" ? "bg-gray-900 text-white" : "hover:bg-gray-50"}`} onClick={() => setTab("orders")}>
+                </Link>
+                <Link className={`text-left rounded-lg px-3 py-2 ${tab === "orders" ? "bg-gray-900 text-white" : "hover:bg-gray-50"}`} to="/admin/orders">
                   Orders
-                </button>
-                <button className={`text-left rounded-lg px-3 py-2 ${tab === "pricing" ? "bg-gray-900 text-white" : "hover:bg-gray-50"}`} onClick={() => setTab("pricing")}>
+                </Link>
+                <Link className={`text-left rounded-lg px-3 py-2 ${tab === "pricing" ? "bg-gray-900 text-white" : "hover:bg-gray-50"}`} to="/admin/pricing">
                   Pricing
-                </button>
-                <button className={`text-left rounded-lg px-3 py-2 ${tab === "leads" ? "bg-gray-900 text-white" : "hover:bg-gray-50"}`} onClick={() => setTab("leads")}>
+                </Link>
+                <Link className={`text-left rounded-lg px-3 py-2 ${tab === "leads" ? "bg-gray-900 text-white" : "hover:bg-gray-50"}`} to="/admin/leads">
                   Leads
-                </button>
-                <button className={`text-left rounded-lg px-3 py-2 ${tab === "submissions" ? "bg-gray-900 text-white" : "hover:bg-gray-50"}`} onClick={() => setTab("submissions")}>
+                </Link>
+                <Link className={`text-left rounded-lg px-3 py-2 ${tab === "submissions" ? "bg-gray-900 text-white" : "hover:bg-gray-50"}`} to="/admin/submissions">
                   Submissions
-                </button>
+                </Link>
+                <Link className="text-left rounded-lg px-3 py-2 hover:bg-gray-50" to="/admin/careers">
+                  Careers
+                </Link>
+                <Link className="text-left rounded-lg px-3 py-2 hover:bg-gray-50" to="/admin/content">
+                  Content
+                </Link>
               </nav>
               <button onClick={logout} className="mt-6 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-700 hover:bg-gray-50">
                 Logout
