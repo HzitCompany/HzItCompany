@@ -65,15 +65,25 @@ otpRouter.post("/request", async (req, res, next) => {
 
     if (!userId) throw new HttpError(500, "Failed to create user");
 
+    // If we're not returning debug OTPs, require the SMS provider to be configured.
+    if (!env.OTP_DEBUG_RETURN && !env.MSG91_AUTH_KEY) {
+      throw new HttpError(
+        503,
+        "SMS OTP provider is not configured. Set MSG91_AUTH_KEY (and MSG91_TEMPLATE_ID if required) on the backend.",
+        true
+      );
+    }
+
     const otp = generateOtp6();
     const salt = randomSalt(16);
     const otpHash = makeOtpHash(otp, salt);
     const expiresAt = new Date(Date.now() + env.OTP_EXPIRES_SECONDS * 1000);
 
-    await query(
-      "insert into otp_codes (user_id, channel, destination, otp_hash, otp_salt, expires_at) values ($1,'sms',$2,$3,$4,$5)",
+    const inserted = await query<{ id: number }>(
+      "insert into otp_codes (user_id, channel, destination, otp_hash, otp_salt, expires_at) values ($1,'sms',$2,$3,$4,$5) returning id",
       [userId, phoneE164, otpHash, salt, expiresAt.toISOString()]
     );
+    const otpId = inserted[0]?.id;
 
     // Debug fallback: only when explicitly enabled.
     // Useful for staging/demo environments where SMS provider isn't configured yet.
@@ -86,17 +96,13 @@ otpRouter.post("/request", async (req, res, next) => {
       });
     }
 
-    if (!env.MSG91_AUTH_KEY) {
-      throw new HttpError(
-        503,
-        "SMS OTP provider is not configured. Set MSG91_AUTH_KEY (and MSG91_TEMPLATE_ID if required) on the backend.",
-        true
-      );
-    }
-
     try {
       await sendOtpSmsMsg91({ phone: phoneE164, otp });
     } catch (e) {
+      // Best-effort cleanup so undelivered OTP codes aren't accidentally verified later.
+      if (otpId) {
+        await query("delete from otp_codes where id = $1", [otpId]).catch(() => undefined);
+      }
       // Avoid leaking upstream provider details in production responses.
       throw new HttpError(502, "Failed to send OTP SMS. Check MSG91 configuration and logs.", true);
     }
