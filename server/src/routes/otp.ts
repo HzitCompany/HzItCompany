@@ -75,20 +75,31 @@ otpRouter.post("/request", async (req, res, next) => {
       [userId, phoneE164, otpHash, salt, expiresAt.toISOString()]
     );
 
-    // Dev fallback: if we're not in production, allow returning OTP when explicitly enabled,
-    // or when the SMS provider is not configured.
-    if (env.NODE_ENV !== "production") {
-      if (env.OTP_DEBUG_RETURN || !env.MSG91_AUTH_KEY) {
-        return res.json({
-          ok: true,
-          debugOtp: otp,
-          expiresInSeconds: env.OTP_EXPIRES_SECONDS,
-          providerConfigured: Boolean(env.MSG91_AUTH_KEY)
-        });
-      }
+    // Debug fallback: only when explicitly enabled.
+    // Useful for staging/demo environments where SMS provider isn't configured yet.
+    if (env.OTP_DEBUG_RETURN) {
+      return res.json({
+        ok: true,
+        debugOtp: otp,
+        expiresInSeconds: env.OTP_EXPIRES_SECONDS,
+        providerConfigured: Boolean(env.MSG91_AUTH_KEY)
+      });
     }
 
-    await sendOtpSmsMsg91({ phone: phoneE164, otp });
+    if (!env.MSG91_AUTH_KEY) {
+      throw new HttpError(
+        503,
+        "SMS OTP provider is not configured. Set MSG91_AUTH_KEY (and MSG91_TEMPLATE_ID if required) on the backend.",
+        true
+      );
+    }
+
+    try {
+      await sendOtpSmsMsg91({ phone: phoneE164, otp });
+    } catch (e) {
+      // Avoid leaking upstream provider details in production responses.
+      throw new HttpError(502, "Failed to send OTP SMS. Check MSG91 configuration and logs.", true);
+    }
 
     return res.json({ ok: true });
   } catch (err) {
