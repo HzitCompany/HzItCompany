@@ -110,6 +110,9 @@ if (!parsed.success) {
     ].join("\n")
   );
   process.exit(1);
+
+  // For TypeScript control-flow analysis (and non-standard runtimes), ensure we never continue.
+  throw new Error("Invalid environment configuration");
 }
 
 export const env: Env = parsed.data;
