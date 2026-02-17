@@ -55,6 +55,10 @@ async function isCoreSchemaPresent() {
   return { ok: missing.length === 0, missing };
 }
 
+export async function getSchemaStatus() {
+  return isCoreSchemaPresent();
+}
+
 export async function ensureSchemaOrThrow() {
   const state = await isCoreSchemaPresent();
   if (state.ok) return;

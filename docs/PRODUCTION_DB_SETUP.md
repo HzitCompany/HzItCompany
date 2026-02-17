@@ -54,3 +54,21 @@ If DB is down/misconfigured it returns HTTP `503`:
 ```json
 { "ok": false, "db": false }
 ```
+
+## 5) Quick schema check
+
+Call:
+
+- `GET /api/schema`
+
+If schema is present:
+
+```json
+{ "ok": true, "missing": [] }
+```
+
+If schema is missing/out-of-date (HTTP `503`):
+
+```json
+{ "ok": false, "missing": ["users", "submissions"] }
+```

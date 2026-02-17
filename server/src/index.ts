@@ -6,6 +6,7 @@ import { ensureSchemaOrThrow } from "./lib/schema.js";
 import { pricingRoutes } from "./routes/pricing.js";
 import { contactRoutes } from "./routes/contact.js";
 import { hireUsRoutes } from "./routes/hireUs.js";
+import { schemaStatusRouter } from "./routes/schemaStatus.js";
 import { authRouter } from "./routes/auth.js";
 import { otpRouter } from "./routes/otp.js";
 import { ordersRouter } from "./routes/orders.js";
@@ -35,6 +36,7 @@ async function main() {
   app.use("/api/pricing", pricingRoutes);
   app.use("/api/contact", contactRoutes);
   app.use("/api/hire-us", hireUsRoutes);
+  app.use("/api/schema", schemaStatusRouter);
 
   // Existing platform endpoints
   app.use("/api", authRouter);
