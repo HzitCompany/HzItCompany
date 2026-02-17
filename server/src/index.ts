@@ -15,35 +15,13 @@ import { meRouter } from "./routes/me.js";
 import { submissionsRouter } from "./routes/submissions.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
 
-function isAddrInUseError(err: unknown) {
-  const anyErr = err as any;
-  return anyErr?.code === "EADDRINUSE";
-}
-
-async function listenWithFallback(app: ReturnType<typeof createApp>, startPort: number) {
-  // Keep the retry window small and predictable.
-  const maxAttempts = 20;
-
-  for (let attempt = 0; attempt <= maxAttempts; attempt++) {
-    const port = startPort + attempt;
-
-    try {
-      const server = await new Promise<import("node:http").Server>((resolve, reject) => {
-        const s = app.listen(port, () => resolve(s));
-        s.on("error", reject);
-      });
-
-      return { server, port };
-    } catch (err) {
-      if (isAddrInUseError(err) && attempt < maxAttempts) {
-        logger.warn({ port }, "Port in use, trying next port");
-        continue;
-      }
-      throw err;
-    }
-  }
-
-  throw new Error("No available port found");
+function resolveListenPort() {
+  // Render (and many PaaS providers) require binding to process.env.PORT.
+  // If you listen on any other port, Render may report "No open ports detected".
+  const raw = process.env.PORT ?? String(env.PORT ?? "");
+  const parsed = Number(raw);
+  if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  return 8080;
 }
 
 async function main() {
@@ -69,9 +47,10 @@ async function main() {
   app.use(notFound);
   app.use(errorHandler);
 
-  const startPort = env.PORT ?? 8080;
-  const { port } = await listenWithFallback(app, startPort);
-  logger.info({ port, env: env.NODE_ENV }, "API server listening");
+  const port = resolveListenPort();
+  app.listen(port, "0.0.0.0", () => {
+    logger.info({ port, env: env.NODE_ENV }, "API server listening");
+  });
 }
 
 main().catch((err) => {

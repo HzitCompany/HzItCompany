@@ -27,8 +27,24 @@ export function createApp() {
     cors({
       origin: (origin, callback) => {
         if (!origin) return callback(null, true);
-        if (env.CORS_ORIGINS.includes(origin)) return callback(null, true);
-        return callback(new HttpError(403, "Not allowed by CORS", true));
+        const allowed = env.CORS_ORIGINS;
+        const isAllowed = allowed.some((entry) => {
+          if (entry === "*") return true;
+          if (!entry.includes("*")) return entry === origin;
+
+          // Support a single '*' wildcard (prefix*suffix)
+          const [prefix, suffix] = entry.split("*");
+          return origin.startsWith(prefix) && origin.endsWith(suffix ?? "");
+        });
+
+        if (isAllowed) return callback(null, true);
+        return callback(
+          new HttpError(
+            403,
+            `Not allowed by CORS (origin: ${origin}). Set CORS_ORIGINS to include this origin.`,
+            true
+          )
+        );
       },
       credentials: false,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
