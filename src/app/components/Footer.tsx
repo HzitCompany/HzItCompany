@@ -174,7 +174,7 @@ export function Footer() {
 
         <div className="border-t border-white/10 mt-8 pt-8 text-sm text-gray-400">
           <div className="flex items-center justify-center gap-3">
-            <div className="h-7 w-7 rounded-lg overflow-hidden bg-white/10">
+            <div className="h-8 w-8 rounded-lg overflow-hidden bg-white/10">
               <img src={logoImage} alt="HZ IT Logo" className="h-full w-full object-contain" />
             </div>
             <p>&copy; 2026 HZ IT Company. All rights reserved.</p>

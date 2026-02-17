@@ -26,6 +26,19 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
   }
 
   const message = err instanceof Error ? err.message : String(err);
+  const anyErr = err as any;
+  const pgCode = anyErr?.code as string | undefined;
+
+  // Postgres: missing table/column usually means the schema.sql wasn't applied after an update.
+  if (pgCode === "42P01" || pgCode === "42703") {
+    const hint = "Database schema is missing or out of date. Apply server/db/schema.sql to your Supabase/Postgres database, then redeploy.";
+    logger.error({ err, message, pgCode }, "Database schema error");
+    if (!isProd) {
+      return res.status(500).json({ ok: false, error: `${message}\n${hint}` });
+    }
+    return res.status(503).json({ ok: false, error: hint });
+  }
+
   logger.error({ err, message }, "Unhandled error");
 
   if (!isProd) {

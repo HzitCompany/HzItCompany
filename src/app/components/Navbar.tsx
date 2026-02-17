@@ -169,7 +169,7 @@ export function Navbar() {
             <div className="flex justify-between items-center h-16 md:h-20">
               {/* Logo */}
               <Link to="/" className="flex items-center group">
-                <div className="h-9 w-9 md:h-10 md:w-10 rounded-xl overflow-hidden">
+                <div className="h-11 w-11 md:h-12 md:w-12 rounded-xl overflow-hidden shrink-0">
                   <img
                     src={logoImage}
                     alt="HZ IT Logo"
