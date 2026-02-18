@@ -168,7 +168,7 @@ export function Navbar() {
             <div className="flex justify-between items-center h-16 md:h-20">
               {/* Logo */}
               <Link to="/" className="flex items-center group">
-                <div className="h-11 w-11 md:h-12 md:w-12 rounded-xl overflow-hidden shrink-0">
+                <div className="h-14 w-14 md:h-16 md:w-16 rounded-xl overflow-hidden shrink-0">
                   <img
                     src="/logo.png"
                     alt="HZ IT Logo"
@@ -176,7 +176,7 @@ export function Navbar() {
                   />
                 </div>
                 <span
-                  className="ml-3 text-sm sm:text-xl font-bold bg-gradient-to-r from-blue-700 to-blue-900 bg-clip-text text-transparent font-poppins whitespace-nowrap"
+                  className="ml-3 text-base sm:text-xl font-bold bg-gradient-to-r from-blue-700 to-blue-900 bg-clip-text text-transparent font-poppins whitespace-nowrap"
                 >
                   HZ IT Company
                 </span>
