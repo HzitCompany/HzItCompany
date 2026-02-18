@@ -635,7 +635,12 @@ export function HireUs() {
                     </label>
                     <select
                       id="hire-delivery-days"
-                      {...register("deliveryDays")}
+                      {...register("deliveryDays", {
+                        setValueAs: (v) => {
+                          const n = typeof v === "string" ? Number(v) : v;
+                          return Number.isFinite(n) ? n : undefined;
+                        },
+                      })}
                       aria-describedby={errors.deliveryDays ? "hire-delivery-days-error" : undefined}
                       className={
                         "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +

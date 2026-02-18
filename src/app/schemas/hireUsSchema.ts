@@ -9,7 +9,7 @@ export const hireUsSchema = z.object({
   projectName: z.string().trim().min(2, "Please enter a project name"),
   projectDescription: z.string().trim().min(20, "Please describe your project"),
   serviceDetails: z.record(z.string(), z.string().trim()).optional(),
-  deliveryDays: z.coerce.number().int().positive("Enter delivery days").max(365, "Too long"),
+  deliveryDays: z.number().int().positive("Enter delivery days").max(365, "Too long"),
   clarification: z.string().trim().optional(),
   personalMessage: z.string().trim().optional(),
   referenceUrl: z.string().trim().optional(),
