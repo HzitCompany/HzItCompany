@@ -1,25 +1,38 @@
+import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { env } from "./env.js";
-import { Resend } from "resend";
 
 export type LeadEmail = {
   subject: string;
   text: string;
 };
 
-const isEnabled = Boolean(env.RESEND_API_KEY && env.MAIL_FROM && env.MAIL_TO);
-const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
+function getSesClient(): SESClient | null {
+  if (!env.AWS_ACCESS_KEY_ID || !env.AWS_SECRET_ACCESS_KEY) return null;
+  return new SESClient({
+    region: env.AWS_SES_REGION ?? "us-east-1",
+    credentials: {
+      accessKeyId: env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: env.AWS_SECRET_ACCESS_KEY
+    }
+  });
+}
 
 export function isEmailEnabled() {
-  return isEnabled;
+  return Boolean(env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY && env.MAIL_FROM && env.MAIL_TO);
 }
 
 export async function sendLeadEmail(message: LeadEmail) {
-  if (!isEnabled || !resend) return;
+  if (!isEmailEnabled()) return;
 
-  await resend.emails.send({
-    from: env.MAIL_FROM!,
-    to: env.MAIL_TO!,
-    subject: message.subject,
-    text: message.text
-  });
+  const client = getSesClient()!;
+  await client.send(
+    new SendEmailCommand({
+      Source: env.MAIL_FROM!,
+      Destination: { ToAddresses: [env.MAIL_TO!] },
+      Message: {
+        Subject: { Data: message.subject, Charset: "UTF-8" },
+        Body: { Text: { Data: message.text, Charset: "UTF-8" } }
+      }
+    })
+  );
 }

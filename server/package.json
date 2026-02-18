@@ -11,6 +11,7 @@
     "lint": "node -e \"console.log('No linter configured')\""
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.992.0",
     "@supabase/supabase-js": "^2.95.3",
     "@types/compression": "^1.8.1",
     "@types/cookie-parser": "^1.4.10",

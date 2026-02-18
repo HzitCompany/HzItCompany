@@ -73,8 +73,16 @@ const envSchema = z
     z.string().min(1).optional()
   ),
 
-  // Optional email integration (Resend). Empty strings are treated as "unset".
-  RESEND_API_KEY: z.preprocess(
+  // Optional email integration (Amazon SES). Empty strings are treated as "unset".
+  AWS_ACCESS_KEY_ID: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().min(1).optional()
+  ),
+  AWS_SECRET_ACCESS_KEY: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().min(1).optional()
+  ),
+  AWS_SES_REGION: z.preprocess(
     (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
     z.string().min(1).optional()
   ),
@@ -124,10 +132,9 @@ const envSchema = z
   CAREER_UPLOAD_MAX_BYTES: z.coerce.number().int().positive().default(5 * 1024 * 1024)
   })
   .superRefine((val, ctx) => {
-    // Only enforce MAIL_FROM when RESEND_API_KEY is set (needed for OTP emails).
-    // MAIL_TO is optional — only used for admin notification emails.
-    if (!val.RESEND_API_KEY) return;
-    if (!val.MAIL_FROM) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["MAIL_FROM"], message: "Required when RESEND_API_KEY is set" });
+    // Only enforce MAIL_FROM when AWS SES credentials are set (needed for OTP emails).
+    if (!val.AWS_ACCESS_KEY_ID) return;
+    if (!val.MAIL_FROM) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["MAIL_FROM"], message: "Required when AWS_ACCESS_KEY_ID is set" });
 
     // ADMIN_PASSWORD_HASH is optional (admin can login via email OTP or Google OAuth).
   });
