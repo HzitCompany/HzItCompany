@@ -33,6 +33,17 @@ export default defineConfig(({ mode }) => {
       },
     },
 
+    build: {
+      // Avoid route-level chunk fetch issues on some deployments (HTML fallback on missing chunks).
+      // Produces a single JS bundle and removes dynamic-import chunk loading at runtime.
+      rollupOptions: {
+        output: {
+          inlineDynamicImports: true,
+          manualChunks: undefined,
+        },
+      },
+    },
+
     // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
     assetsInclude: ["**/*.svg", "**/*.csv"],
   };

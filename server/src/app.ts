@@ -2,6 +2,7 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import compression from "compression";
+import cookieParser from "cookie-parser";
 
 import { env } from "./lib/env.js";
 import { pool } from "./lib/db.js";
@@ -54,14 +55,39 @@ export function createApp() {
           )
         );
       },
-      credentials: false,
+      credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       // Avoid being too strict here; let the middleware reflect request headers.
       maxAge: 600
     })
   );
 
+  // Basic CSRF protection for cookie-authenticated endpoints.
+  // If cookies are sent cross-site (SameSite=None), require an allowed Origin.
+  app.use((req, _res, next) => {
+    const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
+    if (safeMethods.has(req.method)) return next();
+
+    const origin = req.get("origin");
+    if (!origin) {
+      // In production browser traffic, Origin is expected for cross-site requests.
+      // Block missing-origin state changes to reduce CSRF exposure.
+      if (env.NODE_ENV === "production") {
+        return next(new HttpError(403, "Missing Origin header", true));
+      }
+      return next();
+    }
+
+    if (!isOriginAllowed(origin, env.CORS_ORIGINS)) {
+      return next(new HttpError(403, "Blocked by CSRF origin check", true));
+    }
+
+    return next();
+  });
+
   app.use(compression());
+
+  app.use(cookieParser());
 
   app.use(express.json({ limit: "200kb" }));
 

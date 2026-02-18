@@ -1,13 +1,14 @@
-import { useEffect, useState } from "react";
+﻿import { useState } from "react";
 import { useNavigate, Link } from "react-router";
 
 import { Seo } from "../components/Seo";
-import { login, loginWithSupabase, registerClient } from "../services/platformService";
-import { setSession } from "../auth/session";
-import { supabase } from "../lib/supabase";
+import { login, registerClient } from "../services/platformService";
+import { GoogleLoginButton } from "../components/GoogleLoginButton";
+import { useAuth } from "../auth/AuthProvider";
 
 export function PortalLogin() {
   const navigate = useNavigate();
+  const { onGoogleLogin, refreshMe } = useAuth();
   const [mode, setMode] = useState<"login" | "register">("login");
 
   const [name, setName] = useState("");
@@ -17,58 +18,18 @@ export function PortalLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        const accessToken = data.session?.access_token;
-        if (!accessToken) return;
-
-        setLoading(true);
-        setError(null);
-        const r = await loginWithSupabase(accessToken);
-        if (cancelled) return;
-        setSession(r.token, r.role);
-        await supabase.auth.signOut();
-        navigate(r.role === "admin" ? "/admin" : "/portal");
-      } catch (e: any) {
-        if (cancelled) return;
-        setError(typeof e?.message === "string" ? e.message : "Google authentication failed");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [navigate]);
-
-  async function onGoogle() {
-    if (loading) return;
-    setError(null);
-    const redirectTo = `${window.location.origin}/portal/login`;
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo }
-    });
-    if (error) setError(error.message || "Google login failed");
-  }
-
   async function onSubmit() {
     setError(null);
     setLoading(true);
     try {
       if (mode === "register") {
-        const r = await registerClient({ name: name.trim(), email: email.trim(), password });
-        setSession(r.token, r.role);
-        navigate("/portal");
+        await registerClient({ name: name.trim(), email: email.trim(), password });
       } else {
-        const r = await login({ email: email.trim(), password });
-        setSession(r.token, r.role);
-        navigate(r.role === "admin" ? "/admin" : "/portal");
+        await login({ email: email.trim(), password });
       }
+      // Refresh auth context from cookie session
+      await refreshMe();
+      navigate("/portal");
     } catch (e: any) {
       setError(e?.message ?? "Authentication failed");
     } finally {
@@ -82,7 +43,7 @@ export function PortalLogin() {
 
       <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-10">
-            <h1 className="text-3xl font-bold text-gray-900 font-poppins">
+          <h1 className="text-3xl font-bold text-gray-900 font-poppins">
             {mode === "login" ? "Login" : "Create account"}
           </h1>
           <p className="mt-2 text-gray-600">Access your orders and invoices.</p>
@@ -114,13 +75,14 @@ export function PortalLogin() {
 
             <label className="block">
               <span className="text-sm font-medium text-gray-700">Email</span>
-              <input className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input type="email" autoComplete="email" className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" value={email} onChange={(e) => setEmail(e.target.value)} />
             </label>
 
             <label className="block">
               <span className="text-sm font-medium text-gray-700">Password</span>
               <input
                 type="password"
+                autoComplete="current-password"
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -135,20 +97,25 @@ export function PortalLogin() {
               onClick={onSubmit}
               className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {loading ? "Please wait…" : mode === "login" ? "Login" : "Create account"}
+              {loading ? "Please waitâ€¦" : mode === "login" ? "Login" : "Create account"}
             </button>
 
-            <button
-              type="button"
-              disabled={loading}
-              onClick={onGoogle}
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 hover:bg-gray-50 disabled:opacity-50"
-            >
-              Continue with Google
-            </button>
+            <div className="relative flex items-center gap-3">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="text-xs text-gray-400 uppercase tracking-wide">or</span>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
+
+            <div className="flex justify-center">
+              <GoogleLoginButton
+                width={280}
+                onSuccess={() => navigate("/portal")}
+                onError={(msg) => setError(msg)}
+              />
+            </div>
 
             <Link to="/auth" className="text-center text-sm text-blue-700 hover:underline">
-              Login with OTP
+              Login with OTP (passwordless)
             </Link>
 
             <Link to="/" className="text-center text-sm text-gray-600 hover:underline">
@@ -160,3 +127,4 @@ export function PortalLogin() {
     </div>
   );
 }
+

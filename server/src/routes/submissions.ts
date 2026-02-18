@@ -64,7 +64,7 @@ submissionsRouter.post("/submissions", requireAuth, async (req: AuthedRequest, r
     const createdId = inserted[0]?.id;
     const createdAt = inserted[0]?.created_at;
     const userEmail = maybeEmail ?? req.user.email ?? null;
-    const userPhone = req.user.phone ?? null;
+    const userPhone: string | null = null;
 
     void sendAdminSubmissionEmail({
       submissionType: parsed.data.type,

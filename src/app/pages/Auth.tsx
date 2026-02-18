@@ -1,19 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, Link } from "react-router";
+﻿import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { Seo } from "../components/Seo";
-import { requestOtp, verifyOtp } from "../services/otpService";
+import { requestEmailOtp, verifyEmailOtp } from "../services/otpService";
 import { useAuth } from "../auth/AuthProvider";
+import { GoogleLoginButton } from "../components/GoogleLoginButton";
 
 const requestSchema = z
   .object({
-    name: z.string().min(2, "Enter your name").max(120).optional().or(z.literal("")),
     email: z.string().email("Enter a valid email").max(254),
-    phone: z.string().min(8, "Enter a valid phone number").max(20),
   })
   .strict();
 
@@ -21,7 +20,7 @@ type RequestValues = z.infer<typeof requestSchema>;
 
 const verifySchema = z
   .object({
-    otp: z.string().regex(/^\d{6}$/, "Enter the 6-digit OTP"),
+    token: z.string().regex(/^\d{6}$/, "Enter the 6-digit OTP"),
   })
   .strict();
 
@@ -31,11 +30,11 @@ type Step = "request" | "verify";
 
 export function Auth() {
   const navigate = useNavigate();
-  const { onOtpVerified } = useAuth();
+  const { onOtpVerified, onGoogleLogin } = useAuth();
 
   const [step, setStep] = useState<Step>("request");
-  const [phoneForVerify, setPhoneForVerify] = useState<string>("");
-  const [lastRequest, setLastRequest] = useState<{ name?: string; email: string; phone: string } | null>(null);
+  const [emailForVerify, setEmailForVerify] = useState<string>("");
+
   const [status, setStatus] = useState<{ kind: "idle" | "success" | "error"; message?: string }>({ kind: "idle" });
   const [resendAvailableAt, setResendAvailableAt] = useState<number>(0);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
@@ -49,10 +48,11 @@ export function Auth() {
   const {
     register: registerRequest,
     handleSubmit: handleSubmitRequest,
+    getValues,
     formState: { errors: requestErrors, isSubmitting: requestSubmitting },
   } = useForm<RequestValues>({
     resolver: zodResolver(requestSchema),
-    defaultValues: { name: "", email: "", phone: "" },
+    defaultValues: { email: "" },
     mode: "onTouched",
   });
 
@@ -62,38 +62,29 @@ export function Auth() {
     formState: { errors: verifyErrors, isSubmitting: verifySubmitting },
   } = useForm<VerifyValues>({
     resolver: zodResolver(verifySchema),
-    defaultValues: { otp: "" },
+    defaultValues: { token: "" },
     mode: "onTouched",
   });
 
   const loading = requestSubmitting || verifySubmitting;
 
-  const header = useMemo(
-    () => (step === "request" ? "Sign in with OTP" : "Verify OTP"),
-    [step]
-  );
+  const header = useMemo(() => (step === "request" ? "Sign in with Email OTP" : "Verify OTP"), [step]);
 
   async function onRequest(values: RequestValues) {
     setStatus({ kind: "idle" });
-
-    const payload = {
-      name: values.name?.trim() ? values.name.trim() : undefined,
-      email: values.email.trim(),
-      phone: values.phone.trim(),
-    };
+    const email = values.email.trim();
 
     try {
-      await requestOtp(payload);
-      setLastRequest(payload);
-      setPhoneForVerify(payload.phone);
+      await requestEmailOtp({ email });
+      setEmailForVerify(email);
       setStep("verify");
       setResendAvailableAt(Date.now() + 30_000);
-      setStatus({ kind: "success", message: "OTP sent. Please check your phone." });
+      setStatus({ kind: "success", message: "OTP sent! Check your inbox (and spam)." });
     } catch (e: any) {
       const statusCode = typeof e?.status === "number" ? e.status : undefined;
       const msg =
         statusCode === 429
-          ? "Too many OTP requests. Please wait a bit and try again."
+          ? "Too many OTP requests. Please wait and try again."
           : typeof e?.message === "string"
             ? e.message
             : "Failed to send OTP";
@@ -102,19 +93,19 @@ export function Auth() {
   }
 
   async function onResend() {
-    if (!lastRequest) return;
-    if (Date.now() < resendAvailableAt) return;
+    const email = emailForVerify || getValues("email");
+    if (!email || Date.now() < resendAvailableAt) return;
     setStatus({ kind: "idle" });
 
     try {
-      await requestOtp(lastRequest);
+      await requestEmailOtp({ email });
       setResendAvailableAt(Date.now() + 30_000);
-      setStatus({ kind: "success", message: "OTP resent. Please check your phone." });
+      setStatus({ kind: "success", message: "OTP resent. Please check your email." });
     } catch (e: any) {
       const statusCode = typeof e?.status === "number" ? e.status : undefined;
       const msg =
         statusCode === 429
-          ? "Too many OTP requests. Please wait a bit and try again."
+          ? "Too many OTP requests. Please wait and try again."
           : typeof e?.message === "string"
             ? e.message
             : "Failed to resend OTP";
@@ -126,8 +117,9 @@ export function Auth() {
     setStatus({ kind: "idle" });
 
     try {
-      const r = await verifyOtp({ phone: phoneForVerify, otp: values.otp.trim() });
-      await onOtpVerified(r.token);
+      // Cookie is set by backend; we just trigger a refreshMe.
+      await verifyEmailOtp({ email: emailForVerify, token: values.token.trim() });
+      await onOtpVerified();
       navigate("/portal");
     } catch (e: any) {
       const statusCode = typeof e?.status === "number" ? e.status : undefined;
@@ -149,7 +141,7 @@ export function Auth() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Seo title="Authentication" description="Sign in to HZ IT Company." path="/auth" />
+      <Seo title="Sign In" description="Sign in to HZ IT Company with email OTP." path="/auth" />
 
       <section className="relative pt-32 pb-16 bg-gradient-to-br from-blue-900 via-blue-800 to-gray-900 text-white overflow-hidden">
         <div className="absolute inset-0">
@@ -163,15 +155,15 @@ export function Auth() {
         <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }}>
             <h1 className="text-5xl md:text-6xl font-bold mb-4 font-poppins">{header}</h1>
-            <p className="text-lg text-gray-300">Secure login for India mobile numbers.</p>
+            <p className="text-lg text-gray-300">No password needed â€” sign in with a one-time code.</p>
           </motion.div>
         </div>
       </section>
 
       <section className="pb-20 bg-gray-50">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10">
+        <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8 -mt-10">
           <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-xl border border-gray-200">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-3 mb-2">
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -188,14 +180,14 @@ export function Auth() {
                 </button>
                 <button
                   type="button"
-                  disabled={!phoneForVerify}
+                  disabled={!emailForVerify}
                   className={
                     "rounded-lg border px-3 py-2 text-sm " +
                     (step === "verify" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-300") +
-                    (!phoneForVerify ? " opacity-60 cursor-not-allowed" : "")
+                    (!emailForVerify ? " opacity-60 cursor-not-allowed" : "")
                   }
                   onClick={() => {
-                    if (!phoneForVerify) return;
+                    if (!emailForVerify) return;
                     setStep("verify");
                     setStatus({ kind: "idle" });
                   }}
@@ -204,15 +196,15 @@ export function Auth() {
                 </button>
               </div>
 
-              <Link to="/portal/login" className="text-sm text-blue-700 hover:underline">
-                Use email/password
+              <Link to="/" className="text-sm text-blue-700 hover:underline">
+                Back to website
               </Link>
             </div>
 
             {status.kind !== "idle" ? (
               <div
                 className={
-                  "mt-6 rounded-xl px-4 py-3 text-sm border " +
+                  "mt-4 rounded-xl px-4 py-3 text-sm border " +
                   (status.kind === "success"
                     ? "bg-emerald-50 border-emerald-200 text-emerald-900"
                     : "bg-rose-50 border-rose-200 text-rose-900")
@@ -225,23 +217,9 @@ export function Auth() {
             ) : null}
 
             {step === "request" ? (
-              <form className="mt-8 space-y-5" onSubmit={handleSubmitRequest(onRequest)} noValidate>
+              <form className="mt-6 space-y-5" onSubmit={handleSubmitRequest(onRequest)} noValidate>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Name (optional)</label>
-                  <input
-                    {...registerRequest("name")}
-                    autoComplete="name"
-                    className={
-                      "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
-                      (requestErrors.name ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
-                    }
-                    placeholder="Your name"
-                  />
-                  {requestErrors.name ? <p className="mt-2 text-sm text-rose-700">{requestErrors.name.message as any}</p> : null}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email address</label>
                   <input
                     {...registerRequest("email")}
                     type="email"
@@ -253,73 +231,67 @@ export function Auth() {
                     }
                     placeholder="you@example.com"
                   />
-                  {requestErrors.email ? <p className="mt-2 text-sm text-rose-700">{requestErrors.email.message}</p> : null}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
-                  <input
-                    {...registerRequest("phone")}
-                    type="tel"
-                    autoComplete="tel"
-                    inputMode="tel"
-                    className={
-                      "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
-                      (requestErrors.phone ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
-                    }
-                    placeholder="+91 8101515185"
-                  />
-                  {requestErrors.phone ? <p className="mt-2 text-sm text-rose-700">{requestErrors.phone.message}</p> : null}
+                  {requestErrors.email ? <p className="mt-1 text-sm text-rose-700">{requestErrors.email.message}</p> : null}
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
                   className={
-                    "w-full px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold shadow-lg transition-all duration-200 flex items-center justify-center " +
+                    "w-full py-4 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold shadow-lg transition-all " +
                     (loading ? "opacity-70 cursor-not-allowed" : "hover:shadow-xl hover:scale-[1.02]")
                   }
                 >
-                  {loading ? "Sending…" : "Send OTP"}
+                  {loading ? "Sendingâ€¦" : "Send OTP"}
                 </button>
 
-                <div className="flex justify-between text-sm text-gray-600">
+                <div className="relative flex items-center gap-3 py-2">
+                  <div className="flex-1 h-px bg-gray-200" />
+                  <span className="text-xs text-gray-400 uppercase tracking-wide">or</span>
+                  <div className="flex-1 h-px bg-gray-200" />
+                </div>
+
+                <div className="flex justify-center">
+                  <GoogleLoginButton
+                    width={320}
+                    onSuccess={() => navigate("/portal")}
+                    onError={(msg) => setStatus({ kind: "error", message: msg })}
+                  />
+                </div>
+
+                <div className="flex justify-between text-sm text-gray-500 pt-1">
+                  <Link to="/portal/login" className="hover:underline">
+                    Use password
+                  </Link>
                   <Link to="/admin/login" className="hover:underline">
                     Admin login
                   </Link>
-                  <div className="flex gap-4">
-                    <button type="button" className="hover:underline" onClick={() => navigate(-1)}>
-                      Back
-                    </button>
-                    <button type="button" className="hover:underline" onClick={() => navigate("/") }>
-                      Continue as guest
-                    </button>
-                  </div>
                 </div>
               </form>
             ) : (
-              <form className="mt-8 space-y-5" onSubmit={handleSubmitVerify(onVerify)} noValidate>
+              <form className="mt-6 space-y-5" onSubmit={handleSubmitVerify(onVerify)} noValidate>
                 <div>
-                  <div className="text-sm text-gray-600">OTP sent to</div>
-                  <div className="mt-1 text-gray-900 font-semibold">{phoneForVerify || "—"}</div>
+                  <p className="text-sm text-gray-500">OTP sent to</p>
+                  <p className="mt-0.5 text-gray-900 font-semibold">{emailForVerify || "â€”"}</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">6-digit OTP *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">6-digit OTP</label>
                   <input
-                    {...registerVerify("otp")}
+                    {...registerVerify("token")}
                     inputMode="numeric"
+                    autoComplete="one-time-code"
                     className={
-                      "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 tracking-widest " +
-                      (verifyErrors.otp ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
+                      "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 tracking-widest text-center text-xl " +
+                      (verifyErrors.token ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
                     }
                     placeholder="123456"
                     maxLength={6}
                   />
-                  {verifyErrors.otp ? <p className="mt-2 text-sm text-rose-700">{verifyErrors.otp.message}</p> : null}
+                  {verifyErrors.token ? <p className="mt-1 text-sm text-rose-700">{verifyErrors.token.message}</p> : null}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     disabled={loading}
@@ -327,26 +299,20 @@ export function Auth() {
                       setStep("request");
                       setStatus({ kind: "idle" });
                     }}
-                    className={
-                      "px-6 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition-colors " +
-                      (loading ? "opacity-70 cursor-not-allowed" : "")
-                    }
+                    className="px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-70"
                   >
-                    Change number
+                    Change email
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className={
-                      "px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold shadow-lg transition-all " +
-                      (loading ? "opacity-70 cursor-not-allowed" : "hover:shadow-xl")
-                    }
+                    className="px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-70"
                   >
-                    {loading ? "Verifying…" : "Verify & Continue"}
+                    {loading ? "Verifyingâ€¦" : "Verify"}
                   </button>
                 </div>
 
-                <div className="flex justify-between text-sm text-gray-600">
+                <div className="flex justify-between text-sm text-gray-500">
                   <button
                     type="button"
                     className={"hover:underline" + (resendSecondsLeft > 0 || loading ? " opacity-60 cursor-not-allowed" : "")}

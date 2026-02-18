@@ -1,37 +1,37 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 
-import { clearSession, getSessionToken, getSessionRole, setSession } from "./session";
-import { getJson, patchJson } from "../services/apiClient";
+import { getJson, postJson } from "../services/apiClient";
 
 export type MeUser = {
   id: string;
-  name: string | null;
+  full_name: string | null;
+  /** also available as email */
   email: string | null;
-  phone: string | null;
-  isVerified: boolean;
-  provider: "otp" | "password";
-  role: "client" | "admin";
+  role: "user" | "admin" | "client";
+  provider: "otp" | "google" | "password" | null;
+  isVerified?: boolean;
 };
 
 type MeResponse = { ok: true; user: MeUser };
 
 type AuthContextValue = {
-  token: string | null;
-  role: "client" | "admin" | null;
   user: MeUser | null;
+  role: MeUser["role"] | null;
   isLoading: boolean;
   isAuthed: boolean;
 
   refreshMe: () => Promise<void>;
-  updateProfile: (input: { name?: string; email?: string }) => Promise<void>;
 
   isAuthModalOpen: boolean;
   openAuthModal: (opts?: { afterAuthNavigateTo?: string }) => void;
   closeAuthModal: () => void;
-  onOtpVerified: (token: string) => Promise<void>;
+  /** Call after email OTP verified – triggers a refreshMe from cookie session. */
+  onOtpVerified: () => Promise<void>;
+  /** Call after Google login – triggers a refreshMe from cookie session. */
+  onGoogleLogin: () => Promise<void>;
 
-  logout: () => void;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -40,56 +40,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [token, setToken] = useState<string | null>(() => getSessionToken());
-  const [role, setRole] = useState<AuthContextValue["role"]>(() => getSessionRole());
   const [user, setUser] = useState<MeUser | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const afterAuthNavigateToRef = useRef<string | null>(null);
 
-  const isAuthed = !!token;
+  const isAuthed = !!user;
+  const role = user?.role ?? null;
 
-  const refreshMe = useCallback(
-    async (activeToken: string) => {
-      const me = await getJson<MeResponse>("/api/me", { token: activeToken });
-      setUser(me.user);
-      setRole(me.user.role);
-    },
-    []
-  );
+  const fetchMe = useCallback(async () => {
+    const me = await getJson<MeResponse>("/api/auth/me");
+    setUser(me.user);
+  }, []);
 
-  const refreshMeSelf = useCallback(async () => {
-    if (!token) return;
-    await refreshMe(token);
-  }, [refreshMe, token]);
-
-  const updateProfile = useCallback(
-    async (input: { name?: string; email?: string }) => {
-      if (!token) throw new Error("Unauthorized");
-      const r = await patchJson<{ name?: string; email?: string }, MeResponse>("/api/me", input, { token });
-      setUser(r.user);
-      setRole(r.user.role);
-      setSession(token, r.user.role);
-    },
-    [token]
-  );
-
+  // On mount, try to restore session from HTTP-only cookie via /api/auth/me.
   useEffect(() => {
-    const t = getSessionToken();
-    if (!t) return;
-
     setIsLoading(true);
-    refreshMe(t)
+    fetchMe()
       .catch(() => {
-        // Token could be invalid/expired/revoked.
-        clearSession();
-        setToken(null);
-        setRole(null);
         setUser(null);
       })
       .finally(() => setIsLoading(false));
-  }, [refreshMe]);
+  }, [fetchMe]);
+
+  const refreshMe = useCallback(async () => {
+    await fetchMe();
+  }, [fetchMe]);
 
   const openAuthModal = useCallback(
     (opts?: { afterAuthNavigateTo?: string }) => {
@@ -104,29 +81,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     afterAuthNavigateToRef.current = null;
   }, []);
 
-  const onOtpVerified = useCallback(
-    async (newToken: string) => {
-      setToken(newToken);
-      const me = await getJson<MeResponse>("/api/me", { token: newToken });
-      setUser(me.user);
-      setRole(me.user.role);
-      setSession(newToken, me.user.role);
+  const onOtpVerified = useCallback(async () => {
+    await fetchMe();
+    setIsAuthModalOpen(false);
 
-      setIsAuthModalOpen(false);
+    const target = afterAuthNavigateToRef.current;
+    afterAuthNavigateToRef.current = null;
+    if (target && target !== location.pathname) {
+      navigate(target);
+    }
+  }, [fetchMe, location.pathname, navigate]);
 
-      const target = afterAuthNavigateToRef.current;
-      afterAuthNavigateToRef.current = null;
-      if (target && target !== location.pathname) {
-        navigate(target);
-      }
-    },
-    [location.pathname, navigate]
-  );
+  const onGoogleLogin = useCallback(async () => {
+    await fetchMe();
+    setIsAuthModalOpen(false);
 
-  const logout = useCallback(() => {
-    clearSession();
-    setToken(null);
-    setRole(null);
+    const target = afterAuthNavigateToRef.current;
+    afterAuthNavigateToRef.current = null;
+    if (target && target !== location.pathname) {
+      navigate(target);
+    }
+  }, [fetchMe, location.pathname, navigate]);
+
+  const logout = useCallback(async () => {
+    try {
+      await postJson("/api/auth/logout", {});
+    } catch {
+      // best-effort
+    }
     setUser(null);
     setIsAuthModalOpen(false);
     afterAuthNavigateToRef.current = null;
@@ -135,23 +117,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AuthContextValue>(
     () => ({
-      token,
-      role,
       user,
+      role,
       isLoading,
       isAuthed,
-
-      refreshMe: refreshMeSelf,
-      updateProfile,
-
+      refreshMe,
       isAuthModalOpen,
       openAuthModal,
       closeAuthModal,
       onOtpVerified,
-
+      onGoogleLogin,
       logout,
     }),
-    [token, role, user, isLoading, isAuthed, refreshMeSelf, updateProfile, isAuthModalOpen, openAuthModal, closeAuthModal, onOtpVerified, logout]
+    [user, role, isLoading, isAuthed, refreshMe, isAuthModalOpen, openAuthModal, closeAuthModal, onOtpVerified, onGoogleLogin, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -162,3 +140,4 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
+

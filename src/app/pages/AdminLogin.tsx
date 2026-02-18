@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+﻿import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { motion } from "framer-motion";
 import { Seo } from "../components/Seo";
-import { login, loginWithSupabase } from "../services/platformService";
-import { setSession } from "../auth/session";
-import { supabase } from "../lib/supabase";
+import { GoogleLoginButton } from "../components/GoogleLoginButton";
+import { useAuth } from "../auth/AuthProvider";
+import { requestEmailOtp, verifyEmailOtp } from "../services/otpService";
 
 function getErrorMessage(err: unknown) {
   if (typeof err === "string") return err;
@@ -16,89 +16,44 @@ function getErrorMessage(err: unknown) {
   return "Login failed";
 }
 
+type Step = "email" | "otp";
+
 export function AdminLogin() {
   const navigate = useNavigate();
+  const { onOtpVerified, onGoogleLogin } = useAuth();
+
+  const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("hzitcompany@gmail.com");
-  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    void (async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        const accessToken = data.session?.access_token;
-        if (!accessToken) return;
-
-        setLoading(true);
-        setError(null);
-
-        const r = await loginWithSupabase(accessToken);
-
-        if (cancelled) return;
-        setSession(r.token, r.role);
-
-        // App uses its own JWT; clear Supabase session to avoid loops.
-        await supabase.auth.signOut();
-
-        navigate(r.role === "admin" ? "/admin" : "/portal");
-      } catch (e: unknown) {
-        if (cancelled) return;
-        // If OAuth completion fails, fall back to password login.
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [navigate]);
-
-  async function onGoogle() {
+  async function onSendOtp() {
     if (loading) return;
     setError(null);
-
-    const redirectTo = `${window.location.origin}/admin/login`;
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo }
-    });
-
-    if (error) setError(error.message || "Google login failed");
+    setInfo(null);
+    setLoading(true);
+    try {
+      await requestEmailOtp({ email: email.trim().toLowerCase() });
+      setStep("otp");
+      setInfo("OTP sent! Check your email.");
+    } catch (e) {
+      setError(getErrorMessage(e));
+    } finally {
+      setLoading(false);
+    }
   }
 
-  async function onSubmit() {
+  async function onVerifyOtp() {
     if (loading) return;
     setError(null);
     setLoading(true);
     try {
-      const trimmedEmail = email.trim().toLowerCase();
-      if (!trimmedEmail || !password) {
-        setError("Enter your email and password.");
-        return;
-      }
-
-      const r = await login({ email: trimmedEmail, password });
-
-      const role = (r as any)?.role;
-      const token = (r as any)?.token;
-
-      if (role !== "admin") {
-        setError("This account is not an admin.");
-        return;
-      }
-
-      if (typeof token !== "string" || token.length < 10) {
-        setError("Unexpected login response. Please try again.");
-        return;
-      }
-
-      setSession(token, "admin");
+      await verifyEmailOtp({ email: email.trim().toLowerCase(), token: otp.trim() });
+      await onOtpVerified();
       navigate("/admin");
-    } catch (e: unknown) {
+    } catch (e) {
       setError(getErrorMessage(e));
     } finally {
       setLoading(false);
@@ -121,7 +76,7 @@ export function AdminLogin() {
         <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
             <h1 className="text-5xl md:text-6xl font-bold mb-4 font-poppins">Admin</h1>
-            <p className="text-lg text-gray-300">Manage orders, pricing, and leads.</p>
+            <p className="text-lg text-gray-300">Secure email OTP access.</p>
           </motion.div>
         </div>
       </section>
@@ -131,50 +86,92 @@ export function AdminLogin() {
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <div className="bg-white/70 backdrop-blur-lg rounded-3xl border border-white/40 p-6 sm:p-10 shadow-xl">
               <h2 className="text-3xl font-bold text-gray-900 font-poppins">Admin Login</h2>
-              <p className="mt-2 text-gray-600">Enter your credentials to continue.</p>
+              <p className="mt-2 text-gray-600">Sign in with email OTP or Google.</p>
 
               <div className="mt-6 grid gap-4">
-                <label className="block">
-                  <span className="text-sm font-medium text-gray-700">Email</span>
-                  <input
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition-all focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    autoComplete="email"
-                    inputMode="email"
+                {step === "email" ? (
+                  <>
+                    <label className="block">
+                      <span className="text-sm font-medium text-gray-700">Admin Email</span>
+                      <input
+                        type="email"
+                        className="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition-all focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        autoComplete="email"
+                        inputMode="email"
+                      />
+                    </label>
+
+                    {info ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900 text-sm">{info}</div> : null}
+                    {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-900 text-sm">{error}</div> : null}
+
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={onSendOtp}
+                      className="min-h-11 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-white font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                    >
+                      {loading ? "Sendingâ€¦" : "Send OTP"}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-sm text-gray-500">OTP sent to</p>
+                      <p className="font-semibold text-gray-900">{email}</p>
+                    </div>
+
+                    <label className="block">
+                      <span className="text-sm font-medium text-gray-700">6-digit OTP</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        placeholder="123456"
+                        className="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none text-center text-xl tracking-widest transition-all focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      />
+                    </label>
+
+                    {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-900 text-sm">{error}</div> : null}
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => { setStep("email"); setError(null); setOtp(""); }}
+                        className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
+                      >
+                        Change email
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loading || otp.length < 6}
+                        onClick={onVerifyOtp}
+                        className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-white font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                      >
+                        {loading ? "Verifyingâ€¦" : "Verify"}
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                <div className="relative flex items-center gap-3 py-1">
+                  <div className="flex-1 h-px bg-gray-200" />
+                  <span className="text-xs text-gray-400 uppercase tracking-wide">or</span>
+                  <div className="flex-1 h-px bg-gray-200" />
+                </div>
+
+                <div className="flex justify-center">
+                  <GoogleLoginButton
+                    width={300}
+                    onSuccess={() => navigate("/admin")}
+                    onError={(msg) => setError(msg)}
                   />
-                </label>
-
-                <label className="block">
-                  <span className="text-sm font-medium text-gray-700">Password</span>
-                  <input
-                    type="password"
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition-all focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="current-password"
-                  />
-                </label>
-
-                {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-900 text-sm">{error}</div> : null}
-
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={onSubmit}
-                  className="min-h-11 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-white font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
-                >
-                  {loading ? "Please wait…" : "Login"}
-                </button>
-
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={onGoogle}
-                  className="min-h-11 rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
-                >
-                  Continue with Google
-                </button>
+                </div>
 
                 <Link to="/" className="text-center text-sm text-gray-600 hover:underline">
                   Back to website

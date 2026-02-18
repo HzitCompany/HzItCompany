@@ -33,8 +33,8 @@ authRouter.post("/auth/register", async (req, res, next) => {
     const client = rows[0];
     if (!client) throw new HttpError(500, "Failed to create client");
 
-    const token = signToken({ sub: String(client.id), email: client.email, role: "client", name: client.name });
-    return res.json({ ok: true, token, role: "client" });
+    const token = signToken({ sub: String(client.id), email: client.email, role: "user", name: client.name });
+    return res.json({ ok: true, token, role: "user" });
   } catch (err) {
     return next(err);
   }
@@ -61,51 +61,11 @@ authRouter.post("/auth/login", async (req, res, next) => {
       if (!ok) throw new HttpError(401, "Invalid credentials", true);
 
       try {
-        const upsertRows = await query<{ id: number; email: string; name: string | null; is_active: boolean }>(
-          "insert into admin_users (email, is_active) values ($1, true) on conflict (email) do update set is_active = true returning id, email, name, is_active",
-          [email]
-        );
-
-        const admin = upsertRows[0];
-        const token = signToken({ sub: String(admin?.id ?? 0), email, role: "admin", name: admin?.name ?? "Admin" });
+        const token = signToken({ sub: "0", email, role: "admin", name: "Admin" });
         return res.json({ ok: true, token, role: "admin" });
       } catch (err: any) {
-        if (err?.code === "42P01") {
-          throw new HttpError(503, "Database schema is missing admin_users. Apply server/db/schema.sql and redeploy.", true);
-        }
         throw err;
       }
-    }
-
-    // Admin: email allowlist table.
-    let adminRows: Array<{ id: number; email: string; name: string | null; is_active: boolean }> = [];
-    try {
-      adminRows = await query<{ id: number; email: string; name: string | null; is_active: boolean }>(
-        "select id, email, name, is_active from admin_users where email = $1 limit 1",
-        [email]
-      );
-    } catch (err: any) {
-      if (err?.code === "42P01") {
-        // If schema is incomplete, avoid a confusing 500.
-        throw new HttpError(503, "Database schema is missing admin_users. Apply server/db/schema.sql and redeploy.", true);
-      }
-      throw err;
-    }
-
-    if (adminRows[0]?.is_active) {
-      // Admin auth: still requires a password. For simplicity, reuse client password table by requiring an existing client.
-      const clientRows = await query<{ id: number; password_hash: string; name: string }>(
-        "select id, password_hash, name from clients where email = $1 limit 1",
-        [email]
-      );
-      const client = clientRows[0];
-      if (!client) throw new HttpError(401, "Invalid credentials", true);
-
-      const ok = await verifyPassword(parsed.data.password, client.password_hash);
-      if (!ok) throw new HttpError(401, "Invalid credentials", true);
-
-      const token = signToken({ sub: String(adminRows[0].id), email, role: "admin", name: adminRows[0].name ?? client.name });
-      return res.json({ ok: true, token, role: "admin" });
     }
 
     const rows = await query<{ id: number; name: string; email: string; password_hash: string }>(
@@ -119,8 +79,8 @@ authRouter.post("/auth/login", async (req, res, next) => {
     const ok = await verifyPassword(parsed.data.password, client.password_hash);
     if (!ok) throw new HttpError(401, "Invalid credentials", true);
 
-    const token = signToken({ sub: String(client.id), email: client.email, role: "client", name: client.name });
-    return res.json({ ok: true, token, role: "client" });
+    const token = signToken({ sub: String(client.id), email: client.email, role: "user", name: client.name });
+    return res.json({ ok: true, token, role: "user" });
   } catch (err) {
     return next(err);
   }
@@ -166,24 +126,8 @@ authRouter.post("/auth/supabase", async (req, res, next) => {
     const client = clientRows[0];
     if (!client) throw new HttpError(500, "Failed to create client");
 
-    // Admin role is granted only to allowlisted emails (or the canonical admin email).
-    let adminId: number | null = null;
-    if (env.ADMIN_EMAIL && email === env.ADMIN_EMAIL.toLowerCase()) {
-      const upsert = await query<{ id: number }>(
-        "insert into admin_users (email, is_active) values ($1, true) on conflict (email) do update set is_active = true returning id",
-        [email]
-      );
-      adminId = upsert[0]?.id ?? null;
-    } else {
-      const rows = await query<{ id: number }>(
-        "select id from admin_users where email = $1 and is_active = true limit 1",
-        [email]
-      );
-      adminId = rows[0]?.id ?? null;
-    }
-
-    const role = adminId ? "admin" : "client";
-    const token = signToken({ sub: String(adminId ?? client.id), email, role, name });
+    const role: "admin" | "user" = env.ADMIN_EMAIL && email === env.ADMIN_EMAIL.toLowerCase() ? "admin" : "user";
+    const token = signToken({ sub: String(role === "admin" ? 0 : client.id), email, role, name });
     return res.json({ ok: true, token, role });
   } catch (err) {
     return next(err);

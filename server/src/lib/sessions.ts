@@ -1,7 +1,7 @@
 import { query } from "./db.js";
 import { sha256Hex } from "./tokenHash.js";
 
-export async function createOtpSession(input: { userId: number; token: string; expiresAt: Date }) {
+export async function createSession(input: { userId: number; token: string; expiresAt: Date }) {
   const tokenHash = sha256Hex(input.token);
 
   await query(
@@ -12,7 +12,7 @@ export async function createOtpSession(input: { userId: number; token: string; e
   return { tokenHash };
 }
 
-export async function isOtpSessionActive(token: string) {
+export async function isSessionActive(token: string) {
   const tokenHash = sha256Hex(token);
 
   const rows = await query<{ id: number }>(
@@ -23,8 +23,13 @@ export async function isOtpSessionActive(token: string) {
   return rows.length > 0;
 }
 
-export async function revokeOtpSession(token: string) {
+export async function revokeSession(token: string) {
   const tokenHash = sha256Hex(token);
 
   await query("update sessions set revoked_at = now() where token_hash = $1 and revoked_at is null", [tokenHash]);
 }
+
+// Backwards-compatible aliases
+export const createOtpSession = createSession;
+export const isOtpSessionActive = isSessionActive;
+export const revokeOtpSession = revokeSession;

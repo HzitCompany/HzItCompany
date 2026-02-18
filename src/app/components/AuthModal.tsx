@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
-import { requestOtp, verifyOtp } from "../services/otpService";
+import { requestEmailOtp, verifyEmailOtp } from "../services/otpService";
 import { useAuth } from "../auth/AuthProvider";
+import { GoogleLoginButton } from "./GoogleLoginButton";
 
-type Step = "phone" | "otp";
+type Step = "email" | "otp";
 
 export function AuthModal() {
   const { isAuthModalOpen, closeAuthModal, onOtpVerified } = useAuth();
 
-  const [step, setStep] = useState<Step>("phone");
-  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
@@ -38,8 +37,7 @@ export function AuthModal() {
 
   useEffect(() => {
     if (!isAuthModalOpen) {
-      setStep("phone");
-      setPhone("");
+      setStep("email");
       setEmail("");
       setOtp("");
       setLoading(false);
@@ -55,7 +53,7 @@ export function AuthModal() {
     return () => window.clearInterval(t);
   }, [isAuthModalOpen, step]);
 
-  const canSend = useMemo(() => phone.trim().length >= 8 && email.trim().length >= 6 && !loading, [phone, email, loading]);
+  const canSend = useMemo(() => email.trim().length >= 6 && !loading, [email, loading]);
   const canVerify = useMemo(() => /^\d{6}$/.test(otp.trim()) && !loading, [otp, loading]);
 
   async function send() {
@@ -64,7 +62,7 @@ export function AuthModal() {
     setLoading(true);
 
     try {
-      await requestOtp({ phone: phone.trim(), email: email.trim(), name: undefined });
+      await requestEmailOtp({ email: email.trim() });
       setStep("otp");
       setResendAvailableAt(Date.now() + 30_000);
     } catch (e: any) {
@@ -80,8 +78,8 @@ export function AuthModal() {
     setLoading(true);
 
     try {
-      const r = await verifyOtp({ phone: phone.trim(), otp: otp.trim() });
-      await onOtpVerified(r.token);
+      await verifyEmailOtp({ email: email.trim(), token: otp.trim() });
+      await onOtpVerified();
     } catch (e: any) {
       setError(typeof e?.message === "string" ? e.message : "OTP verification failed");
     } finally {
@@ -120,7 +118,7 @@ export function AuthModal() {
               onMouseDown={(e) => e.stopPropagation()}
             >
               <h2 className="text-2xl font-bold text-gray-900 font-poppins">Verify with OTP</h2>
-              <p className="mt-2 text-sm text-gray-600">Verify your phone number to continue.</p>
+              <p className="mt-2 text-sm text-gray-600">Verify your email to continue.</p>
 
               {error ? (
                 <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-900 text-sm">
@@ -128,7 +126,7 @@ export function AuthModal() {
                 </div>
               ) : null}
 
-              {step === "phone" ? (
+              {step === "email" ? (
                 <div className="mt-6 grid gap-4">
                   <label className="block">
                     <span className="text-sm font-medium text-gray-700">Email</span>
@@ -139,19 +137,6 @@ export function AuthModal() {
                       inputMode="email"
                       autoComplete="email"
                       placeholder="you@example.com"
-                      className="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
-                    />
-                  </label>
-
-                  <label className="block">
-                    <span className="text-sm font-medium text-gray-700">Phone</span>
-                    <input
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      type="tel"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      placeholder="+91 8101515185"
                       className="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
                     />
                   </label>
@@ -175,13 +160,20 @@ export function AuthModal() {
                   >
                     Continue as guest
                   </button>
+
+                  <div className="flex justify-center">
+                    <GoogleLoginButton
+                      width={320}
+                      onSuccess={closeAuthModal}
+                      onError={(msg) => setError(msg)}
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="mt-6 grid gap-4">
                   <div className="text-sm text-gray-600">
-                    OTP sent to <span className="font-semibold text-gray-900">{phone.trim() || "—"}</span>
+                    OTP sent to <span className="font-semibold text-gray-900">{email.trim() || "—"}</span>
                   </div>
-                  <div className="text-sm text-gray-600">Email on file: <span className="font-semibold text-gray-900">{email.trim() || "—"}</span></div>
 
                   <label className="block">
                     <span className="text-sm font-medium text-gray-700">OTP (6 digits)</span>
@@ -200,7 +192,7 @@ export function AuthModal() {
                     <button
                       type="button"
                       onClick={() => {
-                        setStep("phone");
+                        setStep("email");
                         setOtp("");
                         setError(null);
                       }}

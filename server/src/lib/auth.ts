@@ -4,16 +4,15 @@ import type { Request } from "express";
 
 import { env } from "./env.js";
 
-export type AuthRole = "client" | "admin";
+export type AuthRole = "user" | "admin";
 
-export type AuthProvider = "password" | "otp";
+export type AuthProvider = "password" | "otp" | "google";
 
 export type AuthTokenPayload = {
   sub: string;
   email?: string;
   role: AuthRole;
   name?: string;
-  phone?: string;
   provider?: AuthProvider;
 };
 

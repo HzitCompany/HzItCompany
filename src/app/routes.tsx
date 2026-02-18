@@ -2,6 +2,8 @@ import { createBrowserRouter } from "react-router";
 import { Layout } from "./components/Layout";
 import { RequireAuth } from "./auth/RequireAuth";
 import { RequireAdmin } from "./auth/RequireAdmin";
+import { AdminLogin } from "./pages/AdminLogin";
+import { PortalLogin } from "./pages/PortalLogin";
 
 export const router = createBrowserRouter([
   {
@@ -55,7 +57,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "portal/login",
-        lazy: async () => ({ Component: (await import("./pages/PortalLogin")).PortalLogin }),
+        Component: PortalLogin,
       },
       {
         path: "auth",
@@ -81,7 +83,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "admin/login",
-        lazy: async () => ({ Component: (await import("./pages/AdminLogin")).AdminLogin }),
+        Component: AdminLogin,
       },
       {
         path: "admin",

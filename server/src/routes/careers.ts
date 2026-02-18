@@ -121,7 +121,14 @@ careersRouter.post("/apply", requireAuth, async (req: AuthedRequest, res, next) 
   try {
     const schema = await getSchemaStatus();
     if (schema.missingOptional.includes("career_applications")) {
-      throw new HttpError(503, "Database schema is missing career_applications. Apply server/db/schema.sql and redeploy.", true);
+      const rows = await query<{ careers: string | null }>("select to_regclass('public.careers') as careers");
+      if (!rows[0]?.careers) {
+        throw new HttpError(
+          503,
+          "Database schema is missing careers tables. Apply server/db/schema.sql (or create `careers`) and redeploy.",
+          true
+        );
+      }
     }
 
     const parsed = applySchema.safeParse(req.body);
@@ -174,33 +181,53 @@ careersRouter.post("/apply", requireAuth, async (req: AuthedRequest, res, next) 
 
     const submissionId = submissionRows[0]?.id;
 
-    const appRows = await query<{ id: number }>(
-      [
-        "insert into career_applications (user_id, submission_id, full_name, email, phone, position, message, resume_path, cv_path, status, metadata)",
-        "values ($1,$2,$3,$4,$5,$6,$7,$8,$9,'new',$10)",
-        "returning id"
-      ].join("\n"),
-      [
-        userId,
-        submissionId ?? null,
-        parsed.data.fullName,
-        email,
-        parsed.data.phone,
-        parsed.data.position,
-        parsed.data.message ?? null,
-        parsed.data.resumePath ?? null,
-        parsed.data.cvPath ?? null,
-        {
-          experience: parsed.data.experience ?? null,
-          portfolioUrl: parsed.data.portfolioUrl ?? null
-          ,
-          linkedinUrl: parsed.data.linkedinUrl,
-          whyHireYou: parsed.data.whyHireYou
-        }
-      ]
-    );
+    let applicationId: number | undefined;
+    try {
+      const appRows = await query<{ id: number }>(
+        [
+          "insert into career_applications (user_id, submission_id, full_name, email, phone, position, message, resume_path, cv_path, status, metadata)",
+          "values ($1,$2,$3,$4,$5,$6,$7,$8,$9,'new',$10)",
+          "returning id"
+        ].join("\n"),
+        [
+          userId,
+          submissionId ?? null,
+          parsed.data.fullName,
+          email,
+          parsed.data.phone,
+          parsed.data.position,
+          parsed.data.message ?? null,
+          parsed.data.resumePath ?? null,
+          parsed.data.cvPath ?? null,
+          {
+            experience: parsed.data.experience ?? null,
+            portfolioUrl: parsed.data.portfolioUrl ?? null,
+            linkedinUrl: parsed.data.linkedinUrl,
+            whyHireYou: parsed.data.whyHireYou
+          }
+        ]
+      );
+      applicationId = appRows[0]?.id;
+    } catch (err: any) {
+      if (err?.code !== "42P01") throw err;
 
-    const applicationId = appRows[0]?.id;
+      const rows = await query<{ id: number }>(
+        [
+          "insert into careers (name, email, phone, qualification, position, resume_url)",
+          "values ($1,$2,$3,$4,$5,$6)",
+          "returning id"
+        ].join("\n"),
+        [
+          parsed.data.fullName,
+          email,
+          parsed.data.phone,
+          parsed.data.experience ?? null,
+          parsed.data.position,
+          parsed.data.resumePath
+        ]
+      );
+      applicationId = rows[0]?.id;
+    }
 
     // Back-link application id into the submission for unified admin views.
     if (submissionId && applicationId) {

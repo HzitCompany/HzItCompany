@@ -1,23 +1,27 @@
-export type SessionRole = "client" | "admin";
+// Session helpers are kept for backward compatibility only.
+// Active session state is now managed via HTTP-only cookie on the backend,
+// read by AuthProvider on load via /api/auth/me.
 
-const TOKEN_KEY = "hz_session_token";
-const ROLE_KEY = "hz_session_role";
+export type SessionRole = "user" | "admin" | "client";
 
+/** @deprecated sessions are cookie-based; use AuthProvider instead */
 export function getSessionToken() {
-  return localStorage.getItem(TOKEN_KEY);
+  return localStorage.getItem("hz_session_token");
 }
 
+/** @deprecated sessions are cookie-based; use AuthProvider instead */
 export function getSessionRole(): SessionRole | null {
-  const v = localStorage.getItem(ROLE_KEY);
-  return v === "client" || v === "admin" ? v : null;
+  const v = localStorage.getItem("hz_session_role");
+  return v === "user" || v === "admin" || v === "client" ? v : null;
 }
 
-export function setSession(token: string, role: SessionRole) {
-  localStorage.setItem(TOKEN_KEY, token);
-  localStorage.setItem(ROLE_KEY, role);
+/** @deprecated sessions are cookie-based; retained only for legacy callers */
+export function setSession(_token: string, _role: SessionRole) {
+  // no-op; cookie is set by backend
 }
 
+/** @deprecated sessions are cookie-based; retained only for legacy callers */
 export function clearSession() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(ROLE_KEY);
+  localStorage.removeItem("hz_session_token");
+  localStorage.removeItem("hz_session_role");
 }

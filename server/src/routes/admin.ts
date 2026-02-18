@@ -8,6 +8,59 @@ import { getResumesBucketId, getSupabaseAdmin } from "../lib/supabase.js";
 
 export const adminRouter = Router();
 
+// ── Analytics / Stats ──────────────────────────────────────────────────────────
+adminRouter.get("/admin/analytics", requireAuth, requireAdmin, async (_req: AuthedRequest, res, next) => {
+  try {
+    async function safeCount(sql: string, params: unknown[] = []): Promise<number> {
+      try {
+        const rows = await query<{ n: string }>(sql, params);
+        return Number(rows[0]?.n ?? 0);
+      } catch {
+        return 0;
+      }
+    }
+
+    const [
+      totalUsers,
+      totalSessions,
+      resumeUploads,
+      contactSubmissions,
+      hireSubmissions,
+      otpTotal,
+      otpSuccessful
+    ] = await Promise.all([
+      safeCount("select count(*) as n from users"),
+      safeCount("select count(*) as n from sessions where revoked_at is null and expires_at > now()"),
+      safeCount("select count(*) as n from career_applications where resume_path is not null or cv_path is not null"),
+      safeCount("select count(*) as n from submissions where type = 'contact'"),
+      safeCount("select count(*) as n from submissions where type = 'hire'"),
+      // OTP codes: total issued
+      safeCount("select count(*) as n from otp_codes"),
+      // OTP codes: successfully consumed
+      safeCount("select count(*) as n from otp_codes where consumed_at is not null")
+    ]);
+
+    const otpSuccessRate = otpTotal > 0 ? Math.round((otpSuccessful / otpTotal) * 100) : null;
+
+    return res.json({
+      ok: true,
+      analytics: {
+        totalUsers,
+        activeSessions: totalSessions,
+        resumeUploads,
+        contactSubmissions,
+        hireSubmissions,
+        otpCodesIssued: otpTotal,
+        otpCodesVerified: otpSuccessful,
+        otpSuccessRatePercent: otpSuccessRate
+      }
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// ── Summary (existing endpoint kept for backwards compatibility) ────────────────
 const submissionsTypeSchema = z.enum(["contact", "hire", "career"]);
 
 adminRouter.get("/admin/submissions", requireAuth, requireAdmin, async (req: AuthedRequest, res, next) => {
@@ -66,7 +119,31 @@ adminRouter.get("/admin/leads/contact", requireAuth, requireAdmin, async (_req: 
   }
 });
 
+// Alias (spec): GET /api/admin/contact
+adminRouter.get("/admin/contact", requireAuth, requireAdmin, async (_req: AuthedRequest, res, next) => {
+  try {
+    const rows = await query(
+      "select id, created_at, name, email, phone, subject from contact_submissions order by created_at desc limit 200"
+    );
+    return res.json({ ok: true, items: rows });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 adminRouter.get("/admin/leads/hire", requireAuth, requireAdmin, async (_req: AuthedRequest, res, next) => {
+  try {
+    const rows = await query(
+      "select id, created_at, name, email, phone, company, project_name, budget, timeline from hire_us_submissions order by created_at desc limit 200"
+    );
+    return res.json({ ok: true, items: rows });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// Alias (spec): GET /api/admin/hire
+adminRouter.get("/admin/hire", requireAuth, requireAdmin, async (_req: AuthedRequest, res, next) => {
   try {
     const rows = await query(
       "select id, created_at, name, email, phone, company, project_name, budget, timeline from hire_us_submissions order by created_at desc limit 200"
@@ -209,19 +286,36 @@ adminRouter.get("/admin/careers", requireAuth, requireAdmin, async (req: AuthedR
     const parsedStatus = statusRaw ? careerStatusSchema.safeParse(statusRaw) : { success: true as const, data: undefined };
     if (!parsedStatus.success) return res.status(400).json({ ok: false, error: "Invalid status" });
 
-    const rows = await query(
-      [
-        "select id, created_at, user_id, submission_id, full_name, email, phone, position, message, resume_path, cv_path, status, metadata",
-        "from career_applications",
-        "where ($1::text is null or status = $1)",
-        "and ($2::text = '' or full_name ilike ('%' || $2 || '%') or email ilike ('%' || $2 || '%') or phone ilike ('%' || $2 || '%') or position ilike ('%' || $2 || '%'))",
-        "order by created_at desc",
-        "limit $3"
-      ].join("\n"),
-      [parsedStatus.data ?? null, q, limit]
-    );
+    try {
+      const rows = await query(
+        [
+          "select id, created_at, user_id, submission_id, full_name, email, phone, position, message, resume_path, cv_path, status, metadata",
+          "from career_applications",
+          "where ($1::text is null or status = $1)",
+          "and ($2::text = '' or full_name ilike ('%' || $2 || '%') or email ilike ('%' || $2 || '%') or phone ilike ('%' || $2 || '%') or position ilike ('%' || $2 || '%'))",
+          "order by created_at desc",
+          "limit $3"
+        ].join("\n"),
+        [parsedStatus.data ?? null, q, limit]
+      );
 
-    return res.json({ ok: true, items: rows });
+      return res.json({ ok: true, items: rows });
+    } catch (err: any) {
+      if (err?.code !== "42P01") throw err;
+
+      const rows = await query(
+        [
+          "select id, created_at, null::bigint as user_id, null::bigint as submission_id, name as full_name, email, phone, position, null::text as message, resume_url as resume_path, null::text as cv_path, 'new'::text as status, '{}'::jsonb as metadata",
+          "from careers",
+          "where ($1::text = '' or name ilike ('%' || $1 || '%') or email ilike ('%' || $1 || '%') or coalesce(phone,'') ilike ('%' || $1 || '%') or coalesce(position,'') ilike ('%' || $1 || '%'))",
+          "order by created_at desc",
+          "limit $2"
+        ].join("\n"),
+        [q, limit]
+      );
+
+      return res.json({ ok: true, items: rows });
+    }
   } catch (err) {
     return next(err);
   }

@@ -4,6 +4,8 @@ import { siteConfig } from "@/app/config/site";
 type SeoProps = {
   title?: string;
   description?: string;
+  keywords?: string;
+  author?: string;
   path?: string;
   canonicalUrl?: string;
   ogImage?: string;
@@ -21,6 +23,8 @@ function absoluteUrl(pathOrUrl: string) {
 export function Seo({
   title,
   description,
+  keywords,
+  author,
   path,
   canonicalUrl,
   ogImage,
@@ -29,6 +33,8 @@ export function Seo({
 }: SeoProps) {
   const computedTitle = title ? `${title} | ${siteConfig.name}` : siteConfig.defaultTitle;
   const computedDescription = description ?? siteConfig.defaultDescription;
+  const computedKeywords = keywords ?? "IT company India, web development, AI services, digital marketing";
+  const computedAuthor = author ?? siteConfig.name;
 
   const canonical = canonicalUrl
     ? canonicalUrl
@@ -38,10 +44,22 @@ export function Seo({
 
   const image = absoluteUrl(ogImage ?? siteConfig.defaultOgImage);
 
+  const computedSchema =
+    schema ??
+    ({
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: siteConfig.name,
+      url: siteConfig.url,
+      sameAs: siteConfig.socials.linkedin ? [siteConfig.socials.linkedin] : []
+    } satisfies Record<string, unknown>);
+
   return (
     <Helmet>
       <title>{computedTitle}</title>
       <meta name="description" content={computedDescription} />
+      <meta name="keywords" content={computedKeywords} />
+      <meta name="author" content={computedAuthor} />
 
       <link rel="canonical" href={canonical} />
 
@@ -60,9 +78,7 @@ export function Seo({
 
       {noIndex ? <meta name="robots" content="noindex, nofollow" /> : null}
 
-      {schema ? (
-        <script type="application/ld+json">{JSON.stringify(schema)}</script>
-      ) : null}
+      <script type="application/ld+json">{JSON.stringify(computedSchema)}</script>
     </Helmet>
   );
 }

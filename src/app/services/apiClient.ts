@@ -27,6 +27,8 @@ async function requestJson<TResponse>(
     body?: unknown;
     signal?: AbortSignal;
     token?: string;
+    /** If true, include credentials (cookies). Defaults to true (always include cookies). */
+    credentials?: RequestCredentials;
   }
 ): Promise<TResponse> {
   const headers: Record<string, string> = {
@@ -37,6 +39,7 @@ async function requestJson<TResponse>(
     headers["Content-Type"] = "application/json";
   }
 
+  // Support explicit Bearer tokens for legacy callers (admin dashboard etc.)
   if (options?.token) {
     headers.Authorization = `Bearer ${options.token}`;
   }
@@ -47,6 +50,8 @@ async function requestJson<TResponse>(
       headers,
       body: options?.body ? JSON.stringify(options.body) : undefined,
       signal: options?.signal,
+      // Always include cookies so HTTP-only session cookie is sent on every request.
+      credentials: options?.credentials ?? "include",
     }
   );
 

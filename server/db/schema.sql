@@ -188,6 +188,18 @@ create index if not exists idx_career_applications_created on career_application
 create index if not exists idx_career_applications_status_created on career_applications (status, created_at desc);
 create index if not exists idx_career_applications_user_created on career_applications (user_id, created_at desc);
 
+-- Legacy/simple careers table (requested by some deployments)
+create table if not exists careers (
+  id bigserial primary key,
+  created_at timestamptz not null default now(),
+  name text,
+  email text,
+  phone text,
+  qualification text,
+  position text,
+  resume_url text
+);
+
 -- OTP codes
 create table if not exists otp_codes (
   id bigserial primary key,

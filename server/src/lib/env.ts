@@ -15,6 +15,12 @@ const envSchema = z
         .filter(Boolean)
     ),
 
+  // Public website URL (used for Supabase email OTP redirect).
+  WEB_URL: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().url().optional()
+  ),
+
   DATABASE_URL: z.string().url(),
 
   // Dev helper: auto-apply db/schema.sql on startup if core tables are missing.
@@ -37,6 +43,22 @@ const envSchema = z
   ADMIN_PASSWORD_HASH: z.preprocess(
     (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
     z.string().min(20).max(200).optional()
+  ),
+
+  // Google Identity Services (backend verification)
+  GOOGLE_CLIENT_ID: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().min(10).optional()
+  ),
+
+  // Session cookie
+  SESSION_COOKIE_NAME: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().min(1).max(64).optional()
+  ),
+  SESSION_COOKIE_DOMAIN: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().min(1).max(253).optional()
   ),
 
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
@@ -107,9 +129,7 @@ const envSchema = z
     if (!val.MAIL_FROM) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["MAIL_FROM"], message: "Required when RESEND_API_KEY is set" });
     if (!val.MAIL_TO) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["MAIL_TO"], message: "Required when RESEND_API_KEY is set" });
 
-    if (val.ADMIN_EMAIL && !val.ADMIN_PASSWORD_HASH) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["ADMIN_PASSWORD_HASH"], message: "Required when ADMIN_EMAIL is set" });
-    }
+    // ADMIN_PASSWORD_HASH is optional (admin can login via email OTP or Google OAuth).
   });
 
 export type Env = z.infer<typeof envSchema>;

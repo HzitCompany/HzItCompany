@@ -1,11 +1,10 @@
 export const siteConfig = {
   name: "HZ IT Company",
   legalName: "HZ IT Company",
-  url: "https://hzitcompany.com",
+  url: "https://hz-it-company-fny3.vercel.app",
   tagline: "IT services and software development for growing teams",
   defaultTitle: "HZ IT Company | IT Services & Software Development",
-  defaultDescription:
-    "HZ IT Company builds secure, high-performance web and mobile products. We provide custom software development, cloud, cybersecurity, UI/UX, and IT consulting.",
+  defaultDescription: "HZ IT Company — Web, AI, Cloud & Digital Solutions in India",
   locale: "en_IN",
   themeColor: "#2563eb",
   contact: {
