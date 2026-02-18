@@ -10,12 +10,6 @@ function getBaseUrl() {
   const envAny = (import.meta as any).env ?? {};
   const base = (envAny.VITE_API_BASE_URL as string | undefined) ?? (envAny.VITE_API_URL as string | undefined);
   const normalized = base?.replace(/\/$/, "") ?? "";
-  if ((envAny.PROD as boolean | undefined) && !normalized) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      "[hz] Missing VITE_API_BASE_URL (or VITE_API_URL) in production build; API calls will use same-origin '/api/*'. If your backend is on Render, set VITE_API_BASE_URL to that URL."
-    );
-  }
   return normalized;
 }
 
