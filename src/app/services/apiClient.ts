@@ -63,6 +63,32 @@ export function setApiAuthToken(token: string | null) {
 function readStoredAccessToken(): string | null {
   try {
     if (typeof window === "undefined" || !window.localStorage) return null;
+
+    // Prefer the token for the currently configured Supabase project.
+    // Otherwise, scanning localStorage may pick up a token from a different project
+    // (common during development / multiple deployments), causing persistent 401s.
+    const supabaseUrl = (supabase as any)?.supabaseUrl as string | undefined;
+    if (supabaseUrl) {
+      try {
+        const host = new URL(supabaseUrl).host;
+        const ref = host.split(".")[0];
+        if (ref) {
+          const preferredKey = `sb-${ref}-auth-token`;
+          const raw = window.localStorage.getItem(preferredKey);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            const token =
+              (parsed?.currentSession?.access_token as string | undefined) ??
+              (parsed?.access_token as string | undefined) ??
+              null;
+            if (token && typeof token === "string") return token;
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     // Supabase stores sessions under keys like: sb-<project-ref>-auth-token
     // We scan for any such key to avoid hardcoding the ref.
     for (let i = 0; i < window.localStorage.length; i++) {

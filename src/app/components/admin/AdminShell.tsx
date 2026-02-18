@@ -60,7 +60,7 @@ export function AdminShell({ title, children }: { title: string; children: React
   );
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-gray-900 text-white font-inter overflow-x-hidden">
       <div className="flex min-h-screen">
         <aside className="hidden lg:block w-72 shrink-0 p-4">
           <div className="h-full rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg p-4">

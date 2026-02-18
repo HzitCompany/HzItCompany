@@ -222,7 +222,7 @@ export function AdminContent() {
             <div>
               <label className="block text-sm font-semibold text-white/80 mb-1">Key</label>
               <input
-                className="w-full min-h-11 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/50"
+                className="w-full min-h-11 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
                 value={draftKey}
                 onChange={(e) => setDraftKey(e.target.value)}
                 placeholder="page.home"
@@ -232,10 +232,11 @@ export function AdminContent() {
               <label htmlFor="contentValue" className="block text-sm font-semibold text-white/80 mb-1">Value (JSON)</label>
               <textarea
                 id="contentValue"
-                className="w-full min-h-56 rounded-xl border border-white/10 bg-white/5 px-3 py-2 font-mono text-xs text-white"
+                className="w-full min-h-56 rounded-xl border border-white/10 bg-white/5 px-3 py-2 font-mono text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
                 value={draftValue}
                 onChange={(e) => setDraftValue(e.target.value)}
                 placeholder='{"blocks":[]}'
+                spellCheck={false}
               />
               {draftParseError ? <div className="mt-2 text-xs text-rose-200">{draftParseError}</div> : null}
             </div>
