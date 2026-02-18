@@ -1,6 +1,7 @@
 import { Link, useSearchParams } from "react-router";
 
 import { Seo } from "../components/Seo";
+import { CmsSlot } from "../components/cms/CmsBlocks";
 
 export function PaymentSuccess() {
   const [params] = useSearchParams();
@@ -44,6 +45,9 @@ export function PaymentSuccess() {
           </p>
         </div>
       </div>
+
+      {/* Admin-managed page blocks */}
+      <CmsSlot contentKey="page.payment-success" />
     </div>
   );
 }

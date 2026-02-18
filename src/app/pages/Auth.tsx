@@ -8,6 +8,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
 import { Seo } from "../components/Seo";
+import { CmsSlot } from "../components/cms/CmsBlocks";
 
 const authSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -68,12 +69,13 @@ export function Auth() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50">
       <Seo
         title={isLogin ? "Login - HZ Company" : "Sign Up - HZ Company"}
         description="Access your dashboard"
       />
-      <div className="w-full max-w-md space-y-8">
+      <div className="flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <h2 className="mt-6 text-3xl font-bold tracking-tight text-gray-900">
             {isLogin ? "Sign in to your account" : "Create a new account"}
@@ -160,7 +162,11 @@ export function Auth() {
 
           <GoogleLoginButton />
         </div>
+        </div>
       </div>
+
+      {/* Admin-managed page blocks */}
+      <CmsSlot contentKey="page.auth" />
     </div>
   );
 }

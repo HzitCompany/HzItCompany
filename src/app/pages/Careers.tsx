@@ -9,6 +9,7 @@ import { createCareerUploadUrlAuthed, submitCareerApplyAuthed, uploadFileToSigne
 import { useAuth } from "../auth/AuthProvider";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
 import { trackEvent } from "../analytics/track";
+import { CmsSlot } from "../components/cms/CmsBlocks";
 
 export function Careers() {
   const { isAuthed, openAuthModal } = useAuth();
@@ -444,6 +445,9 @@ export function Careers() {
           </div>
         </div>
       </section>
+
+      {/* Admin-managed page blocks */}
+      <CmsSlot contentKey="page.careers" />
     </div>
   );
 }

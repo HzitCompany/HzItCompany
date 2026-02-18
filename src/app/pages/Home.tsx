@@ -15,6 +15,7 @@ import { ServiceCard } from "../components/ServiceCard";
 import { CTAButton } from "../components/CTAButton";
 import { Seo } from "../components/Seo";
 import { siteConfig } from "../config/site";
+import { CmsSlot } from "../components/cms/CmsBlocks";
 
 export function Home() {
   const [feedbackRating, setFeedbackRating] = useState(0);
@@ -252,6 +253,9 @@ export function Home() {
           </div>
         </div>
       </section>
+
+      {/* Admin-managed page blocks */}
+      <CmsSlot contentKey="page.home" />
 
       {/* Portfolio Preview Section */}
       <section className="py-20 bg-white">

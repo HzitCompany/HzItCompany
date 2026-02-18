@@ -95,11 +95,11 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.35 }}
-                    className="rounded-2xl bg-white/10 backdrop-blur-lg border border-white/15 shadow-lg p-6"
+                    className="rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg p-6"
                 >
-                    <div className="text-sm text-blue-100/80">Welcome</div>
+                    <div className="text-sm text-white/70">Welcome</div>
                     <div className="text-2xl md:text-3xl font-bold font-poppins">{user?.full_name || "Admin"}</div>
-                    <div className="mt-1 text-sm text-blue-100/80">Manage users, submissions, pricing and orders.</div>
+                    <div className="mt-1 text-sm text-white/70">Manage users, submissions, pricing and orders.</div>
                 </motion.div>
             </div>
 
@@ -117,8 +117,8 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                                 onClick={() => { setTab(t); setError(null); }}
                                 className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-lg transition-all duration-200 ${
                                     tab === t
-                                        ? "border-blue-400 text-blue-200"
-                                        : "border-transparent text-blue-100 hover:text-white hover:border-blue-200"
+                                        ? "border-white/60 text-white"
+                                        : "border-transparent text-white/70 hover:text-white hover:border-white/30"
                                 }`}
                             >
                                 {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -142,7 +142,7 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                 )}
 
                 {/* Content */}
-                {loading && <div className="text-blue-100 py-4">Loading...</div>}
+                {loading && <div className="text-white/70 py-4">Loading...</div>}
 
                 {!loading && tab === "summary" && stats && (
                     <motion.div
@@ -163,44 +163,44 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
-                        className="bg-white/80 shadow-lg overflow-hidden rounded-xl"
+                        className="bg-white/5 border border-white/10 shadow-lg overflow-hidden rounded-2xl"
                     >
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                        <table className="min-w-full divide-y divide-white/10">
+                            <thead className="bg-white/5">
                                 <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
-                                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">User</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Role</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Joined</th>
+                                    <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-white/70 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            <tbody className="divide-y divide-white/10">
                                 {users.map((u) => (
                                     <tr key={u.id}>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
                                                 <div className="flex-shrink-0 h-10 w-10">
-                                                    <img className="h-10 w-10 rounded-full bg-gray-100" src={u.avatar_url || "https://www.gravatar.com/avatar?d=mp"} alt="" />
+                                                    <img className="h-10 w-10 rounded-full bg-white/10" src={u.avatar_url || "https://www.gravatar.com/avatar?d=mp"} alt="" />
                                                 </div>
                                                 <div className="ml-4">
-                                                    <div className="text-sm font-medium text-gray-900">{u.full_name || "Unknown"}</div>
-                                                    <div className="text-sm text-gray-500">{u.email}</div>
+                                                    <div className="text-sm font-semibold text-white">{u.full_name || "Unknown"}</div>
+                                                    <div className="text-sm text-white/70">{u.email}</div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`}>
+                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-white/10 text-white">
                                                 {u.role}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white/70">
                                             {new Date(u.created_at).toLocaleDateString()}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             {u.role === "admin" ? (
-                                                <button onClick={() => promoteUser(u.id, "user")} className="text-amber-600 hover:text-amber-900">Demote</button>
+                                                <button onClick={() => promoteUser(u.id, "user")} className="text-white/80 hover:text-white underline">Demote</button>
                                             ) : (
-                                                <button onClick={() => promoteUser(u.id, "admin")} className="text-indigo-600 hover:text-indigo-900">Promote</button>
+                                                <button onClick={() => promoteUser(u.id, "admin")} className="text-white/80 hover:text-white underline">Promote</button>
                                             )}
                                         </td>
                                     </tr>
@@ -208,7 +208,7 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                             </tbody>
                         </table>
                         {/* Simple Pagination */}
-                        <div className="bg-white/80 px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                        <div className="bg-white/5 px-4 py-3 flex items-center justify-between border-t border-white/10 sm:px-6">
                             <div className="flex-1 flex justify-between sm:justify-end">
                                 <Button
                                     variant="outline"
@@ -238,19 +238,19 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                     >
                         {submissions.map((sub: any) => (
-                            <div key={sub.id} className="bg-white/80 rounded-xl shadow-lg p-6 flex flex-col gap-2">
+                            <div key={sub.id} className="rounded-2xl bg-white/5 border border-white/10 shadow-lg p-6 flex flex-col gap-2">
                                 <div className="flex items-center justify-between mb-2">
-                                    <span className="text-blue-700 font-semibold text-sm uppercase tracking-wide">{sub.type}</span>
-                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">New</span>
+                                    <span className="text-white font-semibold text-sm uppercase tracking-wide">{sub.type}</span>
+                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-white/10 text-white">New</span>
                                 </div>
-                                <div className="text-gray-700 text-sm">
+                                <div className="text-white/80 text-sm">
                                     {Object.entries(sub.data || {}).map(([key, value]) => (
                                         <div key={key} className="mb-1">
                                             <span className="font-semibold capitalize">{key}:</span> {String(value)}
                                         </div>
                                     ))}
                                 </div>
-                                <div className="text-xs text-gray-400 mt-2">ID: {sub.id}</div>
+                                <div className="text-xs text-white/50 mt-2">ID: {sub.id}</div>
                             </div>
                         ))}
                     </motion.div>
@@ -262,9 +262,9 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
 
 function StatCard({ title, value }: { title: string; value: number | string }) {
     return (
-        <div className="rounded-2xl bg-white/10 backdrop-blur-lg border border-white/15 shadow-lg p-6">
+        <div className="rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg p-6">
             <dl>
-                <dt className="text-sm font-semibold text-blue-100/80 truncate">{title}</dt>
+                <dt className="text-sm font-semibold text-white/70 truncate">{title}</dt>
                 <dd className="mt-2 text-3xl font-bold text-white">{value}</dd>
             </dl>
         </div>

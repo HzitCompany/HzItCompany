@@ -132,3 +132,34 @@ export async function fetchAdminContent() {
 export async function upsertAdminContent(input: { key: string; value: unknown }) {
   return putJson<typeof input, { ok: true }>("/api/admin/content", input);
 }
+
+export type CreateAdminAssetUploadUrlInput = {
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+};
+
+export type CreateAdminAssetUploadUrlResponse = {
+  ok: true;
+  bucket: string;
+  path: string;
+  token: string;
+  signedUrl: string;
+  publicUrl: string;
+};
+
+export async function createAdminAssetUploadUrl(input: CreateAdminAssetUploadUrlInput) {
+  return postJson<CreateAdminAssetUploadUrlInput, CreateAdminAssetUploadUrlResponse>(
+    "/api/admin/assets/upload-url",
+    input
+  );
+}
+
+export async function fetchPublicContent(keys: string[]) {
+  const params = new URLSearchParams();
+  if (keys.length) params.set("keys", keys.join(","));
+  const q = params.toString();
+  return getJson<{ ok: true; items: Array<{ key: string; value: unknown; updated_at: string }> }>(
+    `/api/content${q ? `?${q}` : ""}`
+  );
+}

@@ -9,6 +9,7 @@ import { Seo } from "../components/Seo";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
+import { CmsSlot } from "../components/cms/CmsBlocks";
 
 const portalLoginSchema = z
   .object({
@@ -165,6 +166,9 @@ export function PortalLogin() {
           </div>
         </div>
       </div>
+
+      {/* Admin-managed page blocks */}
+      <CmsSlot contentKey="page.portal-login" />
     </div>
   );
 }

@@ -46,10 +46,10 @@ export function AdminShell({ title, children }: { title: string; children: React
             to={item.to}
             onClick={onNavigate}
             className={
-              "min-h-11 rounded-xl px-3 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/60 " +
+              "min-h-11 rounded-xl px-3 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 " +
               (isActive
-                ? "bg-white/15 text-white"
-                : "text-blue-50/90 hover:bg-white/10 hover:text-white")
+                ? "bg-white/10 text-white"
+                : "text-white/80 hover:bg-white/5 hover:text-white")
             }
           >
             {item.label}
@@ -60,17 +60,17 @@ export function AdminShell({ title, children }: { title: string; children: React
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-gray-900 text-white">
+    <div className="min-h-screen bg-neutral-950 text-white">
       <div className="flex min-h-screen">
         <aside className="hidden lg:block w-72 shrink-0 p-4">
-          <div className="h-full rounded-2xl bg-white/10 backdrop-blur-lg border border-white/15 shadow-lg p-4">
+          <div className="h-full rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg p-4">
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-2xl overflow-hidden bg-white/10">
                 <img src="/logo.png" alt="HZ IT Logo" className="h-full w-full object-contain" />
               </div>
               <div>
                 <div className="text-base font-bold font-poppins">Admin</div>
-                <div className="text-xs text-blue-100/80 truncate max-w-[11rem]">{subtitle}</div>
+                <div className="text-xs text-white/70 truncate max-w-[11rem]">{subtitle}</div>
               </div>
             </div>
 
@@ -79,7 +79,7 @@ export function AdminShell({ title, children }: { title: string; children: React
             <button
               type="button"
               onClick={() => logout()}
-              className="mt-6 w-full min-h-11 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-sm font-semibold"
+              className="mt-6 w-full min-h-11 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-sm font-semibold"
             >
               Logout
             </button>
@@ -99,13 +99,13 @@ export function AdminShell({ title, children }: { title: string; children: React
                   <span className="text-lg font-bold">≡</span>
                 </button>
                 <div className="min-w-0">
-                  <div className="text-sm text-blue-100/80">HZ IT Company</div>
+                  <div className="text-sm text-white/70">HZ IT Company</div>
                   <div className="text-lg font-bold font-poppins truncate">{title}</div>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="hidden sm:block text-sm text-blue-100/80 truncate max-w-[16rem]">{subtitle}</div>
+                <div className="hidden sm:block text-sm text-white/70 truncate max-w-[16rem]">{subtitle}</div>
                 <button
                   type="button"
                   onClick={() => logout()}
@@ -147,7 +147,7 @@ export function AdminShell({ title, children }: { title: string; children: React
               aria-modal="true"
               aria-label="Admin menu"
             >
-              <div className="h-full rounded-2xl bg-blue-950/60 backdrop-blur-xl border border-white/15 shadow-2xl p-4">
+              <div className="h-full rounded-2xl bg-neutral-950/70 backdrop-blur-xl border border-white/10 shadow-2xl p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="h-11 w-11 rounded-2xl overflow-hidden bg-white/10">
@@ -155,7 +155,7 @@ export function AdminShell({ title, children }: { title: string; children: React
                     </div>
                     <div className="min-w-0">
                       <div className="text-base font-bold font-poppins">Admin</div>
-                      <div className="text-xs text-blue-100/80 truncate">{subtitle}</div>
+                      <div className="text-xs text-white/70 truncate">{subtitle}</div>
                     </div>
                   </div>
 

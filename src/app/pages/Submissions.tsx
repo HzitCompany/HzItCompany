@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { Seo } from "../components/Seo";
 import { useAuth } from "../auth/AuthProvider";
 import { fetchMySubmissions, type SubmissionItem } from "../services/submissionsService";
+import { CmsSlot } from "../components/cms/CmsBlocks";
 
 function formatDate(d: string) {
   const dt = new Date(d);
@@ -125,6 +126,9 @@ export function Submissions() {
           </motion.div>
         </div>
       </section>
+
+      {/* Admin-managed page blocks */}
+      <CmsSlot contentKey="page.submissions" />
     </div>
   );
 }

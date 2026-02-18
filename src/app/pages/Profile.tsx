@@ -8,6 +8,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { supabase } from "../lib/supabase";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { CmsSlot } from "../components/cms/CmsBlocks";
 
 const profileSchema = z.object({
   full_name: z.string().min(2, "Name must be at least 2 characters"),
@@ -47,7 +48,18 @@ export function Profile() {
           .eq("id", user.id)
           .single();
 
-        if (error) throw error;
+        // Supabase returns 406 (PGRST116) when `.single()` finds no row.
+        // Treat it as "profile not created yet" and continue with defaults.
+        if (error) {
+          const anyErr = error as any;
+          const code = String(anyErr?.code ?? "");
+          const status = Number(anyErr?.status ?? 0);
+          if (code === "PGRST116" || status === 406) {
+            setLoading(false);
+            return;
+          }
+          throw error;
+        }
 
         if (data) {
           setValue("full_name", data.full_name || "");
@@ -187,6 +199,9 @@ export function Profile() {
           )}
         </div>
       </div>
+
+      {/* Admin-managed page blocks */}
+      <CmsSlot contentKey="page.profile" />
     </div>
   );
 }

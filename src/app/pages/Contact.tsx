@@ -11,6 +11,7 @@ import { trackEvent } from "../analytics/track";
 import { siteConfig } from "../config/site";
 import { useAuth } from "../auth/AuthProvider";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
+import { CmsSlot } from "../components/cms/CmsBlocks";
 
 export function Contact() {
   const { isAuthed, openAuthModal } = useAuth();
@@ -433,6 +434,9 @@ export function Contact() {
           </motion.div>
         </div>
       </section>
+
+      {/* Admin-managed page blocks */}
+      <CmsSlot contentKey="page.contact" />
     </div>
   );
 }

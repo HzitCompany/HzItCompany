@@ -15,6 +15,7 @@ import { adminRouter } from "./routes/admin.js";
 import { meRouter } from "./routes/me.js";
 import { submissionsRouter } from "./routes/submissions.js";
 import { careersRouter } from "./routes/careers.js";
+import { contentRouter } from "./routes/content.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
 
 function resolveListenPort() {
@@ -79,6 +80,9 @@ async function main() {
     app.use("/api/pricing", pricingRoutes);
     app.use("/api/contact", contactRoutes);
     app.use("/api/hire-us", hireUsRoutes);
+
+    // Public CMS content (read-only)
+    app.use("/api/content", contentRouter);
 
     app.use("/api", authRouter);
 /* otpRouter and authSessionRouter removed */

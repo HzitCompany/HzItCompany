@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams, Link } from "react-router";
 import { Seo } from "../components/Seo";
 import { CTAButton } from "../components/CTAButton";
 import { createOrder, fetchPricing, verifyPayment, type PricingItem } from "../services/platformService";
+import { CmsSlot } from "../components/cms/CmsBlocks";
 
 function loadRazorpayScript() {
   return new Promise<void>((resolve, reject) => {
@@ -200,6 +201,9 @@ export function Checkout() {
           </div>
         </div>
       </div>
+
+      {/* Admin-managed page blocks */}
+      <CmsSlot contentKey="page.checkout" />
     </div>
   );
 }

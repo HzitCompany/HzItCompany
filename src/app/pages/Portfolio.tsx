@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { Clock } from "lucide-react";
 import { Seo } from "../components/Seo";
+import { CmsSlot } from "../components/cms/CmsBlocks";
 
 export function Portfolio() {
   const categories = ["All", "Web Development", "Mobile Apps", "Cloud Solutions", "UI/UX Design"];
@@ -169,6 +170,9 @@ export function Portfolio() {
           </motion.div>
         </div>
       </section>
+
+      {/* Admin-managed page blocks */}
+      <CmsSlot contentKey="page.portfolio" />
     </div>
   );
 }

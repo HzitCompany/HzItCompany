@@ -130,6 +130,12 @@ const envSchema = z
     (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
     z.string().min(1).optional()
   ),
+  // Public bucket for site images/assets used by CMS blocks.
+  // This bucket should be configured as "public" in Supabase Storage.
+  SUPABASE_PUBLIC_BUCKET: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().min(1).optional()
+  ),
   CAREER_UPLOAD_MAX_BYTES: z.coerce.number().int().positive().default(5 * 1024 * 1024)
   })
   .superRefine((val, ctx) => {

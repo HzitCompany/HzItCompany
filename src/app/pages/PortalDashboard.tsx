@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { Seo } from "../components/Seo";
 import { useAuth } from "../auth/AuthProvider";
 import { fetchPortalOrders } from "../services/platformService";
+import { CmsSlot } from "../components/cms/CmsBlocks";
 
 export function PortalDashboard() {
   const { isAuthed, role, logout } = useAuth();
@@ -183,6 +184,9 @@ export function PortalDashboard() {
           </p>
         </div>
       </div>
+
+      {/* Admin-managed page blocks */}
+      <CmsSlot contentKey="page.portal" />
     </div>
   );
 }

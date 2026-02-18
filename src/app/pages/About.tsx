@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { Target, Eye, Award, Users, Zap, Shield } from "lucide-react";
 import { Seo } from "../components/Seo";
+import { CmsSlot } from "../components/cms/CmsBlocks";
 
 export function About() {
   const timeline = [
@@ -314,6 +315,9 @@ export function About() {
           </motion.div>
         </div>
       </section>
+
+      {/* Admin-managed page blocks */}
+      <CmsSlot contentKey="page.about" />
     </div>
   );
 }

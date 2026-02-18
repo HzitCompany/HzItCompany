@@ -19,6 +19,7 @@ import { submitHireUsAuthed } from "../services/contactService";
 import { trackEvent } from "../analytics/track";
 import { useAuth } from "../auth/AuthProvider";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
+import { CmsSlot } from "../components/cms/CmsBlocks";
 
 export function HireUs() {
   const { isAuthed, openAuthModal } = useAuth();
@@ -29,23 +30,116 @@ export function HireUs() {
   }>({ status: "idle" });
 
   const services = [
-    { id: "web", icon: Code, label: "Web Development" },
-    { id: "mobile", icon: Smartphone, label: "Mobile Apps" },
-    { id: "cloud", icon: Cloud, label: "Cloud Solutions" },
-    { id: "consulting", icon: Lightbulb, label: "IT Consulting" },
-    { id: "database", icon: Database, label: "Database Management" },
-    { id: "security", icon: Shield, label: "Cybersecurity" },
-    { id: "design", icon: Palette, label: "UI/UX Design" },
-    { id: "analytics", icon: BarChart3, label: "Data Analytics" },
+    {
+      id: "website-development",
+      icon: Code,
+      label: "Website Development",
+      pricing: [
+        { plan: "Basic Website (1–5 pages)", priceInr: 4999 },
+        { plan: "Business Website (5–10 pages)", priceInr: 9999 },
+        { plan: "Advanced Website", priceInr: 14999 },
+      ],
+    },
+    {
+      id: "website-uiux",
+      icon: Palette,
+      label: "Website Design (UI/UX)",
+      pricing: [
+        { plan: "Basic Design", priceInr: 2999 },
+        { plan: "Professional Design", priceInr: 4999 },
+        { plan: "Premium UI/UX Design", priceInr: 7999 },
+      ],
+    },
+    {
+      id: "digital-marketing",
+      icon: BarChart3,
+      label: "Digital Marketing",
+      pricing: [
+        { plan: "Basic Marketing (Monthly)", priceInr: 3999 },
+        { plan: "Standard Marketing (Monthly)", priceInr: 6999 },
+        { plan: "Advanced Marketing (Monthly)", priceInr: 9999 },
+      ],
+    },
+    {
+      id: "social-media-management",
+      icon: Smartphone,
+      label: "Social Media Management",
+      pricing: [
+        { plan: "1 Platform (Monthly)", priceInr: 1999 },
+        { plan: "2 Platforms (Monthly)", priceInr: 2999 },
+        { plan: "3 Platforms (Monthly)", priceInr: 3999 },
+      ],
+    },
+    {
+      id: "seo-services",
+      icon: BarChart3,
+      label: "SEO Services",
+      pricing: [
+        { plan: "Basic SEO (Monthly)", priceInr: 2999 },
+        { plan: "Standard SEO (Monthly)", priceInr: 4999 },
+        { plan: "Advanced SEO (Monthly)", priceInr: 7999 },
+      ],
+    },
+    {
+      id: "google-business-setup",
+      icon: Cloud,
+      label: "Google Business Setup",
+      pricing: [
+        { plan: "New Profile Setup", priceInr: 999 },
+        { plan: "Optimization", priceInr: 1999 },
+      ],
+    },
+    {
+      id: "website-maintenance",
+      icon: Database,
+      label: "Website Maintenance",
+      pricing: [
+        { plan: "Basic Maintenance (Monthly)", priceInr: 999 },
+        { plan: "Standard Maintenance (Monthly)", priceInr: 1999 },
+        { plan: "Advanced Maintenance (Monthly)", priceInr: 2999 },
+      ],
+    },
+    {
+      id: "cybersecurity-services",
+      icon: Shield,
+      label: "Cybersecurity Services",
+      pricing: [
+        { plan: "Basic Security", priceInr: 1999 },
+        { plan: "Advanced Security", priceInr: 3999 },
+        { plan: "Full Protection", priceInr: 6999 },
+      ],
+    },
+    {
+      id: "logo-design",
+      icon: Palette,
+      label: "Logo Design",
+      pricing: [
+        { plan: "Basic Logo", priceInr: 999 },
+        { plan: "Professional Logo", priceInr: 1999 },
+        { plan: "Premium Logo", priceInr: 2999 },
+      ],
+    },
+    {
+      id: "poster-banner-design",
+      icon: Lightbulb,
+      label: "Poster / Banner Design",
+      pricing: [
+        { plan: "Single Poster", priceInr: 499 },
+        { plan: "5 Posters Package", priceInr: 1999 },
+      ],
+    },
   ];
 
   const budgetRanges = [
-    "< $10,000",
-    "$10,000 - $25,000",
-    "$25,000 - $50,000",
-    "$50,000 - $100,000",
-    "$100,000+",
+    "< ₹10,000",
+    "₹10,000 - ₹25,000",
+    "₹25,000 - ₹50,000",
+    "₹50,000 - ₹1,00,000",
+    "₹1,00,000+",
   ];
+
+  const inr = new Intl.NumberFormat("en-IN");
+  const fmtInr = (amount: number) => `₹${inr.format(amount)}`;
 
   const timelineOptions = [
     "Less than 1 month",
@@ -388,7 +482,7 @@ export function HireUs() {
                     Select Services
                   </h2>
                   <p className="text-gray-600 mb-8">
-                    Choose one or more services you're interested in
+                    Choose one or more services you're interested in (prices in INR)
                   </p>
 
                   <fieldset aria-describedby={errors.services ? "hire-services-error" : undefined}>
@@ -420,6 +514,14 @@ export function HireUs() {
                               </div>
                               <div className="flex-1">
                                 <div className="font-semibold text-gray-900">{service.label}</div>
+                                <div className="mt-1 text-sm text-gray-600">
+                                  {service.pricing.map((p: any) => (
+                                    <div key={p.plan} className="flex items-center justify-between gap-3">
+                                      <span className="truncate">{p.plan}</span>
+                                      <span className="shrink-0 font-semibold text-gray-900">{fmtInr(p.priceInr)}</span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                               {isSelected ? (
                                 <CheckCircle2 className="text-blue-600" size={24} aria-hidden="true" />
@@ -725,6 +827,9 @@ export function HireUs() {
           </div>
         </div>
       </section>
+
+      {/* Admin-managed page blocks */}
+      <CmsSlot contentKey="page.hire-us" />
     </div>
   );
 }

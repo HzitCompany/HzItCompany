@@ -3,6 +3,7 @@ import { HttpError } from "./errorHandler.js";
 import { env } from "../lib/env.js";
 import { getSupabaseAdmin, getSupabaseAuth } from "../lib/supabase.js";
 import { query } from "../lib/db.js";
+import { verifySupabaseJwtViaJwks } from "../lib/supabaseJwt.js";
 
 // Helper interface for typed requests
 export interface AuthedRequest extends Request {
@@ -60,23 +61,52 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
   }
 
   try {
-    // Validate the token and get the user.
-    // Prefer anon-key client (doesn't require service role), but fall back to service-role
-    // client to preserve compatibility with deployments that only set SUPABASE_SERVICE_ROLE_KEY.
-    const getUserResult = async () => {
-      try {
-        return await getSupabaseAuth().auth.getUser(token);
-      } catch (err) {
-        if (err instanceof HttpError && err.status === 503) {
-          return await getSupabaseAdmin().auth.getUser(token);
+    let user:
+      | {
+          id: string;
+          email?: string | null;
+          app_metadata?: unknown;
         }
+      | null = null;
+    let phone: string | undefined;
+    let provider: string | undefined;
+
+    // Validate the token and get the user.
+    // Prefer anon-key client (doesn't require service role), but fall back to service-role.
+    // If neither is configured, verify the JWT via Supabase JWKS.
+    try {
+      const { data, error } = await getSupabaseAuth().auth.getUser(token);
+      if (!error && data?.user) {
+        user = data.user as any;
+        provider = (data.user.app_metadata as any)?.provider;
+        phone = (data.user as any)?.phone;
+      }
+    } catch (err) {
+      if (err instanceof HttpError && err.status === 503) {
+        try {
+          const { data, error } = await getSupabaseAdmin().auth.getUser(token);
+          if (!error && data?.user) {
+            user = data.user as any;
+            provider = (data.user.app_metadata as any)?.provider;
+            phone = (data.user as any)?.phone;
+          }
+        } catch (err2) {
+          if (err2 instanceof HttpError && err2.status === 503) {
+            // Final fallback: validate token via JWKS.
+            const verified = await verifySupabaseJwtViaJwks(token);
+            user = { id: verified.sub, email: verified.email ?? null, app_metadata: { provider: verified.provider } };
+            provider = verified.provider;
+            phone = verified.phone;
+          } else {
+            throw err2;
+          }
+        }
+      } else {
         throw err;
       }
-    };
+    }
 
-    const { data: { user }, error } = await getUserResult();
-
-    if (error || !user) {
+    if (!user?.id) {
       return next(new HttpError(401, "Unauthorized: Invalid token", true));
     }
 
@@ -99,13 +129,12 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
       }
     }
 
-    const provider = (user.app_metadata as any)?.provider as string | undefined;
-    const phone = (user as any)?.phone as string | undefined;
-    const sub = await getOrCreateLocalUserId({ email: user.email ?? null, phone: phone ?? null });
+    const email = (user as any)?.email ?? null;
+    const sub = await getOrCreateLocalUserId({ email, phone: phone ?? null });
 
     req.user = {
       id: user.id,
-      email: user.email ?? undefined,
+      email: email ?? undefined,
       phone,
       provider,
       sub,

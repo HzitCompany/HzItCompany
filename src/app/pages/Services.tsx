@@ -19,6 +19,7 @@ import { Seo } from "../components/Seo";
 import { useEffect, useMemo, useState } from "react";
 import { fetchPricing, type PricingItem } from "../services/platformService";
 import { Link } from "react-router";
+import { CmsSlot } from "../components/cms/CmsBlocks";
 
 export function Services() {
   const [pricing, setPricing] = useState<PricingItem[]>([]);
@@ -473,6 +474,9 @@ export function Services() {
           </motion.div>
         </div>
       </section>
+
+      {/* Admin-managed page blocks */}
+      <CmsSlot contentKey="page.services" />
     </div>
   );
 }

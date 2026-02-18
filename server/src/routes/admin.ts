@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
+import crypto from "crypto";
 
+import { env } from "../lib/env.js";
 import { query } from "../lib/db.js";
 import { requireAuth, requireAdmin, type AuthedRequest } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errorHandler.js";
@@ -147,6 +149,118 @@ adminRouter.get("/admin/content", requireAuth, requireAdmin, async (_req: Authed
   try {
     const rows = await query("select key, value, updated_at from site_content order by key asc");
     return res.json({ ok: true, items: rows });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+const createAssetUploadUrlSchema = z
+  .object({
+    fileName: z.string().min(1).max(200),
+    fileType: z.string().min(1).max(120),
+    fileSize: z.number().int().positive()
+  })
+  .strict();
+
+const allowedImageMimeTypes = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+  "image/svg+xml"
+]);
+
+function imageExtensionForMime(mime: string) {
+  switch (mime) {
+    case "image/png":
+      return "png";
+    case "image/jpeg":
+      return "jpg";
+    case "image/webp":
+      return "webp";
+    case "image/gif":
+      return "gif";
+    case "image/svg+xml":
+      return "svg";
+    default:
+      return undefined;
+  }
+}
+
+function safeBaseName(input: string) {
+  const base = input.split("/").pop()?.split("\\").pop() ?? "file";
+  const noExt = base.replace(/\.[^.]+$/, "");
+  const cleaned = noExt
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^[-.]+|[-.]+$/g, "")
+    .slice(0, 60);
+  return cleaned || "file";
+}
+
+function publicObjectUrl(baseUrl: string, bucket: string, path: string) {
+  const normalized = baseUrl.replace(/\/$/, "");
+  const encodedPath = path
+    .split("/")
+    .map((p) => encodeURIComponent(p))
+    .join("/");
+  return `${normalized}/storage/v1/object/public/${encodeURIComponent(bucket)}/${encodedPath}`;
+}
+
+// POST /api/admin/assets/upload-url
+// Creates a signed upload URL into a *public* storage bucket for CMS images.
+adminRouter.post("/admin/assets/upload-url", requireAuth, requireAdmin, async (req: AuthedRequest, res, next) => {
+  try {
+    const parsed = createAssetUploadUrlSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, error: "Invalid request", details: parsed.error.flatten() });
+    }
+
+    const userId = req.user?.sub;
+    if (!Number.isFinite(userId)) throw new HttpError(401, "Unauthorized", true);
+
+    const { fileName, fileType, fileSize } = parsed.data;
+
+    if (!allowedImageMimeTypes.has(fileType)) {
+      throw new HttpError(400, "Unsupported image type. Upload PNG, JPG, WEBP, GIF, or SVG.", true);
+    }
+
+    if (fileSize > env.CAREER_UPLOAD_MAX_BYTES) {
+      throw new HttpError(400, `File too large. Max size is ${Math.floor(env.CAREER_UPLOAD_MAX_BYTES / (1024 * 1024))}MB.`, true);
+    }
+
+    const ext = imageExtensionForMime(fileType);
+    if (!ext) throw new HttpError(400, "Unsupported image type.", true);
+
+    const now = new Date();
+    const yyyy = String(now.getUTCFullYear());
+    const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(now.getUTCDate()).padStart(2, "0");
+
+    const rand = crypto.randomBytes(12).toString("hex");
+    const base = safeBaseName(fileName);
+
+    const bucket = env.SUPABASE_PUBLIC_BUCKET || "site-assets";
+    const path = `cms/${userId}/${yyyy}-${mm}-${dd}/img-${base}-${rand}.${ext}`;
+
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path);
+    if (error || !data?.signedUrl || !data?.path) {
+      throw new HttpError(502, "Failed to create upload URL. Check Supabase Storage configuration.", true);
+    }
+
+    if (!env.SUPABASE_URL) {
+      throw new HttpError(503, "Supabase Storage is not configured. Set SUPABASE_URL on the backend.", true);
+    }
+
+    return res.json({
+      ok: true,
+      bucket,
+      path: data.path,
+      token: data.token,
+      signedUrl: data.signedUrl,
+      publicUrl: publicObjectUrl(env.SUPABASE_URL, bucket, data.path)
+    });
   } catch (err) {
     return next(err);
   }
