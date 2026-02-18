@@ -7,12 +7,21 @@ import { CTAButton } from "../components/CTAButton";
 
 export function RequireAuth({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const { isAuthed, openAuthModal } = useAuth();
+  const { isAuthed, isLoading, openAuthModal } = useAuth();
 
   useEffect(() => {
+    if (isLoading) return;
     if (isAuthed) return;
     openAuthModal({ afterAuthNavigateTo: location.pathname });
-  }, [isAuthed, location.pathname, openAuthModal]);
+  }, [isLoading, isAuthed, location.pathname, openAuthModal]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center text-gray-500">
+        Checking access…
+      </div>
+    );
+  }
 
   if (isAuthed) return <>{children}</>;
 

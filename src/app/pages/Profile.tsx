@@ -9,6 +9,8 @@ import { supabase } from "../lib/supabase";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { CmsSlot } from "../components/cms/CmsBlocks";
+import { Link } from "react-router";
+import { fetchMySubmissions, type SubmissionItem } from "../services/submissionsService";
 
 const profileSchema = z.object({
   full_name: z.string().min(2, "Name must be at least 2 characters"),
@@ -24,6 +26,9 @@ export function Profile() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  const [recentSubmissions, setRecentSubmissions] = useState<SubmissionItem[]>([]);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
 
   const {
     register,
@@ -75,6 +80,30 @@ export function Profile() {
 
     loadProfile();
   }, [user, setValue]);
+
+  useEffect(() => {
+    if (!user) return;
+    let mounted = true;
+    setSubmissionsLoading(true);
+
+    fetchMySubmissions()
+      .then((r) => {
+        if (!mounted) return;
+        setRecentSubmissions((r.items ?? []).slice(0, 5));
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setRecentSubmissions([]);
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setSubmissionsLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
 
   const onSubmit = async (data: ProfileData) => {
     if (!user) return;
@@ -196,6 +225,45 @@ export function Profile() {
                 </button>
               </div>
             </form>
+          )}
+        </div>
+
+        <div className="mt-6 bg-white rounded-xl shadow-lg border border-gray-100 p-6 sm:p-8">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-lg font-bold text-gray-900 font-poppins">Recent submissions</h2>
+            <Link
+              to="/submissions"
+              className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
+            >
+              View all
+            </Link>
+          </div>
+
+          {submissionsLoading ? (
+            <div className="mt-4 text-sm text-gray-600">Loading…</div>
+          ) : recentSubmissions.length === 0 ? (
+            <div className="mt-4 text-sm text-gray-600">No submissions yet.</div>
+          ) : (
+            <div className="mt-4 divide-y divide-gray-100 rounded-lg border border-gray-100">
+              {recentSubmissions.map((item) => {
+                const data = (item.data ?? {}) as any;
+                const title =
+                  item.type === "contact"
+                    ? data.subject || "Contact"
+                    : item.type === "hire"
+                      ? data.projectName || "Hire Us"
+                      : data.role || "Career";
+
+                return (
+                  <div key={item.id} className="p-4">
+                    <div className="text-sm font-semibold text-gray-900">{String(title || item.type)}</div>
+                    <div className="mt-1 text-xs text-gray-600">
+                      {String(item.type).toUpperCase()} • {new Date(item.created_at).toLocaleString()} • #{item.id}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>

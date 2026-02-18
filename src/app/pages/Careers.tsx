@@ -1,7 +1,7 @@
 import { Seo } from "../components/Seo";
 import { siteConfig } from "../config/site";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { careerSchema, type CareerFormValues } from "../schemas/careerSchema";
@@ -17,6 +17,14 @@ export function Careers() {
     status: "idle" | "loading" | "success" | "error";
     message?: string;
   }>({ status: "idle" });
+
+  const [resumeUploadDraft, setResumeUploadDraft] = useState<
+    | {
+        fileKey: string;
+        upload: { signedUrl: string; path: string };
+      }
+    | null
+  >(null);
 
   const email = siteConfig.contact.email;
   const phoneDigits = siteConfig.contact.phone.replace(/\D/g, "");
@@ -39,6 +47,7 @@ export function Careers() {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CareerFormValues>({
     resolver: zodResolver(careerSchema),
@@ -58,8 +67,56 @@ export function Careers() {
     mode: "onTouched",
   });
 
+  const resumeFile = useMemo(() => {
+    const resumeFileList = (watch("resumeFile") as any as FileList | undefined);
+    return resumeFileList?.item(0) ?? undefined;
+  }, [watch]);
+
+  const resumeFileKey = useMemo(() => {
+    if (!resumeFile) return null;
+    const anyFile = resumeFile as any;
+    return [resumeFile.name, resumeFile.type, resumeFile.size, String(anyFile.lastModified ?? "")].join("|");
+  }, [resumeFile]);
+
+  useEffect(() => {
+    // Pre-create the signed upload URL as soon as the user selects a resume.
+    // This removes one round-trip from the submit button path.
+    if (!isAuthed) {
+      setResumeUploadDraft(null);
+      return;
+    }
+    if (!resumeFile || !resumeFileKey) {
+      setResumeUploadDraft(null);
+      return;
+    }
+
+    let cancelled = false;
+    // If we already have a draft for this exact file, keep it.
+    if (resumeUploadDraft?.fileKey === resumeFileKey) return;
+
+    createCareerUploadUrlAuthed({
+      kind: "resume",
+      fileName: resumeFile.name,
+      fileType: resumeFile.type,
+      fileSize: resumeFile.size,
+    })
+      .then((upload) => {
+        if (cancelled) return;
+        setResumeUploadDraft({ fileKey: resumeFileKey, upload: { signedUrl: upload.signedUrl, path: upload.path } });
+      })
+      .catch(() => {
+        // Non-blocking: if this fails, we will retry during submit.
+        if (cancelled) return;
+        setResumeUploadDraft(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthed, resumeFile, resumeFileKey, resumeUploadDraft?.fileKey]);
+
   const onSubmit = async (values: CareerFormValues) => {
-    setSubmitState({ status: "loading", message: "Preparing…" });
+    setSubmitState({ status: "loading" });
 
     if (values.companyWebsite && values.companyWebsite.trim().length > 0) {
       setSubmitState({ status: "success", message: "Thanks — we’ll get back to you shortly." });
@@ -76,32 +133,30 @@ export function Careers() {
       }
 
       const resumeFileList = (values as any).resumeFile as FileList | undefined;
-      const resumeFile = resumeFileList?.item(0) ?? undefined;
+      const resumeFileFromValues = resumeFileList?.item(0) ?? undefined;
 
-      if (!resumeFile) throw new Error("Resume is required.");
+      if (!resumeFileFromValues) throw new Error("Resume is required.");
 
-      setSubmitState({ status: "loading", message: "Creating upload link…" });
+      // Use pre-created upload URL if available for this file, otherwise create now.
+      const fileKeyFromValues = [
+        resumeFileFromValues.name,
+        resumeFileFromValues.type,
+        resumeFileFromValues.size,
+        String((resumeFileFromValues as any)?.lastModified ?? "")
+      ].join("|");
 
-      const upload = await createCareerUploadUrlAuthed({
-        kind: "resume",
-        fileName: resumeFile.name,
-        fileType: resumeFile.type,
-        fileSize: resumeFile.size,
-      });
+      const upload =
+        resumeUploadDraft?.fileKey === fileKeyFromValues
+          ? resumeUploadDraft.upload
+          : await createCareerUploadUrlAuthed({
+              kind: "resume",
+              fileName: resumeFileFromValues.name,
+              fileType: resumeFileFromValues.type,
+              fileSize: resumeFileFromValues.size,
+            });
 
-      let lastPct = -1;
-      setSubmitState({ status: "loading", message: "Uploading resume…" });
-      await uploadFileToSignedUrlWithProgress(upload.signedUrl, resumeFile, {
-        onProgress: (pct) => {
-          // Avoid excessive re-renders.
-          if (pct === lastPct) return;
-          lastPct = pct;
-          setSubmitState({ status: "loading", message: `Uploading resume… ${pct}%` });
-        }
-      });
+      await uploadFileToSignedUrlWithProgress(upload.signedUrl, resumeFileFromValues);
       const resumePath = upload.path;
-
-      setSubmitState({ status: "loading", message: "Submitting application…" });
 
       await submitCareerApplyAuthed({
         fullName: values.name,
