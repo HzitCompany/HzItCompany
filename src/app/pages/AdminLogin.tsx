@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { motion } from "framer-motion";
@@ -28,9 +28,27 @@ export function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [cooldownSec, setCooldownSec] = useState(0);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  function startCooldown(seconds = 60) {
+    setCooldownSec(seconds);
+    if (cooldownRef.current) clearInterval(cooldownRef.current);
+    cooldownRef.current = setInterval(() => {
+      setCooldownSec((s) => {
+        if (s <= 1) {
+          clearInterval(cooldownRef.current!);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+  }
+
+  useEffect(() => () => { if (cooldownRef.current) clearInterval(cooldownRef.current); }, []);
 
   async function onSendOtp() {
-    if (loading) return;
+    if (loading || cooldownSec > 0) return;
     setError(null);
     setInfo(null);
     setLoading(true);
@@ -38,8 +56,10 @@ export function AdminLogin() {
       await requestEmailOtp({ email: email.trim().toLowerCase() });
       setStep("otp");
       setInfo("OTP sent! Check your email.");
+      startCooldown(60);
     } catch (e) {
       setError(getErrorMessage(e));
+      startCooldown(30);
     } finally {
       setLoading(false);
     }
@@ -108,11 +128,11 @@ export function AdminLogin() {
 
                     <button
                       type="button"
-                      disabled={loading}
+                      disabled={loading || cooldownSec > 0}
                       onClick={onSendOtp}
                       className="min-h-11 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-white font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
                     >
-                      {loading ? "Sendingâ€¦" : "Send OTP"}
+                      {loading ? "Sending…" : cooldownSec > 0 ? `Wait ${cooldownSec}s` : "Send OTP"}
                     </button>
                   </>
                 ) : (
@@ -153,7 +173,7 @@ export function AdminLogin() {
                         onClick={onVerifyOtp}
                         className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-white font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
                       >
-                        {loading ? "Verifyingâ€¦" : "Verify"}
+                        {loading ? "Verifying\u2026" : "Verify"}
                       </button>
                     </div>
                   </>

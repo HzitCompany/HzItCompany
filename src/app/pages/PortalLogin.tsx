@@ -97,7 +97,7 @@ export function PortalLogin() {
               onClick={onSubmit}
               className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {loading ? "Please waitâ€¦" : mode === "login" ? "Login" : "Create account"}
+              {loading ? "Please wait…" : mode === "login" ? "Login" : "Create account"}
             </button>
 
             <div className="relative flex items-center gap-3">

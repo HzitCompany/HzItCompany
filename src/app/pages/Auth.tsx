@@ -242,7 +242,7 @@ export function Auth() {
                     (loading ? "opacity-70 cursor-not-allowed" : "hover:shadow-xl hover:scale-[1.02]")
                   }
                 >
-                  {loading ? "Sendingâ€¦" : "Send OTP"}
+                  {loading ? "Sending…" : "Send OTP"}
                 </button>
 
                 <div className="relative flex items-center gap-3 py-2">
@@ -308,7 +308,7 @@ export function Auth() {
                     disabled={loading}
                     className="px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-70"
                   >
-                    {loading ? "Verifyingâ€¦" : "Verify"}
+                    {loading ? "Verifying…" : "Verify"}
                   </button>
                 </div>
 
