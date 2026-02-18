@@ -7,8 +7,8 @@ import { env } from "../lib/env.js";
 import { HttpError } from "../middleware/errorHandler.js";
 import { getSupabaseAdmin, getSupabaseAuth } from "../lib/supabase.js";
 import { query } from "../lib/db.js";
-import { signToken } from "../lib/auth.js";
-import { createSession, revokeSession } from "../lib/sessions.js";
+import { getBearerToken, signToken, verifyToken } from "../lib/auth.js";
+import { createSession, isSessionActive, revokeSession } from "../lib/sessions.js";
 import { clearSessionCookie, setSessionCookie } from "../lib/cookieSession.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 import { logger } from "../lib/logger.js";
@@ -240,12 +240,30 @@ authSessionRouter.post("/auth/google", async (req, res, next) => {
   }
 });
 
-authSessionRouter.get("/auth/me", requireAuth, async (req: AuthedRequest, res, next) => {
+authSessionRouter.get("/auth/me", async (req: AuthedRequest, res, next) => {
   try {
-    if (!req.user) throw new HttpError(401, "Unauthorized", true);
+    // Soft auth: if no token / invalid token, return 200 with user: null (avoids browser 401 console errors).
+    const anyReq = req as any;
+    const cookieName = env.SESSION_COOKIE_NAME || "hz_session";
+    const cookieToken =
+      typeof anyReq?.cookies?.[cookieName] === "string" ? anyReq.cookies[cookieName] : null;
+    const bearerToken = getBearerToken(req);
+    const rawToken = cookieToken ?? bearerToken;
 
-    const userId = Number(req.user.sub);
-    if (!Number.isFinite(userId)) throw new HttpError(401, "Unauthorized", true);
+    if (!rawToken) return res.json({ ok: true, user: null });
+
+    let payload;
+    try {
+      payload = verifyToken(rawToken);
+    } catch {
+      return res.json({ ok: true, user: null });
+    }
+
+    const active = await isSessionActive(rawToken).catch(() => false);
+    if (!active) return res.json({ ok: true, user: null });
+
+    const userId = Number(payload.sub);
+    if (!Number.isFinite(userId)) return res.json({ ok: true, user: null });
 
     const rows = await query<{ id: number; name: string | null; email: string | null; is_verified: boolean }>(
       "select id, name, email, is_verified from users where id = $1 limit 1",
@@ -253,7 +271,7 @@ authSessionRouter.get("/auth/me", requireAuth, async (req: AuthedRequest, res, n
     );
 
     const u = rows[0];
-    if (!u) throw new HttpError(401, "Unauthorized", true);
+    if (!u) return res.json({ ok: true, user: null });
 
     return res.json({
       ok: true,
@@ -261,8 +279,8 @@ authSessionRouter.get("/auth/me", requireAuth, async (req: AuthedRequest, res, n
         id: String(u.id),
         email: u.email,
         full_name: u.name,
-        role: req.user.role,
-        provider: req.user.provider ?? null,
+        role: payload.role,
+        provider: payload.provider ?? null,
         isVerified: u.is_verified
       }
     });
