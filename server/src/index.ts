@@ -41,6 +41,14 @@ async function main() {
     res.status(isReady ? 200 : 503).json({ ok: isReady, status: isReady ? "ready" : "starting" });
   });
 
+  // While booting (Render cold start), return 503 for all other API routes.
+  // This prevents confusing 404s before routers are mounted.
+  app.use("/api", (req, res, next) => {
+    if (isReady) return next();
+    if (req.path.startsWith("/health") || req.path.startsWith("/schema")) return next();
+    return res.status(503).json({ ok: false, error: "Server is starting, please retry." });
+  });
+
   // ── START LISTENING IMMEDIATELY so Render sees the open port ──────────────
   // (Routes are added to a live Express app after listen() without issue.)
   logger.info({ corsOrigins: env.CORS_ORIGINS }, "CORS configured");
