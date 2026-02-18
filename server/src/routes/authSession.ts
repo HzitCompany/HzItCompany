@@ -241,6 +241,67 @@ authSessionRouter.post("/auth/google", async (req, res, next) => {
   }
 });
 
+// ── Magic link / token exchange ───────────────────────────────────────────────
+// When Supabase sends a magic link, clicking it lands the user on the site URL
+// with #access_token=... in the hash. The frontend strips this and sends it here
+// so we can verify it server-side and issue our own cookie session.
+const tokenExchangeSchema = z
+  .object({
+    access_token: z.string().min(10)
+  })
+  .strict();
+
+authSessionRouter.post("/auth/token-exchange", async (req, res, next) => {
+  try {
+    const parsed = tokenExchangeSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, error: "Invalid request", details: parsed.error.flatten() });
+    }
+
+    // Ask Supabase to validate the access_token and return the user.
+    const supabase = getSupabaseAuth();
+    const { data, error } = await supabase.auth.getUser(parsed.data.access_token);
+    if (error || !data?.user) {
+      const status = typeof (error as any)?.status === "number" ? (error as any).status : 401;
+      logger.warn({ status, message: error?.message }, "magic link token exchange failed");
+      throw new HttpError(status === 0 ? 401 : status, error?.message || "Invalid or expired magic link", true);
+    }
+
+    const user = data.user;
+    const email = user.email?.toLowerCase();
+    if (!email) throw new HttpError(400, "No email on the Supabase account", true);
+
+    const meta: any = user.user_metadata ?? {};
+    const nameRaw =
+      (typeof meta.full_name === "string" && meta.full_name.trim()) ? meta.full_name.trim()
+        : (typeof meta.name === "string" && meta.name.trim()) ? meta.name.trim()
+        : null;
+    const roleRaw = (meta.role ?? (user.app_metadata as any)?.role) as unknown;
+    const role = roleRaw === "admin" ? "admin" : "user";
+
+    const localUserId = await ensureLocalUserId({ email, name: nameRaw });
+
+    const token = signToken({
+      sub: String(localUserId),
+      email,
+      role,
+      name: nameRaw ?? undefined,
+      provider: "otp"
+    });
+
+    const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_MS);
+    await createSession({ userId: localUserId, token, expiresAt });
+    setSessionCookie(res, token, SESSION_MAX_AGE_MS);
+
+    return res.json({
+      ok: true,
+      user: { id: String(localUserId), email, full_name: nameRaw, role }
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 authSessionRouter.get("/auth/me", async (req: AuthedRequest, res, next) => {
   try {
     // Soft auth: if no token / invalid token, return 200 with user: null (avoids browser 401 console errors).

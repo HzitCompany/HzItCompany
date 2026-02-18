@@ -55,13 +55,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // On mount, try to restore session from HTTP-only cookie via /api/auth/me.
+  // Also handle Supabase magic-link hash: #access_token=...&type=magiclink
   useEffect(() => {
     setIsLoading(true);
-    fetchMe()
-      .catch(() => {
-        setUser(null);
-      })
-      .finally(() => setIsLoading(false));
+
+    const hash = window.location.hash;
+    const hashParams = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : "");
+    const magicToken = hashParams.get("access_token");
+    const tokenType = hashParams.get("type"); // "magiclink" | "recovery" etc.
+
+    if (magicToken && (tokenType === "magiclink" || tokenType === "signup" || tokenType === "recovery")) {
+      // Clear hash from URL immediately so it's not visible / replayed.
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+
+      postJson("/api/auth/token-exchange", { access_token: magicToken })
+        .then(() => fetchMe())
+        .catch(() => setUser(null))
+        .finally(() => setIsLoading(false));
+    } else {
+      fetchMe()
+        .catch(() => setUser(null))
+        .finally(() => setIsLoading(false));
+    }
   }, [fetchMe]);
 
   const refreshMe = useCallback(async () => {
