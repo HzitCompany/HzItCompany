@@ -84,7 +84,10 @@ export const pool = new Pool({
   connectionString: getDatabaseUrlOrExit(),
   ssl: {
     rejectUnauthorized: false
-  }
+  },
+  // Fail fast per-attempt so retries kick in quickly instead of waiting for
+  // the OS TCP timeout (~2 min). 10s is plenty for a healthy pooler.
+  connectionTimeoutMillis: 10_000
 });
 
 pool.on("error", (err) => {

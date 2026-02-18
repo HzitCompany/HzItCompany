@@ -28,11 +28,34 @@ function resolveListenPort() {
 }
 
 async function main() {
-  await initDb();
   const app = createApp();
+  const port = resolveListenPort();
 
-  // Always expose schema diagnostics (even if migrations are missing).
+  // Track readiness — routes are mounted after DB connects.
+  let isReady = false;
+
+  // Always expose schema diagnostics.
   app.use("/api/schema", schemaStatusRouter);
+
+  // Startup probe: returns 503 until the DB is connected and routes are mounted.
+  app.use("/api/health", (_req, res) => {
+    res.status(isReady ? 200 : 503).json({ ok: isReady, status: isReady ? "ready" : "starting" });
+  });
+
+  // ── START LISTENING IMMEDIATELY so Render sees the open port ──────────────
+  // (Routes are added to a live Express app after listen() without issue.)
+  logger.info({ corsOrigins: env.CORS_ORIGINS }, "CORS configured");
+  app.listen(port, "0.0.0.0", () => {
+    logger.info({ port, env: env.NODE_ENV }, "API server listening");
+  });
+
+  // ── DB INIT (in the same async flow, but server is already bound) ─────────
+  try {
+    await initDb();
+  } catch (err) {
+    logger.fatal({ err }, "DB connection failed after all retries — exiting");
+    process.exit(1);
+  }
 
   let schemaReady = true;
   try {
@@ -46,12 +69,10 @@ async function main() {
   }
 
   if (schemaReady) {
-    // Required mounts (frontend calls these exact endpoints)
     app.use("/api/pricing", pricingRoutes);
     app.use("/api/contact", contactRoutes);
     app.use("/api/hire-us", hireUsRoutes);
 
-    // Existing platform endpoints
     app.use("/api", authRouter);
     app.use("/api/auth/otp", otpRouter);
     app.use("/api", authSessionRouter);
@@ -62,8 +83,6 @@ async function main() {
     app.use("/api", invoiceRouter);
     app.use("/api", adminRouter);
   } else {
-    // Avoid crash loops on platforms like Render.
-    // Keep /api/health and /api/schema working; everything else returns 503.
     app.use("/api", (_req, res) => {
       return res.status(503).json({
         ok: false,
@@ -75,11 +94,8 @@ async function main() {
   app.use(notFound);
   app.use(errorHandler);
 
-  const port = resolveListenPort();
-  logger.info({ corsOrigins: env.CORS_ORIGINS }, "CORS configured");
-  app.listen(port, "0.0.0.0", () => {
-    logger.info({ port, env: env.NODE_ENV }, "API server listening");
-  });
+  isReady = true;
+  logger.info("All routes mounted — server fully ready");
 }
 
 main().catch((err) => {
