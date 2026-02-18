@@ -13,6 +13,37 @@ function getBaseUrl() {
   return normalized;
 }
 
+function joinBaseAndPath(base: string, path: string) {
+  const baseNormalized = base.replace(/\/$/, "");
+  const pathNormalized = path.startsWith("/") ? path : `/${path}`;
+
+  // If the base URL already contains a pathname (e.g. https://api.com/api or /api/content)
+  // and the caller passes an absolute path that repeats it, dedupe.
+  try {
+    const url = new URL(baseNormalized);
+    const basePath = url.pathname.replace(/\/$/, "");
+    if (basePath && basePath !== "/") {
+      if (
+        pathNormalized === basePath ||
+        pathNormalized.startsWith(`${basePath}/`) ||
+        pathNormalized.startsWith(`${basePath}?`)
+      ) {
+        return `${baseNormalized}${pathNormalized.slice(basePath.length)}`;
+      }
+    }
+  } catch {
+    // ignore (base might be empty or relative)
+  }
+
+  // Tolerate env misconfiguration where base already includes '/api'
+  // but callers also pass '/api/...' paths.
+  if (baseNormalized.endsWith("/api") && pathNormalized.startsWith("/api/")) {
+    return `${baseNormalized}${pathNormalized.slice(4)}`;
+  }
+
+  return `${baseNormalized}${pathNormalized}`;
+}
+
 async function parseJsonSafe(response: Response) {
   const text = await response.text();
   if (!text) return undefined;
@@ -25,8 +56,14 @@ async function parseJsonSafe(response: Response) {
 
 async function getAuthToken(): Promise<string | null> {
   if (!supabase) return null;
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ?? null;
+  } catch {
+    // In some browsers / multi-tab scenarios, Supabase may fail acquiring a lock
+    // (Navigator LockManager) and throw. Public pages must keep working.
+    return null;
+  }
 }
 
 async function requestJson<TResponse>(
@@ -52,14 +89,12 @@ async function requestJson<TResponse>(
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${getBaseUrl()}${path.startsWith("/") ? path : `/${path}`}`,
-    {
-      method,
-      headers,
-      body: options?.body ? JSON.stringify(options.body) : undefined,
-      signal: options?.signal,
-    }
-  );
+  const response = await fetch(joinBaseAndPath(getBaseUrl(), path), {
+    method,
+    headers,
+    body: options?.body ? JSON.stringify(options.body) : undefined,
+    signal: options?.signal,
+  });
 
   if (!response.ok) {
     const details = await parseJsonSafe(response);

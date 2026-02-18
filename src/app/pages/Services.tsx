@@ -34,6 +34,15 @@ export function Services() {
       })
       .catch((e: any) => {
         if (!mounted) return;
+        // Pricing is non-blocking on this page.
+        // Hide transient backend errors (Render cold starts, DB hiccups, etc.)
+        // and simply show the default "once configured" placeholder.
+        const status = e?.status;
+        if (status === 500 || status === 503) {
+          setPricing([]);
+          setPricingError(null);
+          return;
+        }
         setPricingError(e?.message ?? "Failed to load pricing");
       });
 

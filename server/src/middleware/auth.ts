@@ -68,42 +68,44 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
           app_metadata?: unknown;
         }
       | null = null;
+
     let phone: string | undefined;
     let provider: string | undefined;
 
-    // Validate the token and get the user.
-    // Prefer anon-key client (doesn't require service role), but fall back to service-role.
-    // If neither is configured, verify the JWT via Supabase JWKS.
-    try {
-      const { data, error } = await getSupabaseAuth().auth.getUser(token);
-      if (!error && data?.user) {
-        user = data.user as any;
-        provider = (data.user.app_metadata as any)?.provider;
-        phone = (data.user as any)?.phone;
-      }
-    } catch (err) {
-      if (err instanceof HttpError && err.status === 503) {
-        try {
-          const { data, error } = await getSupabaseAdmin().auth.getUser(token);
-          if (!error && data?.user) {
-            user = data.user as any;
-            provider = (data.user.app_metadata as any)?.provider;
-            phone = (data.user as any)?.phone;
-          }
-        } catch (err2) {
-          if (err2 instanceof HttpError && err2.status === 503) {
-            // Final fallback: validate token via JWKS.
-            const verified = await verifySupabaseJwtViaJwks(token);
-            user = { id: verified.sub, email: verified.email ?? null, app_metadata: { provider: verified.provider } };
-            provider = verified.provider;
-            phone = verified.phone;
-          } else {
-            throw err2;
-          }
+    // Validate the token and resolve the user.
+    // Order:
+    // 1) Supabase Auth (anon key) if configured
+    // 2) Supabase Admin (service role) if configured
+    // 3) JWKS verification fallback (doesn't require backend Supabase env vars)
+    //
+    // This ensures production doesn't break if backend Supabase keys are missing or
+    // if Supabase is temporarily unreachable.
+
+    const trySupabaseGetUser = async (mode: "auth" | "admin") => {
+      try {
+        const client = mode === "auth" ? getSupabaseAuth() : getSupabaseAdmin();
+        const { data, error } = await client.auth.getUser(token);
+        if (!error && data?.user) {
+          user = data.user as any;
+          provider = (data.user.app_metadata as any)?.provider;
+          phone = (data.user as any)?.phone;
+          return true;
         }
-      } else {
-        throw err;
+      } catch {
+        // Ignore and fall through to next strategy.
       }
+      return false;
+    };
+
+    await trySupabaseGetUser("auth");
+    if (!user) await trySupabaseGetUser("admin");
+
+    if (!user) {
+      // Final fallback: verify the JWT via Supabase JWKS.
+      const verified = await verifySupabaseJwtViaJwks(token);
+      user = { id: verified.sub, email: verified.email ?? null, app_metadata: { provider: verified.provider } };
+      provider = verified.provider;
+      phone = verified.phone;
     }
 
     if (!user?.id) {
@@ -144,8 +146,8 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
     next();
   } catch (err: any) {
     if (err instanceof HttpError) return next(err);
-    // Distinguish between network errors and auth errors if possible
-    return next(new HttpError(401, "Unauthorized: Validation failed", true));
+    // Token validation failed (including JWKS failure).
+    return next(new HttpError(401, "Unauthorized: Invalid token", true));
   }
 }
 
