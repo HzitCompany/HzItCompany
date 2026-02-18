@@ -142,7 +142,7 @@ export function Profile() {
       <Seo title="My Profile" description="Manage your account" path="/profile" />
 
       {/* Header */}
-      <section className="relative pt-32 pb-16 bg-blue-900 text-white">
+      <section className="relative pt-36 pb-16 bg-blue-900 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -168,7 +168,7 @@ export function Profile() {
       </section>
 
       {/* Main Form */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6">
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 sm:p-8">
           
           {loading ? (

@@ -20,7 +20,7 @@ export const siteConfig = {
     addressCountry: "IN",
   },
   socials: {
-    instagram: "https://www.instagram.com/hzitcompany?igsh=Nzlrajg5NDB5MjBw",
+    instagram: "https://www.instagram.com/hzitcompany/",
     x: "https://x.com/hzitcompany",
     facebook: "https://www.facebook.com/share/1av6JvLBCq/",
     youtube: "https://youtube.com/@hzitcompany?si=2_3dECFCpkkOgNpr",

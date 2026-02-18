@@ -11,6 +11,15 @@ import { GoogleLoginButton } from "../components/GoogleLoginButton";
 import { trackEvent } from "../analytics/track";
 import { CmsSlot } from "../components/cms/CmsBlocks";
 
+const OPEN_ROLES = [
+  { title: "Software Developer", subtitle: "Web & app development" },
+  { title: "Digital marketing", subtitle: "SEO • Social • Ads" },
+  { title: "Web Designer/Ui-Ux", subtitle: "Figma • Design systems" },
+  { title: "Data&Cloud Operator", subtitle: "Cloud ops • Data handling" },
+  { title: "Cyber Security(1+)", subtitle: "Security monitoring • Hardening" },
+  { title: "Trainer of cources(2+)", subtitle: "Training • Mentorship" },
+] as const;
+
 export function Careers() {
   const { isAuthed, openAuthModal } = useAuth();
   const [submitState, setSubmitState] = useState<{
@@ -47,6 +56,8 @@ export function Careers() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    trigger,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<CareerFormValues>({
@@ -187,6 +198,15 @@ export function Careers() {
     }
   };
 
+  const onPickRole = async (role: string) => {
+    setValue("role", role, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+    await trigger("role");
+    // Smoothly bring the form into view for mobile users.
+    const el = document.getElementById("role");
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    (el as HTMLSelectElement | null)?.focus?.();
+  };
+
   return (
     <div className="min-h-screen">
       <Seo
@@ -228,30 +248,18 @@ export function Careers() {
               <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-6 shadow-lg border border-white/40">
                 <h2 className="text-2xl font-bold text-gray-900 font-poppins">Open roles</h2>
                 <ul className="mt-5 grid gap-3 text-gray-700">
-                  <li className="rounded-xl bg-white border border-gray-200 px-4 py-3">
-                    <div className="font-semibold text-gray-900">Software Developer</div>
-                    <div className="text-sm text-gray-600">Web & app development</div>
-                  </li>
-                  <li className="rounded-xl bg-white border border-gray-200 px-4 py-3">
-                    <div className="font-semibold text-gray-900">Digital marketing</div>
-                    <div className="text-sm text-gray-600">SEO • Social • Ads</div>
-                  </li>
-                  <li className="rounded-xl bg-white border border-gray-200 px-4 py-3">
-                    <div className="font-semibold text-gray-900">Web Designer/Ui-Ux</div>
-                    <div className="text-sm text-gray-600">Figma • Design systems</div>
-                  </li>
-                  <li className="rounded-xl bg-white border border-gray-200 px-4 py-3">
-                    <div className="font-semibold text-gray-900">Data&Cloud Operator</div>
-                    <div className="text-sm text-gray-600">Cloud ops • Data handling</div>
-                  </li>
-                  <li className="rounded-xl bg-white border border-gray-200 px-4 py-3">
-                    <div className="font-semibold text-gray-900">Cyber Security(1+)</div>
-                    <div className="text-sm text-gray-600">Security monitoring • Hardening</div>
-                  </li>
-                  <li className="rounded-xl bg-white border border-gray-200 px-4 py-3">
-                    <div className="font-semibold text-gray-900">Trainer of cources(2+)</div>
-                    <div className="text-sm text-gray-600">Training • Mentorship</div>
-                  </li>
+                  {OPEN_ROLES.map((role) => (
+                    <li key={role.title}>
+                      <button
+                        type="button"
+                        onClick={() => onPickRole(role.title)}
+                        className="w-full text-left rounded-xl bg-white border border-gray-200 px-4 py-3 hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
+                      >
+                        <div className="font-semibold text-gray-900">{role.title}</div>
+                        <div className="text-sm text-gray-600">{role.subtitle}</div>
+                      </button>
+                    </li>
+                  ))}
                 </ul>
                 <p className="mt-4 text-sm text-gray-600">If you don’t see your role, still apply with your preferred position.</p>
               </div>
@@ -346,16 +354,25 @@ export function Careers() {
                     <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
                       Role you’re applying for *
                     </label>
-                    <input
+                    <select
                       id="role"
-                      type="text"
                       {...register("role")}
                       className={
                         "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
                         (errors.role ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
                       }
-                      placeholder="Frontend Developer"
-                    />
+                      defaultValue=""
+                    >
+                      <option value="" disabled>
+                        Select a role
+                      </option>
+                      {OPEN_ROLES.map((r) => (
+                        <option key={r.title} value={r.title}>
+                          {r.title}
+                        </option>
+                      ))}
+                      <option value="Other">Other</option>
+                    </select>
                     {errors.role ? <p className="mt-2 text-sm text-rose-700">{errors.role.message}</p> : null}
                   </div>
 
