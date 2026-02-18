@@ -2,7 +2,6 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export type GoogleLoginButtonProps = {
-  width?: number;
   onSuccess?: () => void;
   onError?: () => void;
 };
@@ -11,6 +10,11 @@ export function GoogleLoginButton(props: GoogleLoginButtonProps) {
   const [loading, setLoading] = useState(false);
 
   async function handleGoogleLogin() {
+    if (!supabase) {
+      console.error("Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
+      props.onError?.();
+      return;
+    }
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -39,7 +43,6 @@ export function GoogleLoginButton(props: GoogleLoginButtonProps) {
       disabled={loading}
       className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed font-medium"
       type="button"
-      style={typeof props.width === "number" ? { width: props.width } : undefined}
     >
       <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5" />
       <span>{loading ? "Redirecting..." : "Continue with Google"}</span>

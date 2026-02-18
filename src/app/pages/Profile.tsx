@@ -36,6 +36,10 @@ export function Profile() {
   useEffect(() => {
     async function loadProfile() {
       if (!user) return;
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
       try {
         const { data, error } = await supabase
           .from("profiles")
@@ -62,6 +66,10 @@ export function Profile() {
 
   const onSubmit = async (data: ProfileData) => {
     if (!user) return;
+    if (!supabase) {
+      setMessage({ type: "error", text: "Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY." });
+      return;
+    }
     setSaving(true);
     setMessage(null);
 

@@ -40,6 +40,9 @@ export function PortalLogin() {
     setError(null);
 
     try {
+      if (!supabase) {
+        throw new Error("Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
+      }
       if (mode === "login") {
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: data.email,

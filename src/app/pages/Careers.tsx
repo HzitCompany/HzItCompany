@@ -400,7 +400,7 @@ export function Careers() {
                   {!isAuthed ? (
                     <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 flex flex-col items-center gap-3">
                       <p className="text-sm text-blue-800 font-medium text-center">Sign in to submit your application</p>
-                      <GoogleLoginButton width={280} onSuccess={() => {}} onError={() => {}} />
+                      <GoogleLoginButton onSuccess={() => {}} onError={() => {}} />
                     </div>
                   ) : null}
 

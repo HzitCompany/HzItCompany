@@ -39,6 +39,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [redirectPath, setRedirectPath] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async (sessionUser: any): Promise<{ role: "user" | "admin"; full_name: string | null }> => {
+    if (!supabase) {
+      return { role: "user", full_name: sessionUser?.user_metadata?.full_name ?? null };
+    }
     // 1. Fetch from profiles table (DB role only)
     const { data: profile } = await supabase
       .from("profiles")
@@ -65,6 +68,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshMe = useCallback(async () => {
+    if (!supabase) {
+      setUser(null);
+      return;
+    }
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
       setUser(null);
@@ -82,6 +89,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchProfile]);
 
   useEffect(() => {
+    if (!supabase) {
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
     let mounted = true;
 
     // Initial load
@@ -130,7 +142,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
     setUser(null);
     navigate("/");
   }, [navigate]);
