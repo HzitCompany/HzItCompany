@@ -91,30 +91,49 @@ pool.on("error", (err) => {
   logger.error({ err }, "Postgres pool error");
 });
 
-export async function initDb() {
-  try {
-    await pool.query("select 1 as ok");
-    logger.info(
-      { ssl: true, db: getSafeDbTarget(env.DATABASE_URL) },
-      "Postgres connection ok"
-    );
-  } catch (err) {
-    const safeUrl = maskDatabaseUrl(env.DATABASE_URL);
-    const details = describeDbError(err);
+export async function initDb(maxRetries = 5, retryDelayMs = 3000) {
+  let lastErr: unknown;
 
-    logger.error(
-      {
-        err,
-        code: details.code,
-        db: {
-          url: safeUrl
-        },
-        hints: details.hints
-      },
-      "Postgres connection failed"
-    );
-    throw err;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await pool.query("select 1 as ok");
+      logger.info(
+        { ssl: true, db: getSafeDbTarget(env.DATABASE_URL) },
+        "Postgres connection ok"
+      );
+      return;
+    } catch (err) {
+      lastErr = err;
+      const details = describeDbError(err);
+
+      if (attempt < maxRetries) {
+        logger.warn(
+          {
+            attempt,
+            maxRetries,
+            retryDelayMs,
+            code: details.code,
+            hints: details.hints,
+          },
+          `Postgres connection attempt ${attempt}/${maxRetries} failed — retrying in ${retryDelayMs / 1000}s`
+        );
+        await new Promise((res) => setTimeout(res, retryDelayMs));
+      } else {
+        const safeUrl = maskDatabaseUrl(env.DATABASE_URL);
+        logger.error(
+          {
+            err,
+            code: details.code,
+            db: { url: safeUrl },
+            hints: details.hints,
+          },
+          "Postgres connection failed after all retries"
+        );
+      }
+    }
   }
+
+  throw lastErr;
 }
 
 export async function query<T = unknown>(text: string, params?: unknown[]): Promise<T[]> {
