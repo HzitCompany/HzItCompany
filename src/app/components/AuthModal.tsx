@@ -10,6 +10,7 @@ type Step = "email" | "otp";
 export function AuthModal() {
   const { isAuthModalOpen, closeAuthModal, onOtpVerified } = useAuth();
 
+  const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
