@@ -12,6 +12,21 @@ const fallbackSupabaseAnonKey =
 const effectiveSupabaseUrl = supabaseUrl || (import.meta.env.PROD ? fallbackSupabaseUrl : undefined);
 const effectiveSupabaseAnonKey = supabaseAnonKey || (import.meta.env.PROD ? fallbackSupabaseAnonKey : undefined);
 
+if (import.meta.env.PROD) {
+  if (!supabaseUrl) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[hz] Missing VITE_SUPABASE_URL in production build; using fallback Supabase project. Ensure backend SUPABASE_URL matches to avoid 401 Invalid token."
+    );
+  }
+  if (!supabaseAnonKey) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[hz] Missing VITE_SUPABASE_ANON_KEY in production build; using fallback Supabase anon key. Ensure backend SUPABASE_URL matches to avoid 401 Invalid token."
+    );
+  }
+}
+
 export const isSupabaseConfigured = Boolean(effectiveSupabaseUrl && effectiveSupabaseAnonKey);
 
 export const supabase = isSupabaseConfigured

@@ -46,20 +46,34 @@ CREATE POLICY "Users can read own profile" ON public.profiles
 CREATE POLICY "Users can update own profile" ON public.profiles
   FOR UPDATE USING (auth.uid() = id);
 
--- 3. Admins can read all profiles (using a recursive check or specific admin role check)
--- Note: To avoid infinite recursion if we check role in the policy themselves, we rely on the jwt claim or a separate admin check helper function if needed.
--- But for simplicity with Supabase auth:
-CREATE POLICY "Admins can read all profiles" ON public.profiles
-  FOR ALL USING (
-    auth.uid() IN (
-      SELECT id FROM public.profiles WHERE role = 'admin'
-    )
-  );
+-- 3/4. Admin access
+-- IMPORTANT: Do NOT query public.profiles inside a policy on public.profiles.
+-- That causes infinite recursion and PostgREST will return 500.
+-- Use a SECURITY DEFINER helper instead.
 
--- 4. Admins can update roles (and other fields) of any user
-CREATE POLICY "Admins can update all profiles" ON public.profiles
-  FOR UPDATE USING (
-    auth.uid() IN (
-      SELECT id FROM public.profiles WHERE role = 'admin'
-    )
+CREATE OR REPLACE FUNCTION public.is_admin(user_id uuid)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.profiles p
+    WHERE p.id = user_id
+      AND p.role = 'admin'
   );
+$$;
+
+REVOKE ALL ON FUNCTION public.is_admin(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_admin(uuid) TO authenticated;
+
+CREATE POLICY "Admins can read all profiles" ON public.profiles
+  FOR SELECT
+  TO authenticated
+  USING (public.is_admin(auth.uid()));
+
+CREATE POLICY "Admins can update all profiles" ON public.profiles
+  FOR UPDATE
+  TO authenticated
+  USING (public.is_admin(auth.uid()));

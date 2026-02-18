@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useLocation, useNavigate } from "react-router";
 
 import { supabase } from "../lib/supabase";
-import { postJson } from "../services/apiClient";
+import { getJson } from "../services/apiClient";
 
 export type MeUser = {
   id: string;
@@ -52,33 +52,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [redirectPath, setRedirectPath] = useState<string | null>(null);
 
-  const fetchProfile = useCallback(async (sessionUser: any): Promise<{ role: "user" | "admin"; full_name: string | null }> => {
-    if (!supabase) {
-      return { role: "user", full_name: sessionUser?.user_metadata?.full_name ?? null };
+  const fetchBackendRole = useCallback(async (): Promise<"user" | "admin"> => {
+    try {
+      const res = await getJson<{ ok: true; user: { role?: "admin" | "user" } }>("/api/me");
+      return res.user?.role === "admin" ? "admin" : "user";
+    } catch {
+      return "user";
     }
-    // 1. Fetch from profiles table (DB role only)
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, full_name")
-      .eq("id", sessionUser.id)
-      .single();
-    
-    // If profile doesn't exist, try sync
-    if (!profile) {
-       // Attempt to sync with backend to create profile if missing
-       try {
-         // This call requires backend to trust the token and create profile
-         await postJson("/api/auth/sync-profile", {});
-         return { role: "user", full_name: sessionUser.user_metadata?.full_name ?? null };
-       } catch {
-         return { role: "user", full_name: null };
-       }
-    }
-
-    return { 
-      role: (profile.role === "admin" ? "admin" : "user"), 
-      full_name: profile.full_name 
-    };
   }, []);
 
   const refreshMe = useCallback(async () => {
@@ -92,15 +72,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const profile = await fetchProfile(session.user);
+    const role = await fetchBackendRole();
+    const fullName = session.user.user_metadata?.full_name ?? null;
     
     setUser({
       id: session.user.id,
       email: session.user.email ?? null,
-      full_name: profile.full_name ?? session.user.user_metadata?.full_name ?? null,
-      role: profile.role
+      full_name: fullName,
+      role
     });
-  }, [fetchProfile]);
+  }, [fetchBackendRole]);
 
   useEffect(() => {
     if (!supabase) {
@@ -119,12 +100,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
          if (mounted) {
             // Optimistic update
-            const profile = await fetchProfile(session.user);
+            const role = await fetchBackendRole();
+            const fullName = session.user.user_metadata?.full_name ?? null;
             setUser({
               id: session.user.id,
               email: session.user.email ?? null,
-              full_name: profile.full_name ?? session.user.user_metadata?.full_name ?? null,
-              role: profile.role
+              full_name: fullName,
+              role
             });
 
             if (event === "SIGNED_IN" && redirectPath) {
@@ -151,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // If we loaded a session on refreshMe (e.g. after OAuth redirect), apply redirect once.
     consumePostAuthRedirect();
 
-  }, [consumePostAuthRedirect, fetchProfile, navigate, redirectPath, refreshMe]);
+  }, [consumePostAuthRedirect, fetchBackendRole, navigate, redirectPath, refreshMe]);
 
   const openAuthModal = useCallback((opts?: { afterAuthNavigateTo?: string }) => {
     if (opts?.afterAuthNavigateTo) {

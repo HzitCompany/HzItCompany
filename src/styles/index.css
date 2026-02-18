@@ -1,3 +1,10 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+html, body {
+	background: var(--background, #f6f8fa);
+	min-height: 100%;
+	color: var(--foreground, #222);
+	transition: background 0.3s;
+}
