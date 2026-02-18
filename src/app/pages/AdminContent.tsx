@@ -3,14 +3,13 @@ import { Link } from "react-router";
 import { motion } from "motion/react";
 
 import { Seo } from "../components/Seo";
-import { clearSession, getSessionRole, getSessionToken } from "../auth/session";
+import { useAuth } from "../auth/AuthProvider";
 import { fetchAdminContent, upsertAdminContent } from "../services/platformService";
 
 export function AdminContent() {
-  const token = getSessionToken();
-  const role = getSessionRole();
+  const { isAuthed, role, logout: authLogout } = useAuth();
 
-  const [items, setItems] = useState<Array<{ key: string; value: unknown; updated_at: string }>>([]);
+  const [items, setItems] = useState<Array<{ key: string; value: unknown; updated_at: string }>>([])
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -18,29 +17,28 @@ export function AdminContent() {
   const [draftValue, setDraftValue] = useState("{}");
 
   function logout() {
-    clearSession();
-    location.href = "/admin/login";
+    authLogout();
   }
 
   function load() {
-    if (!token) return;
+    if (!isAuthed) return;
     setError(null);
     setLoading(true);
-    fetchAdminContent(token)
+    fetchAdminContent()
       .then((r) => setItems(r.items))
       .catch((e: any) => setError(e?.message ?? "Failed to load"))
       .finally(() => setLoading(false));
   }
 
   useEffect(() => {
-    if (!token) return;
+    if (!isAuthed) return;
     if (role !== "admin") return;
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, role]);
+  }, [isAuthed, role]);
 
   async function save() {
-    if (!token) return;
+    if (!isAuthed) return;
     setError(null);
 
     const key = draftKey.trim();
@@ -59,7 +57,7 @@ export function AdminContent() {
 
     setLoading(true);
     try {
-      await upsertAdminContent(token, { key, value });
+      await upsertAdminContent({ key, value });
       setDraftKey("");
       setDraftValue("{}");
       load();
@@ -70,7 +68,7 @@ export function AdminContent() {
     }
   }
 
-  if (!token) {
+  if (!isAuthed) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-16">

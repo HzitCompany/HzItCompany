@@ -17,8 +17,8 @@ export type CreateCareerUploadUrlResponse = {
   signedUrl: string;
 };
 
-export async function createCareerUploadUrlAuthed(token: string, input: CreateCareerUploadUrlInput) {
-  return postJson<CreateCareerUploadUrlInput, CreateCareerUploadUrlResponse>("/api/careers/upload-url", input, { token });
+export async function createCareerUploadUrlAuthed(input: CreateCareerUploadUrlInput) {
+  return postJson<CreateCareerUploadUrlInput, CreateCareerUploadUrlResponse>("/api/careers/upload-url", input);
 }
 
 export async function uploadFileToSignedUrl(signedUrl: string, file: File) {
@@ -51,6 +51,6 @@ export type CareerApplyPayload = {
   honeypot?: string;
 };
 
-export async function submitCareerApplyAuthed(token: string, payload: CareerApplyPayload) {
-  return postJson<CareerApplyPayload, { ok: true; id?: number }>("/api/careers/apply", payload, { token });
+export async function submitCareerApplyAuthed(payload: CareerApplyPayload) {
+  return postJson<CareerApplyPayload, { ok: true; id?: number }>("/api/careers/apply", payload);
 }

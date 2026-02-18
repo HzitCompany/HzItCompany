@@ -20,7 +20,7 @@ import { trackEvent } from "../analytics/track";
 import { useAuth } from "../auth/AuthProvider";
 
 export function HireUs() {
-  const { token } = useAuth();
+  const { isAuthed } = useAuth();
   const [step, setStep] = useState(1);
   const [submitState, setSubmitState] = useState<{
     status: "idle" | "loading" | "success" | "error";
@@ -127,9 +127,9 @@ export function HireUs() {
     }
 
     try {
-      if (!token) throw new Error("Please verify first.");
+      if (!isAuthed) throw new Error("Please verify first.");
 
-      await submitHireUsAuthed(token, {
+      await submitHireUsAuthed({
         name: values.name,
         email: values.email,
         phone: values.phone,

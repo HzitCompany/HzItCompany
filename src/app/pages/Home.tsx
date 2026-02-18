@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "motion/react";
 import { Link } from "react-router";
 import {
@@ -7,15 +8,27 @@ import {
   Lightbulb,
   ArrowRight,
   CheckCircle2,
+  Star,
+  Clock,
 } from "lucide-react";
 import { ServiceCard } from "../components/ServiceCard";
-import { TestimonialSlider } from "../components/TestimonialSlider";
 import { CTAButton } from "../components/CTAButton";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { Seo } from "../components/Seo";
 import { siteConfig } from "../config/site";
 
 export function Home() {
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackHover, setFeedbackHover] = useState(0);
+  const [feedbackName, setFeedbackName] = useState("");
+  const [feedbackMsg, setFeedbackMsg] = useState("");
+  const [feedbackDone, setFeedbackDone] = useState(false);
+
+  function handleFeedbackSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!feedbackRating || !feedbackName.trim() || !feedbackMsg.trim()) return;
+    setFeedbackDone(true);
+  }
+
   const services = [
     {
       icon: Code,
@@ -44,10 +57,10 @@ export function Home() {
   ];
 
   const stats = [
-    { value: "500+", label: "Projects Completed" },
-    { value: "98%", label: "Client Satisfaction" },
-    { value: "50+", label: "Team Members" },
-    { value: "15+", label: "Years Experience" },
+    { label: "Projects Completed" },
+    { label: "Client Satisfaction" },
+    { label: "Team Members" },
+    { label: "Years Experience" },
   ];
 
   const portfolioProjects = [
@@ -148,13 +161,10 @@ export function Home() {
             {stats.map((stat, index) => (
               <div
                 key={index}
-                className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20"
+                className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 flex flex-col items-center gap-2"
               >
-                <div
-                  className="text-4xl font-bold text-white mb-2 font-poppins"
-                >
-                  {stat.value}
-                </div>
+                <Clock size={20} className="text-blue-300" />
+                <div className="text-sm font-bold text-blue-200 tracking-widest uppercase">Coming Soon</div>
                 <div className="text-gray-300 text-sm">{stat.label}</div>
               </div>
             ))}
@@ -262,33 +272,30 @@ export function Home() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {portfolioProjects.map((project, index) => (
-              <motion.div
-                key={project.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300"
-              >
-                <div className="aspect-video bg-gradient-to-br from-blue-600 to-blue-800 relative">
-                  <ImageWithFallback
-                    src={`https://source.unsplash.com/800x600/?technology,${project.category}`}
-                    alt={project.title}
-                    className="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                    <p className="text-sm text-blue-300 mb-2">{project.category}</p>
-                    <h3 className="text-xl font-bold font-poppins">
-                      {project.title}
-                    </h3>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="flex flex-col items-center justify-center py-20 px-8 rounded-3xl border-2 border-dashed border-gray-200 bg-gray-50"
+          >
+            <motion.div
+              animate={{ scale: [1, 1.08, 1] }}
+              transition={{ duration: 3, repeat: Infinity }}
+              className="w-20 h-20 rounded-2xl bg-blue-100 flex items-center justify-center mb-6"
+            >
+              <Clock size={36} className="text-blue-500" />
+            </motion.div>
+            <h3 className="text-2xl font-bold text-gray-900 font-poppins">Portfolio Coming Soon</h3>
+            <p className="mt-3 text-gray-500 max-w-md text-center">
+              Our portfolio is being curated. Exciting case studies and project showcases are on their way!
+            </p>
+            <Link
+              to="/portfolio"
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-white font-semibold hover:bg-blue-700 transition-colors"
+            >
+              Visit Portfolio <ArrowRight size={18} />
+            </Link>
+          </motion.div>
 
           <div className="text-center mt-12">
             <CTAButton to="/portfolio">View All Projects</CTAButton>
@@ -315,7 +322,111 @@ export function Home() {
             </p>
           </motion.div>
 
-          <TestimonialSlider />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+            {/* Coming Soon Reviews Placeholder */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="rounded-3xl border-2 border-dashed border-gray-200 bg-white p-10 flex flex-col items-center justify-center text-center min-h-[340px]"
+            >
+              <motion.div
+                animate={{ scale: [1, 1.12, 1] }}
+                transition={{ duration: 2.5, repeat: Infinity }}
+                className="text-5xl mb-5"
+              >
+                ⭐
+              </motion.div>
+              <h3 className="text-xl font-bold text-gray-900 font-poppins">Client Reviews Coming Soon</h3>
+              <p className="mt-3 text-gray-500 max-w-xs text-sm">
+                Real reviews from our clients will appear here. Be the first to share your experience!
+              </p>
+            </motion.div>
+
+            {/* Feedback Submission Form */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="rounded-3xl bg-white border border-gray-200 shadow-lg p-8"
+            >
+              <h3 className="text-xl font-bold text-gray-900 font-poppins">Share Your Feedback</h3>
+              <p className="mt-1 text-gray-500 text-sm">Tell us about your experience with our services</p>
+
+              {feedbackDone ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="mt-8 flex flex-col items-center text-center py-8"
+                >
+                  <div className="text-4xl mb-3">🙏</div>
+                  <h4 className="text-lg font-bold text-gray-900">Thank you, {feedbackName}!</h4>
+                  <p className="mt-2 text-gray-500 text-sm">Your feedback has been received. We appreciate your time!</p>
+                </motion.div>
+              ) : (
+                <form onSubmit={handleFeedbackSubmit} className="mt-6 grid gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={feedbackName}
+                      onChange={(e) => setFeedbackName(e.target.value)}
+                      placeholder="e.g. Rahul Sharma"
+                      className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Your Rating</label>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          aria-label={`Rate ${star} star${star > 1 ? "s" : ""}`}
+                          onClick={() => setFeedbackRating(star)}
+                          onMouseEnter={() => setFeedbackHover(star)}
+                          onMouseLeave={() => setFeedbackHover(0)}
+                          className="focus:outline-none"
+                        >
+                          <Star
+                            size={30}
+                            className={`transition-colors ${
+                              star <= (feedbackHover || feedbackRating)
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "fill-gray-200 text-gray-200"
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Your Experience</label>
+                    <textarea
+                      required
+                      rows={4}
+                      value={feedbackMsg}
+                      onChange={(e) => setFeedbackMsg(e.target.value)}
+                      placeholder="Share what you loved about working with us…"
+                      className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition resize-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={!feedbackRating}
+                    className="w-full rounded-xl bg-blue-600 px-6 py-3 text-white font-semibold hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Submit Feedback
+                  </button>
+                </form>
+              )}
+            </motion.div>
+          </div>
         </div>
       </section>
 

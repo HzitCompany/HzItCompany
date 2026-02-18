@@ -48,26 +48,24 @@ export async function submitContactAuthed(token: string, payload: ContactPayload
   );
 }
 
-export async function submitHireUsAuthed(token: string, payload: HireUsPayload) {
+export async function submitHireUsAuthed(payload: HireUsPayload) {
   return postJson<{ type: "hire"; data: HireUsPayload; honeypot?: string }, { ok: true; id?: number }>(
     "/api/submissions",
     {
       type: "hire",
       data: payload,
       honeypot: payload.honeypot,
-    },
-    { token }
+    }
   );
 }
 
-export async function submitCareerAuthed(token: string, payload: CareerPayload) {
+export async function submitCareerAuthed(payload: CareerPayload) {
   return postJson<{ type: "career"; data: CareerPayload; honeypot?: string }, { ok: true; id?: number }>(
     "/api/submissions",
     {
       type: "career",
       data: payload,
       honeypot: payload.honeypot,
-    },
-    { token }
+    }
   );
 }

@@ -10,7 +10,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { trackEvent } from "../analytics/track";
 
 export function Careers() {
-  const { token } = useAuth();
+  const { isAuthed, openAuthModal } = useAuth();
   const [submitState, setSubmitState] = useState<{
     status: "idle" | "loading" | "success" | "error";
     message?: string;
@@ -67,14 +67,18 @@ export function Careers() {
     }
 
     try {
-      if (!token) throw new Error("Please verify first.");
+      if (!isAuthed) {
+        openAuthModal();
+        setSubmitState({ status: "error", message: "Please log in to submit your application." });
+        return;
+      }
 
       const resumeFileList = (values as any).resumeFile as FileList | undefined;
       const resumeFile = resumeFileList?.item(0) ?? undefined;
 
       if (!resumeFile) throw new Error("Resume is required.");
 
-      const upload = await createCareerUploadUrlAuthed(token, {
+      const upload = await createCareerUploadUrlAuthed({
         kind: "resume",
         fileName: resumeFile.name,
         fileType: resumeFile.type,
@@ -84,7 +88,7 @@ export function Careers() {
       await uploadFileToSignedUrl(upload.signedUrl, resumeFile);
       const resumePath = upload.path;
 
-      await submitCareerApplyAuthed(token, {
+      await submitCareerApplyAuthed({
         fullName: values.name,
         email: values.email,
         phone: values.phone,

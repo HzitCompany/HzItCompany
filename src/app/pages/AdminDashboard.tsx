@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { motion } from "motion/react";
 
 import { Seo } from "../components/Seo";
-import { clearSession, getSessionRole, getSessionToken } from "../auth/session";
+import { useAuth } from "../auth/AuthProvider";
 import {
   fetchAdminContactLeads,
   fetchAdminHireLeads,
@@ -18,8 +18,7 @@ import {
 type Tab = "summary" | "orders" | "pricing" | "leads" | "submissions";
 
 export function AdminDashboard({ initialTab }: { initialTab?: Tab }) {
-  const token = getSessionToken();
-  const role = getSessionRole();
+  const { isAuthed, role, logout } = useAuth();
 
   const [tab, setTab] = useState<Tab>(initialTab ?? "summary");
   const [error, setError] = useState<string | null>(null);
@@ -54,39 +53,34 @@ export function AdminDashboard({ initialTab }: { initialTab?: Tab }) {
     setTab(initialTab);
   }, [initialTab]);
 
-  function logout() {
-    clearSession();
-    location.href = "/admin/login";
-  }
-
   useEffect(() => {
-    if (!token) return;
+    if (!isAuthed) return;
     if (role !== "admin") return;
 
     setError(null);
     setLoading(true);
 
     const load = async () => {
-      if (!token) return;
+      if (!isAuthed) return;
       if (tab === "summary") {
-        const r = await fetchAdminSummary(token);
+        const r = await fetchAdminSummary();
         setSummary(r.totals);
       }
       if (tab === "orders") {
-        const r = await fetchAdminOrders(token, orderSearch);
+        const r = await fetchAdminOrders(orderSearch);
         setOrders(r.items);
       }
       if (tab === "pricing") {
-        const r = await fetchAdminPricing(token);
+        const r = await fetchAdminPricing();
         setPricing(r.items);
       }
       if (tab === "leads") {
-        const [c, h] = await Promise.all([fetchAdminContactLeads(token), fetchAdminHireLeads(token)]);
+        const [c, h] = await Promise.all([fetchAdminContactLeads(), fetchAdminHireLeads()]);
         setContactLeads(c.items);
         setHireLeads(h.items);
       }
       if (tab === "submissions") {
-        const r = await fetchAdminSubmissions(token, {
+        const r = await fetchAdminSubmissions({
           q: submissionSearch,
           type: submissionType === "all" ? undefined : submissionType,
           limit: 200,
@@ -98,7 +92,7 @@ export function AdminDashboard({ initialTab }: { initialTab?: Tab }) {
     load()
       .catch((e: any) => setError(e?.message ?? "Failed to load"))
       .finally(() => setLoading(false));
-  }, [token, role, tab, orderSearch, submissionSearch, submissionType]);
+  }, [isAuthed, role, tab, orderSearch, submissionSearch, submissionType]);
 
   const filteredOrders = useMemo(() => {
     const q = orderSearch.trim().toLowerCase();
@@ -106,7 +100,7 @@ export function AdminDashboard({ initialTab }: { initialTab?: Tab }) {
     return orders.filter((o) => JSON.stringify(o).toLowerCase().includes(q));
   }, [orders, orderSearch]);
 
-  if (!token) {
+  if (!isAuthed) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -139,11 +133,11 @@ export function AdminDashboard({ initialTab }: { initialTab?: Tab }) {
   }
 
   async function savePricing() {
-    if (!token) return;
+    if (!isAuthed) return;
     setError(null);
     setLoading(true);
     try {
-      await upsertAdminPricing(token, {
+      await upsertAdminPricing({
         serviceKey: pricingDraft.serviceKey.trim(),
         serviceName: pricingDraft.serviceName.trim(),
         planKey: pricingDraft.planKey.trim(),
@@ -152,7 +146,7 @@ export function AdminDashboard({ initialTab }: { initialTab?: Tab }) {
         sortOrder: Number(pricingDraft.sortOrder),
         isActive: Boolean(pricingDraft.isActive),
       });
-      const r = await fetchAdminPricing(token);
+      const r = await fetchAdminPricing();
       setPricing(r.items);
       setPricingDraft({ serviceKey: "", serviceName: "", planKey: "", planName: "", priceInr: 0, sortOrder: 0, isActive: true });
     } catch (e: any) {
@@ -467,13 +461,13 @@ export function AdminDashboard({ initialTab }: { initialTab?: Tab }) {
                                 <button
                                   className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-rose-700 hover:bg-rose-100"
                                   onClick={async () => {
-                                    if (!token) return;
+                                    if (!isAuthed) return;
                                     if (!confirm("Delete this submission?")) return;
                                     setError(null);
                                     setLoading(true);
                                     try {
-                                      await deleteAdminSubmission(token, Number(s.id));
-                                      const r = await fetchAdminSubmissions(token, {
+                                      await deleteAdminSubmission(Number(s.id));
+                                      const r = await fetchAdminSubmissions({
                                         q: submissionSearch,
                                         type: submissionType === "all" ? undefined : submissionType,
                                         limit: 200,

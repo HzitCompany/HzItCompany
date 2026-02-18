@@ -2,12 +2,11 @@ import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 
 import { Seo } from "../components/Seo";
-import { clearSession, getSessionRole, getSessionToken } from "../auth/session";
+import { useAuth } from "../auth/AuthProvider";
 import { fetchPortalOrders } from "../services/platformService";
 
 export function PortalDashboard() {
-  const token = getSessionToken();
-  const role = getSessionRole();
+  const { isAuthed, role, logout } = useAuth();
 
   type PortalOrderItem = {
     id: number;
@@ -24,10 +23,10 @@ export function PortalDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) return;
+    if (!isAuthed) return;
     let mounted = true;
     setLoading(true);
-    fetchPortalOrders(token)
+    fetchPortalOrders()
       .then((r) => {
         if (!mounted) return;
         setItems(r.items);
@@ -44,7 +43,7 @@ export function PortalDashboard() {
     return () => {
       mounted = false;
     };
-  }, [token]);
+  }, [isAuthed]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -52,17 +51,10 @@ export function PortalDashboard() {
     return items.filter((x) => JSON.stringify(x).toLowerCase().includes(q));
   }, [items, query]);
 
-  function logout() {
-    clearSession();
-    location.href = "/portal/login";
-  }
-
   async function downloadInvoice(orderId: number) {
-    if (!token) return;
+    if (!isAuthed) return;
     const response = await fetch(`/api/invoice/${orderId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      credentials: "include",
     });
 
     if (!response.ok) {
@@ -76,7 +68,7 @@ export function PortalDashboard() {
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
-  if (!token) {
+  if (!isAuthed) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-16">

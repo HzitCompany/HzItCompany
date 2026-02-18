@@ -6,24 +6,24 @@ import { useAuth } from "../auth/AuthProvider";
 import { fetchAdminOtpLogs } from "../services/platformService";
 
 export function AdminOtp() {
-  const { token, role } = useAuth();
+  const { isAuthed, role } = useAuth();
   const [items, setItems] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!token || role !== "admin") {
+    if (!isAuthed || role !== "admin") {
       location.href = "/admin/login";
       return;
     }
 
     setLoading(true);
     setError(null);
-    fetchAdminOtpLogs(token, { limit: 200 })
+    fetchAdminOtpLogs({ limit: 200 })
       .then((r) => setItems(r.items ?? []))
       .catch((e) => setError(String(e?.message ?? e)))
       .finally(() => setLoading(false));
-  }, [token, role]);
+  }, [isAuthed, role]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">

@@ -45,25 +45,24 @@ export async function loginWithSupabase(accessToken: string) {
   );
 }
 
-export async function fetchPortalOrders(token: string) {
-  return getJson<{ ok: true; items: any[] }>("/api/portal/orders", { token });
+export async function fetchPortalOrders() {
+  return getJson<{ ok: true; items: any[] }>("/api/portal/orders");
 }
 
-export async function fetchAdminSummary(token: string) {
-  return getJson<{ ok: true; totals: { orders: number; paidOrders: number; revenueInr: number } }>("/api/admin/summary", { token });
+export async function fetchAdminSummary() {
+  return getJson<{ ok: true; totals: { orders: number; paidOrders: number; revenueInr: number } }>("/api/admin/summary");
 }
 
-export async function fetchAdminOrders(token: string, search?: string) {
+export async function fetchAdminOrders(search?: string) {
   const q = search ? `?search=${encodeURIComponent(search)}` : "";
-  return getJson<{ ok: true; items: any[] }>(`/api/admin/orders${q}`, { token });
+  return getJson<{ ok: true; items: any[] }>(`/api/admin/orders${q}`);
 }
 
-export async function fetchAdminPricing(token: string) {
-  return getJson<{ ok: true; items: any[] }>("/api/admin/pricing", { token });
+export async function fetchAdminPricing() {
+  return getJson<{ ok: true; items: any[] }>("/api/admin/pricing");
 }
 
 export async function upsertAdminPricing(
-  token: string,
   input: {
     serviceKey: string;
     serviceName: string;
@@ -74,19 +73,18 @@ export async function upsertAdminPricing(
     sortOrder?: number;
   }
 ) {
-  return postJson<typeof input, { ok: true; id?: number }>("/api/admin/pricing", input, { token });
+  return postJson<typeof input, { ok: true; id?: number }>("/api/admin/pricing", input);
 }
 
-export async function fetchAdminContactLeads(token: string) {
-  return getJson<{ ok: true; items: any[] }>("/api/admin/leads/contact", { token });
+export async function fetchAdminContactLeads() {
+  return getJson<{ ok: true; items: any[] }>("/api/admin/leads/contact");
 }
 
-export async function fetchAdminHireLeads(token: string) {
-  return getJson<{ ok: true; items: any[] }>("/api/admin/leads/hire", { token });
+export async function fetchAdminHireLeads() {
+  return getJson<{ ok: true; items: any[] }>("/api/admin/leads/hire");
 }
 
 export async function fetchAdminSubmissions(
-  token: string,
   opts?: { type?: "contact" | "hire" | "career"; q?: string; limit?: number }
 ) {
   const params = new URLSearchParams();
@@ -94,17 +92,16 @@ export async function fetchAdminSubmissions(
   if (opts?.q) params.set("q", opts.q);
   if (typeof opts?.limit === "number") params.set("limit", String(opts.limit));
   const q = params.toString();
-  return getJson<{ ok: true; items: any[] }>(`/api/admin/submissions${q ? `?${q}` : ""}`, { token });
+  return getJson<{ ok: true; items: any[] }>(`/api/admin/submissions${q ? `?${q}` : ""}`);
 }
 
-export async function deleteAdminSubmission(token: string, id: number) {
-  return deleteJson<{ ok: true }>(`/api/admin/submissions/${id}`, { token });
+export async function deleteAdminSubmission(id: number) {
+  return deleteJson<{ ok: true }>(`/api/admin/submissions/${id}`);
 }
 
 export type CareerApplicationStatus = "new" | "reviewing" | "shortlisted" | "rejected" | "hired";
 
 export async function fetchAdminCareers(
-  token: string,
   opts?: { q?: string; status?: CareerApplicationStatus; limit?: number }
 ) {
   const params = new URLSearchParams();
@@ -112,15 +109,14 @@ export async function fetchAdminCareers(
   if (opts?.status) params.set("status", opts.status);
   if (typeof opts?.limit === "number") params.set("limit", String(opts.limit));
   const q = params.toString();
-  return getJson<{ ok: true; items: any[] }>(`/api/admin/careers${q ? `?${q}` : ""}`, { token });
+  return getJson<{ ok: true; items: any[] }>(`/api/admin/careers${q ? `?${q}` : ""}`);
 }
 
-export async function updateAdminCareerStatus(token: string, id: number, status: CareerApplicationStatus) {
-  return patchJson<{ status: CareerApplicationStatus }, { ok: true }>(`/api/admin/careers/${id}`, { status }, { token });
+export async function updateAdminCareerStatus(id: number, status: CareerApplicationStatus) {
+  return patchJson<{ status: CareerApplicationStatus }, { ok: true }>(`/api/admin/careers/${id}`, { status });
 }
 
 export async function createAdminCareerDownloadUrl(
-  token: string,
   id: number,
   kind: "resume" | "cv",
   expiresInSeconds?: number
@@ -129,19 +125,19 @@ export async function createAdminCareerDownloadUrl(
   params.set("kind", kind);
   if (typeof expiresInSeconds === "number") params.set("expiresInSeconds", String(expiresInSeconds));
   const q = params.toString();
-  return getJson<{ ok: true; url: string; expiresInSeconds: number }>(`/api/admin/careers/${id}/download-url?${q}`, { token });
+  return getJson<{ ok: true; url: string; expiresInSeconds: number }>(`/api/admin/careers/${id}/download-url?${q}`);
 }
 
-export async function fetchAdminContent(token: string) {
-  return getJson<{ ok: true; items: Array<{ key: string; value: unknown; updated_at: string }> }>("/api/admin/content", { token });
+export async function fetchAdminContent() {
+  return getJson<{ ok: true; items: Array<{ key: string; value: unknown; updated_at: string }> }>("/api/admin/content");
 }
 
-export async function fetchAdminOtpLogs(token: string, opts?: { limit?: number }) {
+export async function fetchAdminOtpLogs(opts?: { limit?: number }) {
   const q = new URLSearchParams();
   if (opts?.limit) q.set("limit", String(opts.limit));
-  return getJson<{ ok: true; items: any[] }>(`/api/admin/otp${q.toString() ? `?${q}` : ""}`, { token });
+  return getJson<{ ok: true; items: any[] }>(`/api/admin/otp${q.toString() ? `?${q}` : ""}`);
 }
 
-export async function upsertAdminContent(token: string, input: { key: string; value: unknown }) {
-  return putJson<typeof input, { ok: true }>("/api/admin/content", input, { token });
+export async function upsertAdminContent(input: { key: string; value: unknown }) {
+  return putJson<typeof input, { ok: true }>("/api/admin/content", input);
 }

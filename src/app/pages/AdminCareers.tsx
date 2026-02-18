@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { motion } from "motion/react";
 
 import { Seo } from "../components/Seo";
-import { clearSession, getSessionRole, getSessionToken } from "../auth/session";
+import { useAuth } from "../auth/AuthProvider";
 import {
   createAdminCareerDownloadUrl,
   fetchAdminCareers,
@@ -21,8 +21,7 @@ const statuses: Array<{ label: string; value: CareerApplicationStatus | "all" }>
 ];
 
 export function AdminCareers() {
-  const token = getSessionToken();
-  const role = getSessionRole();
+  const { isAuthed, role, logout } = useAuth();
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -31,19 +30,14 @@ export function AdminCareers() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<CareerApplicationStatus | "all">("all");
 
-  function logout() {
-    clearSession();
-    location.href = "/admin/login";
-  }
-
   useEffect(() => {
-    if (!token) return;
+    if (!isAuthed) return;
     if (role !== "admin") return;
 
     setError(null);
     setLoading(true);
 
-    fetchAdminCareers(token, {
+    fetchAdminCareers({
       q: q.trim() || undefined,
       status: status === "all" ? undefined : status,
       limit: 200
@@ -51,15 +45,15 @@ export function AdminCareers() {
       .then((r) => setItems(r.items))
       .catch((e: any) => setError(e?.message ?? "Failed to load"))
       .finally(() => setLoading(false));
-  }, [token, role, q, status]);
+  }, [isAuthed, role, q, status]);
 
   const rows = useMemo(() => items ?? [], [items]);
 
   async function download(id: number, kind: "resume" | "cv") {
-    if (!token) return;
+    if (!isAuthed) return;
     setError(null);
     try {
-      const r = await createAdminCareerDownloadUrl(token, id, kind);
+      const r = await createAdminCareerDownloadUrl(id, kind);
       window.open(r.url, "_blank", "noopener,noreferrer");
     } catch (e: any) {
       setError(e?.message ?? "Failed to create download link");
@@ -67,12 +61,12 @@ export function AdminCareers() {
   }
 
   async function setRowStatus(id: number, next: CareerApplicationStatus) {
-    if (!token) return;
+    if (!isAuthed) return;
     setError(null);
     setLoading(true);
     try {
-      await updateAdminCareerStatus(token, id, next);
-      const r = await fetchAdminCareers(token, {
+      await updateAdminCareerStatus(id, next);
+      const r = await fetchAdminCareers({
         q: q.trim() || undefined,
         status: status === "all" ? undefined : status,
         limit: 200
@@ -85,7 +79,7 @@ export function AdminCareers() {
     }
   }
 
-  if (!token) {
+  if (!isAuthed) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
