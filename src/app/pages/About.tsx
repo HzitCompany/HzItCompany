@@ -4,12 +4,7 @@ import { Seo } from "../components/Seo";
 
 export function About() {
   const timeline = [
-    { year: "2011", title: "Company Founded", description: "Started with a vision to transform businesses through technology" },
-    { year: "2014", title: "First Major Client", description: "Secured partnership with Fortune 500 company" },
-    { year: "2017", title: "Team Expansion", description: "Grew to 25+ talented professionals" },
-    { year: "2020", title: "Global Reach", description: "Expanded services to international markets" },
-    { year: "2023", title: "Industry Recognition", description: "Awarded 'Best IT Services Company'" },
-    { year: "2026", title: "Innovation Hub", description: "Launched AI and ML solutions division" },
+    { year: "2026", title: "Company Founded", description: "Established with a vision to deliver reliable, affordable, and high-quality digital solutions." },
   ];
 
   const values = [
@@ -306,27 +301,17 @@ export function About() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {team.map((member, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="text-center group"
-              >
-                <div className="aspect-square rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 mb-4 shadow-lg group-hover:shadow-xl transition-shadow" />
-                <h3
-                  className="text-xl font-bold mb-1 text-gray-900 font-poppins"
-                >
-                  {member.name}
-                </h3>
-                <p className="text-blue-600 font-medium mb-2">{member.role}</p>
-                <p className="text-sm text-gray-500">{member.experience}</p>
-              </motion.div>
-            ))}
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mx-auto max-w-2xl"
+          >
+            <div className="rounded-3xl border border-gray-200 bg-gray-50 px-8 py-10 text-center shadow-sm">
+              <div className="text-2xl font-bold text-gray-900 font-poppins">Coming soon</div>
+              <p className="mt-2 text-gray-600">We’ll share our leadership team details shortly.</p>
+            </div>
+          </motion.div>
         </div>
       </section>
     </div>
