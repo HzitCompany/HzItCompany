@@ -130,24 +130,10 @@ export function HireUs() {
     },
   ];
 
-  const budgetRanges = [
-    "< ₹10,000",
-    "₹10,000 - ₹25,000",
-    "₹25,000 - ₹50,000",
-    "₹50,000 - ₹1,00,000",
-    "₹1,00,000+",
-  ];
-
   const inr = new Intl.NumberFormat("en-IN");
   const fmtInr = (amount: number) => `₹${inr.format(amount)}`;
 
-  const timelineOptions = [
-    "Less than 1 month",
-    "1-3 months",
-    "3-6 months",
-    "6-12 months",
-    "12+ months",
-  ];
+  const deliveryDaysOptions = [7, 14, 21, 30, 45, 60, 90];
 
   const {
     register,
@@ -167,8 +153,10 @@ export function HireUs() {
       services: [],
       projectName: "",
       projectDescription: "",
-      budget: "",
-      timeline: "",
+      serviceDetails: {},
+      deliveryDays: 14,
+      clarification: "",
+      personalMessage: "",
       referenceUrl: "",
       additionalNotes: "",
       companyWebsite: "",
@@ -177,6 +165,8 @@ export function HireUs() {
   });
 
   const selectedServices = watch("services");
+
+  const serviceLabelById = (id: string) => services.find((s) => s.id === id)?.label ?? id;
 
   const toggleService = (serviceId: string) => {
     const current = selectedServices ?? [];
@@ -189,8 +179,8 @@ export function HireUs() {
   const stepFields: Record<number, (keyof HireUsFormValues)[]> = {
     1: ["name", "email", "phone", "company"],
     2: ["services"],
-    3: ["projectName", "projectDescription", "budget", "timeline"],
-    4: ["referenceUrl", "additionalNotes"],
+    3: ["projectName", "projectDescription"],
+    4: ["deliveryDays", "clarification", "personalMessage", "referenceUrl", "additionalNotes"],
   };
 
   const nextStep = async () => {
@@ -206,7 +196,7 @@ export function HireUs() {
     const values = watch();
     if (step === 1) return Boolean(values.name && values.email && values.phone);
     if (step === 2) return (values.services?.length ?? 0) > 0;
-    if (step === 3) return Boolean(values.projectName && values.projectDescription && values.budget && values.timeline);
+    if (step === 3) return Boolean(values.projectName && values.projectDescription);
     return true;
   })();
 
@@ -236,8 +226,10 @@ export function HireUs() {
         services: values.services,
         projectName: values.projectName,
         projectDescription: values.projectDescription,
-        budget: values.budget,
-        timeline: values.timeline,
+        serviceDetails: values.serviceDetails ?? undefined,
+        deliveryDays: values.deliveryDays,
+        clarification: values.clarification || undefined,
+        personalMessage: values.personalMessage || undefined,
         referenceUrl: values.referenceUrl || undefined,
         additionalNotes: values.additionalNotes || undefined,
         honeypot: values.companyWebsite || undefined,
@@ -597,59 +589,28 @@ export function HireUs() {
                     ) : null}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label htmlFor="hire-budget" className="block text-sm font-medium text-gray-700 mb-2">
-                        Budget Range *
-                      </label>
-                      <select
-                        id="hire-budget"
-                        {...register("budget")}
-                        aria-describedby={errors.budget ? "hire-budget-error" : undefined}
-                        className={
-                          "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
-                          (errors.budget ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
-                        }
-                      >
-                        <option value="">Select budget</option>
-                        {budgetRanges.map((range) => (
-                          <option key={range} value={range}>
-                            {range}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.budget ? (
-                        <p id="hire-budget-error" className="mt-2 text-sm text-rose-700">
-                          {errors.budget.message}
-                        </p>
-                      ) : null}
-                    </div>
+                  <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+                    <div className="text-sm font-semibold text-gray-900">Selected services</div>
+                    <p className="mt-1 text-sm text-gray-600">Share a few details for each selected service.</p>
 
-                    <div>
-                      <label htmlFor="hire-timeline" className="block text-sm font-medium text-gray-700 mb-2">
-                        Timeline *
-                      </label>
-                      <select
-                        id="hire-timeline"
-                        {...register("timeline")}
-                        aria-describedby={errors.timeline ? "hire-timeline-error" : undefined}
-                        className={
-                          "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
-                          (errors.timeline ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
-                        }
-                      >
-                        <option value="">Select timeline</option>
-                        {timelineOptions.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.timeline ? (
-                        <p id="hire-timeline-error" className="mt-2 text-sm text-rose-700">
-                          {errors.timeline.message}
-                        </p>
-                      ) : null}
+                    <div className="mt-4 space-y-4">
+                      {(selectedServices ?? []).map((serviceId) => (
+                        <div key={serviceId}>
+                          <label
+                            htmlFor={`hire-service-details-${serviceId}`}
+                            className="block text-sm font-medium text-gray-700 mb-2"
+                          >
+                            {serviceLabelById(serviceId)} details (optional)
+                          </label>
+                          <textarea
+                            id={`hire-service-details-${serviceId}`}
+                            rows={4}
+                            {...register(`serviceDetails.${serviceId}` as any)}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition-all resize-none"
+                            placeholder="Example: number of pages, features, platform, deliverables, etc."
+                          />
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </motion.div>
@@ -667,6 +628,59 @@ export function HireUs() {
                   >
                     Additional Information
                   </h2>
+
+                  <div>
+                    <label htmlFor="hire-delivery-days" className="block text-sm font-medium text-gray-700 mb-2">
+                      Delivery timeline (days) *
+                    </label>
+                    <select
+                      id="hire-delivery-days"
+                      {...register("deliveryDays")}
+                      aria-describedby={errors.deliveryDays ? "hire-delivery-days-error" : undefined}
+                      className={
+                        "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
+                        (errors.deliveryDays ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
+                      }
+                    >
+                      {deliveryDaysOptions.map((d) => (
+                        <option key={d} value={d}>
+                          {d} days
+                        </option>
+                      ))}
+                      <option value={120}>120+ days</option>
+                    </select>
+                    {errors.deliveryDays ? (
+                      <p id="hire-delivery-days-error" className="mt-2 text-sm text-rose-700">
+                        {String(errors.deliveryDays.message ?? "Invalid value")}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <label htmlFor="hire-clarification" className="block text-sm font-medium text-gray-700 mb-2">
+                      Service clarifications (optional)
+                    </label>
+                    <textarea
+                      rows={5}
+                      id="hire-clarification"
+                      {...register("clarification")}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition-all resize-none"
+                      placeholder="Any specific requirements, constraints, or preferences…"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="hire-personal-message" className="block text-sm font-medium text-gray-700 mb-2">
+                      Personal message (optional)
+                    </label>
+                    <textarea
+                      rows={5}
+                      id="hire-personal-message"
+                      {...register("personalMessage")}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition-all resize-none"
+                      placeholder="Any message for our team about these services…"
+                    />
+                  </div>
 
                   <div>
                     <label htmlFor="hire-reference-url" className="block text-sm font-medium text-gray-700 mb-2">

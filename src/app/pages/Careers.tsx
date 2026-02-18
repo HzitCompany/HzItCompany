@@ -56,8 +56,6 @@ export function Careers() {
     register,
     handleSubmit,
     reset,
-    setValue,
-    trigger,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<CareerFormValues>({
@@ -198,15 +196,6 @@ export function Careers() {
     }
   };
 
-  const onPickRole = async (role: string) => {
-    setValue("role", role, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
-    await trigger("role");
-    // Smoothly bring the form into view for mobile users.
-    const el = document.getElementById("role");
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
-    (el as HTMLSelectElement | null)?.focus?.();
-  };
-
   return (
     <div className="min-h-screen">
       <Seo
@@ -243,29 +232,8 @@ export function Careers() {
       {/* Content */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <motion.div initial={{ opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
-              <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-6 shadow-lg border border-white/40">
-                <h2 className="text-2xl font-bold text-gray-900 font-poppins">Open roles</h2>
-                <ul className="mt-5 grid gap-3 text-gray-700">
-                  {OPEN_ROLES.map((role) => (
-                    <li key={role.title}>
-                      <button
-                        type="button"
-                        onClick={() => onPickRole(role.title)}
-                        className="w-full text-left rounded-xl bg-white border border-gray-200 px-4 py-3 hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
-                      >
-                        <div className="font-semibold text-gray-900">{role.title}</div>
-                        <div className="text-sm text-gray-600">{role.subtitle}</div>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-4 text-sm text-gray-600">If you don’t see your role, still apply with your preferred position.</p>
-              </div>
-            </motion.div>
-
-            <motion.div initial={{ opacity: 0, x: 24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
+          <div className="grid grid-cols-1 gap-8">
+            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
               <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-gray-200">
                 <h2 className="text-2xl font-bold text-gray-900 font-poppins">Application form</h2>
                 <p className="mt-2 text-gray-600">Fill this like a quick Google Form — we’ll reach out soon.</p>

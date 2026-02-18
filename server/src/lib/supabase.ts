@@ -6,6 +6,12 @@ import { HttpError } from "../middleware/errorHandler.js";
 let cachedAdmin: SupabaseClient | null = null;
 let cachedAuth: SupabaseClient | null = null;
 
+// Public fallback (matches frontend) to avoid production auth breakage
+// when hosting env vars aren't correctly injected.
+const fallbackSupabaseUrl = "https://tuykkeymrfzdgxwkdwph.supabase.co";
+const fallbackSupabaseAnonKey =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1eWtrZXltcmZ6ZGd4d2tkd3BoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjMyMjYsImV4cCI6MjA4NjgzOTIyNn0.zHO7kSaoRlcx0vHQvPQbofznosuo893HztZ3TRPHXQ4";
+
 export function getSupabaseAdmin(): SupabaseClient {
   if (cachedAdmin) return cachedAdmin;
 
@@ -27,15 +33,10 @@ export function getSupabaseAdmin(): SupabaseClient {
 export function getSupabaseAuth(): SupabaseClient {
   if (cachedAuth) return cachedAuth;
 
-  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
-    throw new HttpError(
-      503,
-      "Supabase Auth OTP is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY on the backend.",
-      true
-    );
-  }
+  const url = env.SUPABASE_URL ?? fallbackSupabaseUrl;
+  const anonKey = env.SUPABASE_ANON_KEY ?? fallbackSupabaseAnonKey;
 
-  cachedAuth = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+  cachedAuth = createClient(url, anonKey, {
     auth: { autoRefreshToken: false, persistSession: false }
   });
 

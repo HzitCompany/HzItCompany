@@ -100,7 +100,7 @@ export function Submissions() {
                       item.type === "contact"
                         ? data.email
                         : item.type === "hire"
-                          ? data.budget
+                          ? (data.deliveryDays ? `${data.deliveryDays} days` : undefined)
                           : data.email;
 
                     return (

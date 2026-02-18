@@ -17,8 +17,10 @@ export type HireUsPayload = {
   services: string[];
   projectName: string;
   projectDescription: string;
-  budget: string;
-  timeline: string;
+  serviceDetails?: Record<string, string>;
+  deliveryDays: number;
+  clarification?: string;
+  personalMessage?: string;
   referenceUrl?: string;
   additionalNotes?: string;
   honeypot?: string;
