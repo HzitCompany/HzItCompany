@@ -1,3 +1,5 @@
+import { supabase } from "../lib/supabase";
+
 export type ApiError = {
   message: string;
   status?: number;
@@ -20,15 +22,18 @@ async function parseJsonSafe(response: Response) {
   }
 }
 
+async function getAuthToken(): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
+
 async function requestJson<TResponse>(
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
   path: string,
   options?: {
     body?: unknown;
     signal?: AbortSignal;
-    token?: string;
-    /** If true, include credentials (cookies). Defaults to true (always include cookies). */
-    credentials?: RequestCredentials;
+    token?: string; // Optional manual override
   }
 ): Promise<TResponse> {
   const headers: Record<string, string> = {
@@ -39,9 +44,10 @@ async function requestJson<TResponse>(
     headers["Content-Type"] = "application/json";
   }
 
-  // Support explicit Bearer tokens for legacy callers (admin dashboard etc.)
-  if (options?.token) {
-    headers.Authorization = `Bearer ${options.token}`;
+  // Get Supabase token if not provided explicitly
+  const token = options?.token ?? await getAuthToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
   const response = await fetch(`${getBaseUrl()}${path.startsWith("/") ? path : `/${path}`}`,
@@ -50,8 +56,6 @@ async function requestJson<TResponse>(
       headers,
       body: options?.body ? JSON.stringify(options.body) : undefined,
       signal: options?.signal,
-      // Always include cookies so HTTP-only session cookie is sent on every request.
-      credentials: options?.credentials ?? "include",
     }
   );
 

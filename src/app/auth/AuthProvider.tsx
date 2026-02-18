@@ -1,23 +1,19 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 
-import { getJson, postJson } from "../services/apiClient";
+import { supabase } from "../lib/supabase";
+import { postJson } from "../services/apiClient";
 
 export type MeUser = {
   id: string;
-  full_name: string | null;
-  /** also available as email */
   email: string | null;
-  role: "user" | "admin" | "client";
-  provider: "otp" | "google" | "password" | null;
-  isVerified?: boolean;
+  full_name: string | null;
+  role: "user" | "admin";
 };
-
-type MeResponse = { ok: true; user: MeUser };
 
 type AuthContextValue = {
   user: MeUser | null;
-  role: MeUser["role"] | null;
+  role: "user" | "admin" | null;
   isLoading: boolean;
   isAuthed: boolean;
 
@@ -26,11 +22,7 @@ type AuthContextValue = {
   isAuthModalOpen: boolean;
   openAuthModal: (opts?: { afterAuthNavigateTo?: string }) => void;
   closeAuthModal: () => void;
-  /** Call after email OTP verified – triggers a refreshMe from cookie session. */
-  onOtpVerified: () => Promise<void>;
-  /** Call after Google login – triggers a refreshMe from cookie session. */
-  onGoogleLogin: () => Promise<void>;
-
+  
   logout: () => Promise<void>;
 };
 
@@ -38,114 +30,122 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
-  const location = useLocation();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _location = useLocation();
 
   const [user, setUser] = useState<MeUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const afterAuthNavigateToRef = useRef<string | null>(null);
+  const [redirectPath, setRedirectPath] = useState<string | null>(null);
 
-  const isAuthed = !!user;
-  const role = user?.role ?? null;
+  const fetchProfile = useCallback(async (sessionUser: any): Promise<{ role: "user" | "admin"; full_name: string | null }> => {
+    // 1. Fetch from profiles table (DB role only)
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, full_name")
+      .eq("id", sessionUser.id)
+      .single();
+    
+    // If profile doesn't exist, try sync
+    if (!profile) {
+       // Attempt to sync with backend to create profile if missing
+       try {
+         // This call requires backend to trust the token and create profile
+         await postJson("/api/auth/sync-profile", {});
+         return { role: "user", full_name: sessionUser.user_metadata?.full_name ?? null };
+       } catch {
+         return { role: "user", full_name: null };
+       }
+    }
 
-  const fetchMe = useCallback(async () => {
-    const me = await getJson<MeResponse>("/api/auth/me");
-    setUser(me.user);
+    return { 
+      role: (profile.role === "admin" ? "admin" : "user"), 
+      full_name: profile.full_name 
+    };
   }, []);
 
-  // On mount, try to restore session from HTTP-only cookie via /api/auth/me.
-  // Also handle Supabase magic-link hash: #access_token=...&type=magiclink
-  useEffect(() => {
-    setIsLoading(true);
-
-    const hash = window.location.hash;
-    const hashParams = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : "");
-    const magicToken = hashParams.get("access_token");
-    const tokenType = hashParams.get("type"); // "magiclink" | "recovery" etc.
-
-    if (magicToken && (tokenType === "magiclink" || tokenType === "signup" || tokenType === "recovery")) {
-      // Clear hash from URL immediately so it's not visible / replayed.
-      window.history.replaceState(null, "", window.location.pathname + window.location.search);
-
-      postJson("/api/auth/token-exchange", { access_token: magicToken })
-        .then(() => fetchMe())
-        .catch(() => setUser(null))
-        .finally(() => setIsLoading(false));
-    } else {
-      fetchMe()
-        .catch(() => setUser(null))
-        .finally(() => setIsLoading(false));
-    }
-  }, [fetchMe]);
-
   const refreshMe = useCallback(async () => {
-    await fetchMe();
-  }, [fetchMe]);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      setUser(null);
+      return;
+    }
 
-  const openAuthModal = useCallback(
-    (opts?: { afterAuthNavigateTo?: string }) => {
-      afterAuthNavigateToRef.current = opts?.afterAuthNavigateTo ?? null;
-      setIsAuthModalOpen(true);
-    },
-    []
-  );
+    const profile = await fetchProfile(session.user);
+    
+    setUser({
+      id: session.user.id,
+      email: session.user.email ?? null,
+      full_name: profile.full_name ?? session.user.user_metadata?.full_name ?? null,
+      role: profile.role
+    });
+  }, [fetchProfile]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    // Initial load
+    refreshMe().finally(() => {
+      if (mounted) setIsLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+         if (mounted) {
+            // Optimistic update
+            const profile = await fetchProfile(session.user);
+            setUser({
+              id: session.user.id,
+              email: session.user.email ?? null,
+              full_name: profile.full_name ?? session.user.user_metadata?.full_name ?? null,
+              role: profile.role
+            });
+
+            if (event === "SIGNED_IN" && redirectPath) {
+               navigate(redirectPath);
+               setRedirectPath(null);
+            }
+         }
+      } else {
+         if (mounted) setUser(null);
+      }
+      if (mounted) setIsLoading(false);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [fetchProfile, navigate, redirectPath, refreshMe]);
+
+  const openAuthModal = useCallback((opts?: { afterAuthNavigateTo?: string }) => {
+    if (opts?.afterAuthNavigateTo) {
+      setRedirectPath(opts.afterAuthNavigateTo);
+    }
+    setIsAuthModalOpen(true);
+  }, []);
 
   const closeAuthModal = useCallback(() => {
     setIsAuthModalOpen(false);
-    afterAuthNavigateToRef.current = null;
   }, []);
 
-  const onOtpVerified = useCallback(async () => {
-    await fetchMe();
-    setIsAuthModalOpen(false);
-
-    const target = afterAuthNavigateToRef.current;
-    afterAuthNavigateToRef.current = null;
-    if (target && target !== location.pathname) {
-      navigate(target);
-    }
-  }, [fetchMe, location.pathname, navigate]);
-
-  const onGoogleLogin = useCallback(async () => {
-    await fetchMe();
-    setIsAuthModalOpen(false);
-
-    const target = afterAuthNavigateToRef.current;
-    afterAuthNavigateToRef.current = null;
-    if (target && target !== location.pathname) {
-      navigate(target);
-    }
-  }, [fetchMe, location.pathname, navigate]);
-
   const logout = useCallback(async () => {
-    try {
-      await postJson("/api/auth/logout", {});
-    } catch {
-      // best-effort
-    }
+    await supabase.auth.signOut();
     setUser(null);
-    setIsAuthModalOpen(false);
-    afterAuthNavigateToRef.current = null;
     navigate("/");
   }, [navigate]);
 
-  const value = useMemo<AuthContextValue>(
-    () => ({
-      user,
-      role,
-      isLoading,
-      isAuthed,
-      refreshMe,
-      isAuthModalOpen,
-      openAuthModal,
-      closeAuthModal,
-      onOtpVerified,
-      onGoogleLogin,
-      logout,
-    }),
-    [user, role, isLoading, isAuthed, refreshMe, isAuthModalOpen, openAuthModal, closeAuthModal, onOtpVerified, onGoogleLogin, logout]
-  );
+  const value = useMemo(() => ({
+    user,
+    role: user?.role ?? null,
+    isLoading,
+    isAuthed: !!user,
+    refreshMe,
+    isAuthModalOpen,
+    openAuthModal,
+    closeAuthModal,
+    logout
+  }), [user, isLoading, refreshMe, isAuthModalOpen, openAuthModal, closeAuthModal, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -155,4 +155,3 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
-

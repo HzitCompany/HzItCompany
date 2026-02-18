@@ -12,18 +12,18 @@ function formatDate(d: string) {
 }
 
 export function Submissions() {
-  const { token } = useAuth();
+  const { isAuthed } = useAuth();
   const [items, setItems] = useState<SubmissionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) return;
+    if (!isAuthed) return;
     let mounted = true;
     setLoading(true);
     setError(null);
 
-    fetchMySubmissions(token)
+    fetchMySubmissions()
       .then((r) => {
         if (!mounted) return;
         setItems(r.items ?? []);
@@ -40,7 +40,7 @@ export function Submissions() {
     return () => {
       mounted = false;
     };
-  }, [token]);
+  }, [isAuthed]);
 
   return (
     <div className="min-h-screen">

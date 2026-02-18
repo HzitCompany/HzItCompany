@@ -1,195 +1,184 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Seo } from "../components/Seo";
 import { useAuth } from "../auth/AuthProvider";
+import { supabase } from "../lib/supabase";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+
+const profileSchema = z.object({
+  full_name: z.string().min(2, "Name must be at least 2 characters"),
+  phone: z.string().optional(),
+});
+
+type ProfileData = z.infer<typeof profileSchema>;
 
 export function Profile() {
-  const { user, logout, updateProfile } = useAuth();
-  const [isEditing, setIsEditing] = useState(false);
+  const { user, logout, refreshMe } = useAuth();
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState<{ kind: "success" | "error"; message: string } | null>(null);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  const initial = useMemo(
-    () => ({
-      name: user?.name ?? "",
-      email: user?.email ?? ""
-    }),
-    [user?.email, user?.name]
-  );
-
-  const [draftName, setDraftName] = useState(initial.name);
-  const [draftEmail, setDraftEmail] = useState(initial.email);
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<ProfileData>({
+    resolver: zodResolver(profileSchema),
+  });
 
   useEffect(() => {
-    if (isEditing) return;
-    setDraftName(initial.name);
-    setDraftEmail(initial.email);
-  }, [initial.email, initial.name, isEditing]);
+    async function loadProfile() {
+      if (!user) return;
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("full_name, phone, avatar_url")
+          .eq("id", user.id)
+          .single();
 
-  async function onSave() {
-    setNotice(null);
+        if (error) throw error;
+
+        if (data) {
+          setValue("full_name", data.full_name || "");
+          setValue("phone", data.phone || "");
+          setAvatarUrl(data.avatar_url);
+        }
+      } catch (err: any) {
+        console.error("Error loading profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProfile();
+  }, [user, setValue]);
+
+  const onSubmit = async (data: ProfileData) => {
+    if (!user) return;
     setSaving(true);
+    setMessage(null);
+
     try {
-      await updateProfile({
-        name: draftName.trim() || undefined,
-        email: draftEmail.trim() || undefined
-      });
-      setIsEditing(false);
-      setNotice({ kind: "success", message: "Profile updated." });
-    } catch (e: any) {
-      setNotice({ kind: "error", message: e?.message ?? "Failed to update profile" });
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: data.full_name,
+          phone: data.phone,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id);
+
+      if (error) throw error;
+      
+      await refreshMe(); // Update global auth state
+      setMessage({ type: "success", text: "Profile updated successfully!" });
+    } catch (err: any) {
+      setMessage({ type: "error", text: err.message || "Failed to update profile" });
     } finally {
       setSaving(false);
     }
-  }
+  };
+
+  const activeAvatar = avatarUrl || "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
 
   return (
-    <div className="min-h-screen">
-      <Seo title="My Profile" description="Your profile details." path="/profile" />
+    <div className="min-h-screen bg-gray-50 pb-20">
+      <Seo title="My Profile" description="Manage your account" path="/profile" />
 
-      {/* Hero */}
-      <section className="relative pt-32 pb-16 bg-gradient-to-br from-blue-900 via-blue-800 to-gray-900 text-white overflow-hidden">
-        <div className="absolute inset-0">
-          <motion.div
-            animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
-            transition={{ duration: 20, repeat: Infinity }}
-            className="absolute top-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"
-          />
-          <motion.div
-            animate={{ scale: [1.2, 1, 1.2], rotate: [90, 0, 90] }}
-            transition={{ duration: 16, repeat: Infinity }}
-            className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl"
-          />
-        </div>
-
-        <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="text-center">
-            <h1 className="text-5xl md:text-6xl font-bold mb-4 font-poppins">My Profile</h1>
-            <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto">Your account details and verified contact info.</p>
+      {/* Header */}
+      <section className="relative pt-32 pb-16 bg-blue-900 text-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-6"
+          >
+            <div className="relative">
+                <img 
+                    src={activeAvatar} 
+                    alt="Profile" 
+                    className="h-24 w-24 rounded-full border-4 border-white/20 bg-white"
+                />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold font-poppins">{user?.full_name || "User"}</h1>
+              <p className="text-blue-200">{user?.email}</p>
+              <div className="mt-2 text-xs font-mono bg-blue-800/50 inline-block px-2 py-1 rounded">
+                Role: {user?.role}
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Content */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm text-gray-600">Signed in as {user?.phone ?? "—"}</div>
-              <button
-                onClick={logout}
-                className="min-h-11 rounded-xl border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50"
-              >
-                Logout
-              </button>
-            </div>
-
-            {notice ? (
-              <div
-                className={
-                  "mt-6 rounded-xl px-4 py-3 text-sm border " +
-                  (notice.kind === "success"
-                    ? "bg-emerald-50 border-emerald-200 text-emerald-900"
-                    : "bg-rose-50 border-rose-200 text-rose-900")
-                }
-                role="status"
-                aria-live="polite"
-              >
-                {notice.message}
-              </div>
-            ) : null}
-
-            <div className="mt-6 bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xl">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 font-poppins">Profile details</h2>
-                  <p className="mt-1 text-gray-600 text-sm">You can edit your name and email. Phone is tied to OTP verification.</p>
+      {/* Main Form */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 sm:p-8">
+          
+          {loading ? (
+            <div className="text-center py-10 text-gray-500">Loading profile...</div>
+          ) : (
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-lg">
+              {message && (
+                <div className={`p-4 rounded-md ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                  {message.text}
                 </div>
+              )}
 
-                {isEditing ? (
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      disabled={saving}
-                      onClick={() => {
-                        setNotice(null);
-                        setDraftName(initial.name);
-                        setDraftEmail(initial.email);
-                        setIsEditing(false);
-                      }}
-                      className="min-h-11 rounded-xl border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      disabled={saving}
-                      onClick={onSave}
-                      className="min-h-11 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-white font-semibold shadow-lg hover:shadow-xl disabled:opacity-60"
-                    >
-                      {saving ? "Saving…" : "Save"}
-                    </button>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                  <div className="mt-1">
+                    <Input
+                      {...register("full_name")}
+                      className={errors.full_name ? "border-red-300" : ""}
+                    />
+                    {errors.full_name && <p className="mt-1 text-sm text-red-600">{errors.full_name.message}</p>}
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNotice(null);
-                      setIsEditing(true);
-                    }}
-                    className="min-h-11 rounded-xl border border-gray-300 bg-white px-4 py-2 text-gray-900 hover:bg-gray-50"
-                  >
-                    Edit
-                  </button>
-                )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Phone</label>
+                  <div className="mt-1">
+                    <Input
+                      {...register("phone")}
+                      placeholder="+1 (555) 000-0000"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                   <label className="block text-sm font-medium text-gray-700">Email (Read Only)</label>
+                   <div className="mt-1">
+                     <Input disabled value={user?.email || ""} className="bg-gray-50 text-gray-500" />
+                   </div>
+                </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <div className="text-sm font-semibold text-gray-700">Name</div>
-                  {isEditing ? (
-                    <input
-                      value={draftName}
-                      onChange={(e) => setDraftName(e.target.value)}
-                      className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition-all focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
-                      placeholder="Your name"
-                      autoComplete="name"
-                    />
-                  ) : (
-                    <div className="mt-1 text-gray-900">{user?.name ?? "—"}</div>
-                  )}
-                </div>
-
-                <div>
-                  <div className="text-sm font-semibold text-gray-700">Phone</div>
-                  <div className="mt-1 text-gray-900">{user?.phone ?? "—"}</div>
-                </div>
-
-                <div>
-                  <div className="text-sm font-semibold text-gray-700">Email</div>
-                  {isEditing ? (
-                    <input
-                      value={draftEmail}
-                      onChange={(e) => setDraftEmail(e.target.value)}
-                      className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition-all focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
-                      placeholder="you@example.com"
-                      autoComplete="email"
-                      inputMode="email"
-                    />
-                  ) : (
-                    <div className="mt-1 text-gray-900">{user?.email ?? "—"}</div>
-                  )}
-                </div>
-
-                <div>
-                  <div className="text-sm font-semibold text-gray-700">Verified</div>
-                  <div className="mt-1 text-gray-900">{user?.isVerified ? "Yes" : "No"}</div>
-                </div>
+              <div className="flex items-center gap-4 pt-4">
+                <Button type="submit" disabled={saving}>
+                  {saving ? "Saving Changes..." : "Save Changes"}
+                </Button>
+                
+                <button
+                  type="button"
+                  onClick={() => logout()}
+                  className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                >
+                  Sign Out
+                </button>
               </div>
-            </div>
-          </motion.div>
+            </form>
+          )}
         </div>
-      </section>
+      </div>
     </div>
   );
 }

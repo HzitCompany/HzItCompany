@@ -238,7 +238,7 @@ export function Navbar() {
                       aria-label="Profile"
                     >
                       <span className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-white inline-flex items-center justify-center font-bold">
-                        {(user?.name?.trim()?.[0] ?? user?.email?.trim()?.[0] ?? "U").toUpperCase()}
+                        {(user?.full_name?.trim()?.[0] ?? user?.email?.trim()?.[0] ?? "U").toUpperCase()}
                       </span>
                     </button>
 
@@ -252,8 +252,8 @@ export function Navbar() {
                           className="absolute right-0 mt-2 w-56 rounded-2xl border border-gray-200 bg-white shadow-xl overflow-hidden"
                         >
                           <div className="px-4 py-3 border-b border-gray-100">
-                            <div className="text-sm font-semibold text-gray-900">{user?.name ?? "My Account"}</div>
-                            <div className="text-xs text-gray-600 truncate">{user?.phone ?? user?.email ?? ""}</div>
+                            <div className="text-sm font-semibold text-gray-900">{user?.full_name ?? "My Account"}</div>
+                            <div className="text-xs text-gray-600 truncate">{user?.email ?? ""}</div>
                           </div>
 
                           <button

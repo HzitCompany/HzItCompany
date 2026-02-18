@@ -27,7 +27,7 @@ export function PortalDashboard() {
     let mounted = true;
     setLoading(true);
     fetchPortalOrders()
-      .then((r) => {
+      .then((r: any) => {
         if (!mounted) return;
         setItems(r.items);
       })

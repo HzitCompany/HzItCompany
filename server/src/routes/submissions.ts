@@ -21,7 +21,6 @@ const createSchema = z
 submissionsRouter.post("/submissions", requireAuth, async (req: AuthedRequest, res, next) => {
   try {
     if (!req.user) throw new HttpError(401, "Unauthorized", true);
-    if (req.user.provider !== "otp") throw new HttpError(403, "OTP login required", true);
 
     const parsed = createSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -33,8 +32,7 @@ submissionsRouter.post("/submissions", requireAuth, async (req: AuthedRequest, r
       return res.json({ ok: true, ignored: true });
     }
 
-    const userId = Number(req.user.sub);
-    if (!Number.isFinite(userId)) throw new HttpError(401, "Unauthorized", true);
+    const userId = req.user.sub;
 
     // Rate limit: 5 submissions per hour per user.
     const recent = await query<{ count: string }>(
@@ -88,10 +86,8 @@ submissionsRouter.post("/submissions", requireAuth, async (req: AuthedRequest, r
 submissionsRouter.get("/submissions", requireAuth, async (req: AuthedRequest, res, next) => {
   try {
     if (!req.user) throw new HttpError(401, "Unauthorized", true);
-    if (req.user.provider !== "otp") throw new HttpError(403, "OTP login required", true);
 
-    const userId = Number(req.user.sub);
-    if (!Number.isFinite(userId)) throw new HttpError(401, "Unauthorized", true);
+    const userId = req.user.sub;
 
     const rows = await query<{ id: number; created_at: string; type: string; data: unknown }>(
       "select id, created_at, type, data from submissions where user_id = $1 order by created_at desc limit 200",

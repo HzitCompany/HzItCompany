@@ -36,15 +36,14 @@ export type CareerPayload = {
   honeypot?: string;
 };
 
-export async function submitContactAuthed(token: string, payload: ContactPayload) {
+export async function submitContactAuthed(payload: ContactPayload) {
   return postJson<{ type: "contact"; data: ContactPayload; honeypot?: string }, { ok: true; id?: number }>(
     "/api/submissions",
     {
       type: "contact",
       data: payload,
       honeypot: payload.honeypot,
-    },
-    { token }
+    }
   );
 }
 

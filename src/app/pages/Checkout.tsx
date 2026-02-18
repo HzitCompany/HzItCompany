@@ -47,12 +47,12 @@ export function Checkout() {
     let mounted = true;
     setLoadingPricing(true);
     fetchPricing()
-      .then((r) => {
+      .then((r: any) => {
         if (!mounted) return;
         setPricing(r.items);
         if (!pricingId && r.items[0]) setPricingId(r.items[0].id);
       })
-      .catch((e) => {
+      .catch((e: any) => {
         if (!mounted) return;
         setError(e?.message ?? "Failed to load pricing");
       })

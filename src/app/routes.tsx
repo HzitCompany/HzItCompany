@@ -100,20 +100,6 @@ export const router = createBrowserRouter([
         },
       },
       {
-        path: "admin/contact",
-        lazy: async () => {
-          const { AdminDashboard } = await import("./pages/AdminDashboard");
-          return { Component: () => <RequireAdmin><AdminDashboard initialTab="leads" /></RequireAdmin> };
-        },
-      },
-      {
-        path: "admin/hire",
-        lazy: async () => {
-          const { AdminDashboard } = await import("./pages/AdminDashboard");
-          return { Component: () => <RequireAdmin><AdminDashboard initialTab="leads" /></RequireAdmin> };
-        },
-      },
-      {
         path: "admin/orders",
         lazy: async () => {
           const { AdminDashboard } = await import("./pages/AdminDashboard");
@@ -131,7 +117,7 @@ export const router = createBrowserRouter([
         path: "admin/leads",
         lazy: async () => {
           const { AdminDashboard } = await import("./pages/AdminDashboard");
-          return { Component: () => <RequireAdmin><AdminDashboard initialTab="leads" /></RequireAdmin> };
+          return { Component: () => <RequireAdmin><AdminDashboard initialTab="submissions" /></RequireAdmin> };
         },
       },
       {
@@ -153,13 +139,6 @@ export const router = createBrowserRouter([
         lazy: async () => {
           const { AdminContent } = await import("./pages/AdminContent");
           return { Component: () => <RequireAdmin><AdminContent /></RequireAdmin> };
-        },
-      },
-      {
-        path: "admin/otp",
-        lazy: async () => {
-          const { AdminOtp } = await import("./pages/AdminOtp");
-          return { Component: () => <RequireAdmin><AdminOtp /></RequireAdmin> };
         },
       },
     ],

@@ -26,33 +26,22 @@ adminRouter.get("/admin/analytics", requireAuth, requireAdmin, async (_req: Auth
       resumeUploads,
       contactSubmissions,
       hireSubmissions,
-      otpTotal,
-      otpSuccessful
     ] = await Promise.all([
-      safeCount("select count(*) as n from users"),
-      safeCount("select count(*) as n from sessions where revoked_at is null and expires_at > now()"),
-      safeCount("select count(*) as n from career_applications where resume_path is not null or cv_path is not null"),
+      safeCount("select count(*) as n from profiles"), // Step 7: Use profiles count
+      safeCount("select count(*) as n from auth.sessions"), // if accessible, or just 0 for now as Supabase manages sessions
+      safeCount("select count(*) as n from career_applications where resume_path is not null"),
       safeCount("select count(*) as n from submissions where type = 'contact'"),
       safeCount("select count(*) as n from submissions where type = 'hire'"),
-      // OTP codes: total issued
-      safeCount("select count(*) as n from otp_codes"),
-      // OTP codes: successfully consumed
-      safeCount("select count(*) as n from otp_codes where consumed_at is not null")
     ]);
-
-    const otpSuccessRate = otpTotal > 0 ? Math.round((otpSuccessful / otpTotal) * 100) : null;
 
     return res.json({
       ok: true,
       analytics: {
         totalUsers,
-        activeSessions: totalSessions,
+        activeSessions: 0, // Supabase handles sessions
         resumeUploads,
         contactSubmissions,
         hireSubmissions,
-        otpCodesIssued: otpTotal,
-        otpCodesVerified: otpSuccessful,
-        otpSuccessRatePercent: otpSuccessRate
       }
     });
   } catch (err) {
@@ -391,4 +380,80 @@ adminRouter.get("/admin/careers/:id/download-url", requireAuth, requireAdmin, as
   } catch (err) {
     return next(err);
   }
+});
+
+// ── User Management ──────────────────────────────────────────────────────────
+
+// GET /admin/users
+adminRouter.get("/admin/users", requireAuth, requireAdmin, async (req: AuthedRequest, res, next) => {
+  try {
+    const supabase = getSupabaseAdmin();
+    // Fetch profiles with pagination
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+
+    const { data: profiles, error, count } = await supabase
+      .from("profiles")
+      .select("*", { count: "exact" })
+      .range(offset, offset + limit - 1)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    return res.json({ ok: true, items: profiles, total: count });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// PATCH /admin/users/:id/role
+adminRouter.patch("/admin/users/:id/role", requireAuth, requireAdmin, async (req: AuthedRequest, res, next) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!["admin", "user"].includes(role)) {
+       return res.status(400).json({ ok: false, error: "Invalid role" });
+    }
+
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase
+      .from("profiles")
+      .update({ role })
+      .eq("id", id);
+
+    if (error) throw error;
+
+    return res.json({ ok: true });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// GET /admin/stats (Alias to analytics)
+adminRouter.get("/admin/stats", requireAuth, requireAdmin, async (req, res, next) => {
+    // Reuse the logic from /admin/analytics or redirect internally
+    // reusing the handler logic for simplicity:
+    try {
+        const supabase = getSupabaseAdmin();
+        const { count: totalUsers } = await supabase.from("profiles").select("*", { count: "exact", head: true });
+        
+        // Count other stats if needed for the dashboard cards
+        const contactSubmissions = (await query<{n:string}>("select count(*) as n from submissions where type = 'contact'"))[0]?.n || 0;
+        const hireSubmissions = (await query<{n:string}>("select count(*) as n from submissions where type = 'hire'"))[0]?.n || 0;
+        const careerApplications = (await query<{n:string}>("select count(*) as n from career_applications"))[0]?.n || 0;
+
+        return res.json({
+            ok: true,
+            stats: {
+                totalUsers,
+                contactSubmissions: Number(contactSubmissions),
+                hireSubmissions: Number(hireSubmissions),
+                careerApplications: Number(careerApplications)
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
 });

@@ -30,27 +30,24 @@ export async function verifyPayment(input: {
   return postJson<typeof input, { ok: true; invoiceNumber?: string; alreadyPaid?: boolean }>("/api/payments/verify", input);
 }
 
-export async function registerClient(input: { name: string; email: string; password: string }) {
-  return postJson<typeof input, { ok: true; token: string; role: "client" }>("/api/auth/register", input);
-}
-
-export async function login(input: { email: string; password: string }) {
-  return postJson<typeof input, { ok: true; token: string; role: "client" | "admin" }>("/api/auth/login", input);
-}
-
-export async function loginWithSupabase(accessToken: string) {
-  return postJson<{ accessToken: string }, { ok: true; token: string; role: "client" | "admin" }>(
-    "/api/auth/supabase",
-    { accessToken }
-  );
-}
-
 export async function fetchPortalOrders() {
   return getJson<{ ok: true; items: any[] }>("/api/portal/orders");
 }
 
 export async function fetchAdminSummary() {
   return getJson<{ ok: true; totals: { orders: number; paidOrders: number; revenueInr: number } }>("/api/admin/summary");
+}
+
+export async function fetchAdminPortalStats() {
+  return getJson<{ ok: true; stats: { totalUsers: number; contactSubmissions: number; hireSubmissions: number; careerApplications: number } }>("/api/admin/stats");
+}
+
+export async function fetchAdminUsers(page = 1, limit = 20) {
+  return getJson<{ ok: true; items: any[]; total: number }>(`/api/admin/users?page=${page}&limit=${limit}`);
+}
+
+export async function updateUserRole(id: string, role: "admin" | "user") {
+  return patchJson<{ role: string }, { ok: true }>(`/api/admin/users/${id}/role`, { role });
 }
 
 export async function fetchAdminOrders(search?: string) {
@@ -130,12 +127,6 @@ export async function createAdminCareerDownloadUrl(
 
 export async function fetchAdminContent() {
   return getJson<{ ok: true; items: Array<{ key: string; value: unknown; updated_at: string }> }>("/api/admin/content");
-}
-
-export async function fetchAdminOtpLogs(opts?: { limit?: number }) {
-  const q = new URLSearchParams();
-  if (opts?.limit) q.set("limit", String(opts.limit));
-  return getJson<{ ok: true; items: any[] }>(`/api/admin/otp${q.toString() ? `?${q}` : ""}`);
 }
 
 export async function upsertAdminContent(input: { key: string; value: unknown }) {

@@ -1,335 +1,163 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { motion } from "motion/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-
-import { Seo } from "../components/Seo";
-import { requestEmailOtp, verifyEmailOtp } from "../services/otpService";
-import { useAuth } from "../auth/AuthProvider";
+import { supabase } from "../lib/supabase";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
+import { Seo } from "../components/Seo";
 
-const requestSchema = z
-  .object({
-    email: z.string().email("Enter a valid email").max(254),
-  })
-  .strict();
+const authSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
 
-type RequestValues = z.infer<typeof requestSchema>;
-
-const verifySchema = z
-  .object({
-    token: z.string().regex(/^\d{8}$/, "Enter the 8-digit OTP"),
-  })
-  .strict();
-
-type VerifyValues = z.infer<typeof verifySchema>;
-
-type Step = "request" | "verify";
+type AuthFormData = z.infer<typeof authSchema>;
 
 export function Auth() {
   const navigate = useNavigate();
-  const { onOtpVerified, onGoogleLogin } = useAuth();
-
-  const [step, setStep] = useState<Step>("request");
-  const [emailForVerify, setEmailForVerify] = useState<string>("");
-
-  const [status, setStatus] = useState<{ kind: "idle" | "success" | "error"; message?: string }>({ kind: "idle" });
-  const [resendAvailableAt, setResendAvailableAt] = useState<number>(0);
-  const [nowMs, setNowMs] = useState<number>(() => Date.now());
-
-  useEffect(() => {
-    if (step !== "verify") return;
-    const t = window.setInterval(() => setNowMs(Date.now()), 250);
-    return () => window.clearInterval(t);
-  }, [step]);
+  const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const {
-    register: registerRequest,
-    handleSubmit: handleSubmitRequest,
-    getValues,
-    formState: { errors: requestErrors, isSubmitting: requestSubmitting },
-  } = useForm<RequestValues>({
-    resolver: zodResolver(requestSchema),
-    defaultValues: { email: "" },
-    mode: "onTouched",
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<AuthFormData>({
+    resolver: zodResolver(authSchema),
   });
 
-  const {
-    register: registerVerify,
-    handleSubmit: handleSubmitVerify,
-    formState: { errors: verifyErrors, isSubmitting: verifySubmitting },
-  } = useForm<VerifyValues>({
-    resolver: zodResolver(verifySchema),
-    defaultValues: { token: "" },
-    mode: "onTouched",
-  });
-
-  const loading = requestSubmitting || verifySubmitting;
-
-  const header = useMemo(() => (step === "request" ? "Sign in with Email OTP" : "Verify OTP"), [step]);
-
-  async function onRequest(values: RequestValues) {
-    setStatus({ kind: "idle" });
-    const email = values.email.trim();
+  const onSubmit = async (data: AuthFormData) => {
+    setLoading(true);
+    setError(null);
 
     try {
-      await requestEmailOtp({ email });
-      setEmailForVerify(email);
-      setStep("verify");
-      setResendAvailableAt(Date.now() + 30_000);
-      setStatus({ kind: "success", message: "OTP sent! Check your inbox (and spam)." });
-    } catch (e: any) {
-      const statusCode = typeof e?.status === "number" ? e.status : undefined;
-      const msg =
-        statusCode === 429
-          ? "Too many OTP requests. Please wait and try again."
-          : typeof e?.message === "string"
-            ? e.message
-            : "Failed to send OTP";
-      setStatus({ kind: "error", message: msg });
+      if (isLogin) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: data.password,
+        });
+        if (signInError) throw signInError;
+        navigate("/portal/dashboard"); // Redirect to portal after login
+      } else {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: data.email,
+          password: data.password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/portal/dashboard`,
+          },
+        });
+        if (signUpError) throw signUpError;
+        if (!signUpError) {
+             setError("Check your email for the confirmation link.");
+             setLoading(false);
+             return;
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || "An error occurred during authentication");
+    } finally {
+      setLoading(false);
     }
-  }
-
-  async function onResend() {
-    const email = emailForVerify || getValues("email");
-    if (!email || Date.now() < resendAvailableAt) return;
-    setStatus({ kind: "idle" });
-
-    try {
-      await requestEmailOtp({ email });
-      setResendAvailableAt(Date.now() + 30_000);
-      setStatus({ kind: "success", message: "OTP resent. Please check your email." });
-    } catch (e: any) {
-      const statusCode = typeof e?.status === "number" ? e.status : undefined;
-      const msg =
-        statusCode === 429
-          ? "Too many OTP requests. Please wait and try again."
-          : typeof e?.message === "string"
-            ? e.message
-            : "Failed to resend OTP";
-      setStatus({ kind: "error", message: msg });
-    }
-  }
-
-  async function onVerify(values: VerifyValues) {
-    setStatus({ kind: "idle" });
-
-    try {
-      // Cookie is set by backend; we just trigger a refreshMe.
-      await verifyEmailOtp({ email: emailForVerify, token: values.token.trim() });
-      await onOtpVerified();
-      navigate("/portal");
-    } catch (e: any) {
-      const statusCode = typeof e?.status === "number" ? e.status : undefined;
-      const msg =
-        statusCode === 429
-          ? "Too many attempts. Please wait and try again."
-          : typeof e?.message === "string"
-            ? e.message
-            : "OTP verification failed";
-      setStatus({ kind: "error", message: msg });
-    }
-  }
-
-  const resendSecondsLeft = useMemo(() => {
-    const ms = resendAvailableAt - nowMs;
-    if (ms <= 0) return 0;
-    return Math.ceil(ms / 1000);
-  }, [resendAvailableAt, nowMs]);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Seo title="Sign In" description="Sign in to HZ IT Company with email OTP." path="/auth" />
-
-      <section className="relative pt-32 pb-16 bg-gradient-to-br from-blue-900 via-blue-800 to-gray-900 text-white overflow-hidden">
-        <div className="absolute inset-0">
-          <motion.div
-            animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
-            transition={{ duration: 20, repeat: Infinity }}
-            className="absolute top-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"
-          />
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <Seo
+        title={isLogin ? "Login - HZ Company" : "Sign Up - HZ Company"}
+        description="Access your dashboard"
+      />
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center">
+          <h2 className="mt-6 text-3xl font-bold tracking-tight text-gray-900">
+            {isLogin ? "Sign in to your account" : "Create a new account"}
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            {isLogin ? "Or " : "Already have an account? "}
+            <button
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setError(null);
+              }}
+              className="font-medium text-blue-600 hover:text-blue-500 hover:underline"
+            >
+              {isLogin ? "create a new account" : "sign in here"}
+            </button>
+          </p>
         </div>
 
-        <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="text-5xl md:text-6xl font-bold mb-4 font-poppins">{header}</h1>
-            <p className="text-lg text-gray-300">No password needed â€” sign in with a one-time code.</p>
-          </motion.div>
-        </div>
-      </section>
-
-      <section className="pb-20 bg-gray-50">
-        <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8 -mt-10">
-          <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-xl border border-gray-200">
-            <div className="flex items-center justify-between gap-3 mb-2">
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className={
-                    "rounded-lg border px-3 py-2 text-sm " +
-                    (step === "request" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-300")
-                  }
-                  onClick={() => {
-                    setStep("request");
-                    setStatus({ kind: "idle" });
-                  }}
-                >
-                  Request OTP
-                </button>
-                <button
-                  type="button"
-                  disabled={!emailForVerify}
-                  className={
-                    "rounded-lg border px-3 py-2 text-sm " +
-                    (step === "verify" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-300") +
-                    (!emailForVerify ? " opacity-60 cursor-not-allowed" : "")
-                  }
-                  onClick={() => {
-                    if (!emailForVerify) return;
-                    setStep("verify");
-                    setStatus({ kind: "idle" });
-                  }}
-                >
-                  Verify
-                </button>
+        <div className="mt-8 space-y-6 bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+            {error && (
+              <div className={`p-4 rounded-md text-sm ${error.includes("Check your email") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                {error}
               </div>
-
-              <Link to="/" className="text-sm text-blue-700 hover:underline">
-                Back to website
-              </Link>
-            </div>
-
-            {status.kind !== "idle" ? (
-              <div
-                className={
-                  "mt-4 rounded-xl px-4 py-3 text-sm border " +
-                  (status.kind === "success"
-                    ? "bg-emerald-50 border-emerald-200 text-emerald-900"
-                    : "bg-rose-50 border-rose-200 text-rose-900")
-                }
-                role="status"
-                aria-live="polite"
-              >
-                {status.message}
-              </div>
-            ) : null}
-
-            {step === "request" ? (
-              <form className="mt-6 space-y-5" onSubmit={handleSubmitRequest(onRequest)} noValidate>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email address</label>
-                  <input
-                    {...registerRequest("email")}
+            )}
+            
+            <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  Email address
+                </label>
+                <div className="mt-1">
+                  <Input
+                    id="email"
                     type="email"
                     autoComplete="email"
-                    inputMode="email"
-                    className={
-                      "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
-                      (requestErrors.email ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
-                    }
                     placeholder="you@example.com"
+                    {...register("email")}
+                    className={errors.email ? "border-red-300 focus-visible:ring-red-500" : ""}
                   />
-                  {requestErrors.email ? <p className="mt-1 text-sm text-rose-700">{requestErrors.email.message}</p> : null}
+                  {errors.email && (
+                    <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                  )}
                 </div>
+              </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className={
-                    "w-full py-4 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold shadow-lg transition-all " +
-                    (loading ? "opacity-70 cursor-not-allowed" : "hover:shadow-xl hover:scale-[1.02]")
-                  }
-                >
-                  {loading ? "Sending…" : "Send OTP"}
-                </button>
-
-                <div className="relative flex items-center gap-3 py-2">
-                  <div className="flex-1 h-px bg-gray-200" />
-                  <span className="text-xs text-gray-400 uppercase tracking-wide">or</span>
-                  <div className="flex-1 h-px bg-gray-200" />
-                </div>
-
-                <div className="flex justify-center">
-                  <GoogleLoginButton
-                    width={320}
-                    onSuccess={() => navigate("/portal")}
-                    onError={(msg) => setStatus({ kind: "error", message: msg })}
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                <div className="mt-1">
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete={isLogin ? "current-password" : "new-password"}
+                    placeholder="••••••••"
+                    {...register("password")}
+                    className={errors.password ? "border-red-300 focus-visible:ring-red-500" : ""}
                   />
+                  {errors.password && (
+                    <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                  )}
                 </div>
+              </div>
+            </div>
 
-                <div className="flex justify-between text-sm text-gray-500 pt-1">
-                  <Link to="/portal/login" className="hover:underline">
-                    Use password
-                  </Link>
-                  <Link to="/admin/login" className="hover:underline">
-                    Admin login
-                  </Link>
-                </div>
-              </form>
-            ) : (
-              <form className="mt-6 space-y-5" onSubmit={handleSubmitVerify(onVerify)} noValidate>
-                <div>
-                  <p className="text-sm text-gray-500">OTP sent to</p>
-                  <p className="mt-0.5 text-gray-900 font-semibold">{emailForVerify || "â€”"}</p>
-                </div>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              {loading ? "Processing..." : isLogin ? "Sign in" : "Sign up"}
+            </Button>
+          </form>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">8-digit OTP</label>
-                  <input
-                    {...registerVerify("token")}
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    className={
-                      "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 tracking-widest text-center text-xl " +
-                      (verifyErrors.token ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
-                    }
-                    placeholder="123456"
-                    maxLength={8}
-                  />
-                  {verifyErrors.token ? <p className="mt-1 text-sm text-rose-700">{verifyErrors.token.message}</p> : null}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    disabled={loading}
-                    onClick={() => {
-                      setStep("request");
-                      setStatus({ kind: "idle" });
-                    }}
-                    className="px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-70"
-                  >
-                    Change email
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-70"
-                  >
-                    {loading ? "Verifying…" : "Verify"}
-                  </button>
-                </div>
-
-                <div className="flex justify-between text-sm text-gray-500">
-                  <button
-                    type="button"
-                    className={"hover:underline" + (resendSecondsLeft > 0 || loading ? " opacity-60 cursor-not-allowed" : "")}
-                    disabled={resendSecondsLeft > 0 || loading}
-                    onClick={onResend}
-                  >
-                    {resendSecondsLeft > 0 ? `Resend in ${resendSecondsLeft}s` : "Resend OTP"}
-                  </button>
-                  <button type="button" className="hover:underline" onClick={() => navigate(-1)}>
-                    Back
-                  </button>
-                </div>
-              </form>
-            )}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-white px-2 text-gray-500">Or continue with</span>
+            </div>
           </div>
+
+          <GoogleLoginButton />
         </div>
-      </section>
+      </div>
     </div>
   );
 }

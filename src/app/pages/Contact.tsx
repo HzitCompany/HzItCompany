@@ -10,9 +10,10 @@ import { submitContactAuthed } from "../services/contactService";
 import { trackEvent } from "../analytics/track";
 import { siteConfig } from "../config/site";
 import { useAuth } from "../auth/AuthProvider";
+import { GoogleLoginButton } from "../components/GoogleLoginButton";
 
 export function Contact() {
-  const { token } = useAuth();
+  const { isAuthed, openAuthModal } = useAuth();
   const [submitState, setSubmitState] = useState<{
     status: "idle" | "loading" | "success" | "error";
     message?: string;
@@ -58,9 +59,13 @@ export function Contact() {
     }
 
     try {
-      if (!token) throw new Error("Please verify first.");
+      if (!isAuthed) {
+        openAuthModal();
+        setSubmitState({ status: "idle" });
+        return;
+      }
 
-      await submitContactAuthed(token, {
+      await submitContactAuthed({
         name: values.name,
         email: values.email,
         phone: values.phone || undefined,
@@ -317,6 +322,13 @@ export function Contact() {
                       <p className="mt-2 text-sm text-rose-700">{errors.message.message}</p>
                     ) : null}
                   </div>
+
+                  {!isAuthed ? (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 flex flex-col items-center gap-3">
+                      <p className="text-sm text-blue-800 font-medium text-center">Sign in to send your message</p>
+                      <GoogleLoginButton width={280} onSuccess={() => {}} onError={() => {}} />
+                    </div>
+                  ) : null}
 
                   <button
                     type="submit"

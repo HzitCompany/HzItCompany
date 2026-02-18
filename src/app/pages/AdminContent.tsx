@@ -25,7 +25,7 @@ export function AdminContent() {
     setError(null);
     setLoading(true);
     fetchAdminContent()
-      .then((r) => setItems(r.items))
+      .then((r: any) => setItems(r.items))
       .catch((e: any) => setError(e?.message ?? "Failed to load"))
       .finally(() => setLoading(false));
   }

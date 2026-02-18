@@ -57,7 +57,7 @@ careersRouter.post("/upload-url", requireAuth, async (req: AuthedRequest, res, n
       return res.status(400).json({ ok: false, error: "Invalid request", details: parsed.error.flatten() });
     }
 
-    const userId = Number(req.user?.sub);
+    const userId = req.user?.sub;
     if (!Number.isFinite(userId)) throw new HttpError(401, "Unauthorized", true);
 
     const { fileName, fileType, fileSize, kind } = parsed.data;
@@ -136,7 +136,7 @@ careersRouter.post("/apply", requireAuth, async (req: AuthedRequest, res, next) 
       return res.status(400).json({ ok: false, error: "Invalid request", details: parsed.error.flatten() });
     }
 
-    const userId = Number(req.user?.sub);
+    const userId = req.user?.sub;
     if (!Number.isFinite(userId)) throw new HttpError(401, "Unauthorized", true);
 
     // Quietly accept honeypot submissions.

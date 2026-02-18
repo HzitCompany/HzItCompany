@@ -7,6 +7,6 @@ export type SubmissionItem = {
   data: unknown;
 };
 
-export async function fetchMySubmissions(token: string) {
-  return getJson<{ ok: true; items: SubmissionItem[] }>("/api/submissions", { token });
+export async function fetchMySubmissions() {
+  return getJson<{ ok: true; items: SubmissionItem[] }>("/api/submissions");
 }

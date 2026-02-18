@@ -8,8 +8,7 @@ import { contactRoutes } from "./routes/contact.js";
 import { hireUsRoutes } from "./routes/hireUs.js";
 import { schemaStatusRouter } from "./routes/schemaStatus.js";
 import { authRouter } from "./routes/auth.js";
-import { otpRouter } from "./routes/otp.js";
-import { authSessionRouter } from "./routes/authSession.js";
+/* otpRouter and authSessionRouter removed */
 import { ordersRouter } from "./routes/orders.js";
 import { invoiceRouter } from "./routes/invoice.js";
 import { adminRouter } from "./routes/admin.js";
@@ -74,8 +73,7 @@ async function main() {
     app.use("/api/hire-us", hireUsRoutes);
 
     app.use("/api", authRouter);
-    app.use("/api/auth/otp", otpRouter);
-    app.use("/api", authSessionRouter);
+/* otpRouter and authSessionRouter removed */
     app.use("/api", meRouter);
     app.use("/api", submissionsRouter);
     app.use("/api/careers", careersRouter);

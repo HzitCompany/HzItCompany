@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { careerSchema, type CareerFormValues } from "../schemas/careerSchema";
 import { createCareerUploadUrlAuthed, submitCareerApplyAuthed, uploadFileToSignedUrl } from "../services/careersService";
 import { useAuth } from "../auth/AuthProvider";
+import { GoogleLoginButton } from "../components/GoogleLoginButton";
 import { trackEvent } from "../analytics/track";
 
 export function Careers() {
@@ -395,6 +396,13 @@ export function Careers() {
                     />
                     {errors.message ? <p className="mt-2 text-sm text-rose-700">{errors.message.message}</p> : null}
                   </div>
+
+                  {!isAuthed ? (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 flex flex-col items-center gap-3">
+                      <p className="text-sm text-blue-800 font-medium text-center">Sign in to submit your application</p>
+                      <GoogleLoginButton width={280} onSuccess={() => {}} onError={() => {}} />
+                    </div>
+                  ) : null}
 
                   <button
                     type="submit"

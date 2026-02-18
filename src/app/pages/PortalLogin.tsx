@@ -1,124 +1,162 @@
-﻿import { useState } from "react";
-import { useNavigate, Link } from "react-router";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
+import { supabase } from "../lib/supabase";
 import { Seo } from "../components/Seo";
-import { login, registerClient } from "../services/platformService";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
-import { useAuth } from "../auth/AuthProvider";
+
+const portalLoginSchema = z
+  .object({
+    email: z.string().email("Invalid email"),
+    password: z.string().min(1, "Password is required"),
+  })
+  .strict();
+
+type PortalLoginData = z.infer<typeof portalLoginSchema>;
+
+type Mode = "login" | "signup";
 
 export function PortalLogin() {
   const navigate = useNavigate();
-  const { onGoogleLogin, refreshMe } = useAuth();
-  const [mode, setMode] = useState<"login" | "register">("login");
-
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<Mode>("login");
 
-  async function onSubmit() {
-    setError(null);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<PortalLoginData>({
+    resolver: zodResolver(portalLoginSchema),
+  });
+
+  const onSubmit = async (data: PortalLoginData) => {
     setLoading(true);
+    setError(null);
+
     try {
-      if (mode === "register") {
-        await registerClient({ name: name.trim(), email: email.trim(), password });
-      } else {
-        await login({ email: email.trim(), password });
+      if (mode === "login") {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: data.password,
+        });
+        if (signInError) throw signInError;
+        navigate("/portal");
+        return;
       }
-      // Refresh auth context from cookie session
-      await refreshMe();
-      navigate("/portal");
-    } catch (e: any) {
-      setError(e?.message ?? "Authentication failed");
+
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/portal`,
+        },
+      });
+
+      if (signUpError) throw signUpError;
+      setError("Account created! Check your email to confirm.");
+    } catch (err: any) {
+      setError(err?.message || "Authentication failed");
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Seo title="Client Portal" description="Login to view orders and download invoices." path="/portal/login" />
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <Seo title="Client Portal" description="Manage your HZ services" path="/portal/login" />
 
-      <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-10">
-          <h1 className="text-3xl font-bold text-gray-900 font-poppins">
-            {mode === "login" ? "Login" : "Create account"}
-          </h1>
-          <p className="mt-2 text-gray-600">Access your orders and invoices.</p>
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900 font-poppins">
+          {mode === "login" ? "Client Portal" : "Create Account"}
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          {mode === "login" ? "Or " : "Already have an account? "}
+          <button
+            type="button"
+            onClick={() => {
+              setMode((m) => (m === "login" ? "signup" : "login"));
+              setError(null);
+            }}
+            className="font-medium text-blue-600 hover:text-blue-500"
+          >
+            {mode === "login" ? "create a new account" : "sign in here"}
+          </button>
+        </p>
+      </div>
 
-          <div className="mt-6 flex gap-2">
-            <button
-              type="button"
-              className={`flex-1 rounded-lg border px-3 py-2 text-sm ${mode === "login" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-300"}`}
-              onClick={() => setMode("login")}
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-100">
+          {error && (
+            <div
+              className={`mb-4 px-4 py-3 rounded relative ${
+                error.includes("Check your email")
+                  ? "bg-green-50 text-green-800"
+                  : "bg-red-50 text-red-700"
+              }`}
             >
-              Login
-            </button>
-            <button
-              type="button"
-              className={`flex-1 rounded-lg border px-3 py-2 text-sm ${mode === "register" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-300"}`}
-              onClick={() => setMode("register")}
-            >
-              Register
-            </button>
+              <span className="block sm:inline">{error}</span>
+            </div>
+          )}
+
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email address
+              </label>
+              <div className="mt-1">
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  {...register("email")}
+                  className={errors.email ? "border-red-300" : ""}
+                />
+                {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <div className="mt-1">
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  {...register("password")}
+                  className={errors.password ? "border-red-300" : ""}
+                />
+                {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
+              </div>
+            </div>
+
+            <div>
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? "Processing..." : mode === "login" ? "Sign in" : "Sign up"}
+              </Button>
+            </div>
+          </form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-white px-2 text-gray-500">Or continue with</span>
+            </div>
           </div>
 
-          <div className="mt-6 grid gap-4">
-            {mode === "register" ? (
-              <label className="block">
-                <span className="text-sm font-medium text-gray-700">Name</span>
-                <input className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" value={name} onChange={(e) => setName(e.target.value)} />
-              </label>
-            ) : null}
+          <GoogleLoginButton />
 
-            <label className="block">
-              <span className="text-sm font-medium text-gray-700">Email</span>
-              <input type="email" autoComplete="email" className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" value={email} onChange={(e) => setEmail(e.target.value)} />
-            </label>
-
-            <label className="block">
-              <span className="text-sm font-medium text-gray-700">Password</span>
-              <input
-                type="password"
-                autoComplete="current-password"
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </label>
-
-            {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">{error}</div> : null}
-
-            <button
-              type="button"
-              disabled={loading}
-              onClick={onSubmit}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading ? "Please wait…" : mode === "login" ? "Login" : "Create account"}
-            </button>
-
-            <div className="relative flex items-center gap-3">
-              <div className="flex-1 h-px bg-gray-200" />
-              <span className="text-xs text-gray-400 uppercase tracking-wide">or</span>
-              <div className="flex-1 h-px bg-gray-200" />
-            </div>
-
-            <div className="flex justify-center">
-              <GoogleLoginButton
-                width={280}
-                onSuccess={() => navigate("/portal")}
-                onError={(msg) => setError(msg)}
-              />
-            </div>
-
-            <Link to="/auth" className="text-center text-sm text-blue-700 hover:underline">
-              Login with OTP (passwordless)
-            </Link>
-
-            <Link to="/" className="text-center text-sm text-gray-600 hover:underline">
+          <div className="mt-6 text-center">
+            <Link to="/" className="text-sm text-gray-600 hover:text-gray-900 hover:underline">
               Back to website
             </Link>
           </div>
@@ -127,4 +165,3 @@ export function PortalLogin() {
     </div>
   );
 }
-
