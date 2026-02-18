@@ -143,16 +143,16 @@ export function AdminLogin() {
                     </div>
 
                     <label className="block">
-                      <span className="text-sm font-medium text-gray-700">6-digit OTP</span>
+                      <span className="text-sm font-medium text-gray-700">8-digit OTP</span>
                       <input
                         type="text"
                         inputMode="numeric"
                         autoComplete="one-time-code"
-                        maxLength={6}
+                        maxLength={8}
                         placeholder="123456"
                         className="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none text-center text-xl tracking-widest transition-all focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
                         value={otp}
-                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 8))}
                       />
                     </label>
 
@@ -169,7 +169,7 @@ export function AdminLogin() {
                       </button>
                       <button
                         type="button"
-                        disabled={loading || otp.length < 6}
+                        disabled={loading || otp.length < 8}
                         onClick={onVerifyOtp}
                         className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-white font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
                       >

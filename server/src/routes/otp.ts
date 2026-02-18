@@ -90,7 +90,7 @@ otpRouter.post("/request", async (req, res, next) => {
 const verifySchema = z
   .object({
     email: z.string().email().max(254),
-    token: z.string().regex(/^\d{6}$/)
+    token: z.string().regex(/^\d{8}$/)
   })
   .strict();
 

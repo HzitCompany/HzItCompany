@@ -55,7 +55,7 @@ export function AuthModal() {
   }, [isAuthModalOpen, step]);
 
   const canSend = useMemo(() => email.trim().length >= 6 && !loading, [email, loading]);
-  const canVerify = useMemo(() => /^\d{6}$/.test(otp.trim()) && !loading, [otp, loading]);
+  const canVerify = useMemo(() => /^\d{8}$/.test(otp.trim()) && !loading, [otp, loading]);
 
   async function send() {
     if (!canSend) return;
@@ -177,14 +177,14 @@ export function AuthModal() {
                   </div>
 
                   <label className="block">
-                    <span className="text-sm font-medium text-gray-700">OTP (6 digits)</span>
+                    <span className="text-sm font-medium text-gray-700">OTP (8 digits)</span>
                     <input
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
                       inputMode="numeric"
                       autoComplete="one-time-code"
                       placeholder="123456"
-                      maxLength={6}
+                      maxLength={8}
                       className="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none tracking-widest focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
                     />
                   </label>

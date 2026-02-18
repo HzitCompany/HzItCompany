@@ -20,7 +20,7 @@ type RequestValues = z.infer<typeof requestSchema>;
 
 const verifySchema = z
   .object({
-    token: z.string().regex(/^\d{6}$/, "Enter the 6-digit OTP"),
+    token: z.string().regex(/^\d{8}$/, "Enter the 8-digit OTP"),
   })
   .strict();
 
@@ -276,7 +276,7 @@ export function Auth() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">6-digit OTP</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">8-digit OTP</label>
                   <input
                     {...registerVerify("token")}
                     inputMode="numeric"
@@ -286,7 +286,7 @@ export function Auth() {
                       (verifyErrors.token ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
                     }
                     placeholder="123456"
-                    maxLength={6}
+                    maxLength={8}
                   />
                   {verifyErrors.token ? <p className="mt-1 text-sm text-rose-700">{verifyErrors.token.message}</p> : null}
                 </div>
