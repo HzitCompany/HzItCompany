@@ -336,6 +336,46 @@ export function Navbar() {
                 className="md:hidden mt-3 rounded-2xl bg-white/90 backdrop-blur-xl border border-white/30 shadow-[0_8px_30px_rgba(0,0,0,0.12)] overflow-hidden relative z-50"
               >
                 <div className="px-5 py-5">
+                  {isAuthed ? (
+                    <div className="mb-4 rounded-xl border border-gray-200 bg-white p-3">
+                      <div className="text-sm font-semibold text-gray-900">{user?.full_name ?? "My Account"}</div>
+                      <div className="text-xs text-gray-600 truncate">{user?.email ?? ""}</div>
+
+                      <div className="mt-3 space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMobileMenuOpen(false);
+                            guardNavigate("/profile");
+                          }}
+                          className="min-h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-left text-sm font-semibold text-gray-900 hover:bg-gray-50"
+                        >
+                          My Profile
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMobileMenuOpen(false);
+                            guardNavigate("/submissions");
+                          }}
+                          className="min-h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-left text-sm font-semibold text-gray-900 hover:bg-gray-50"
+                        >
+                          My Submissions
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMobileMenuOpen(false);
+                            logout();
+                          }}
+                          className="min-h-10 w-full rounded-xl border border-rose-200 bg-rose-50 px-3 text-left text-sm font-semibold text-rose-700 hover:bg-rose-100"
+                        >
+                          Logout
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+
                   <div className="space-y-1">
                     {navLinks.map((link) => {
                       const isActive = activePath === link.path;

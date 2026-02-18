@@ -52,6 +52,12 @@ const createUploadUrlSchema = z
 
 careersRouter.post("/upload-url", requireAuth, async (req: AuthedRequest, res, next) => {
   try {
+    if (env.NODE_ENV !== "production") {
+      // Temporary debug for auth propagation checks.
+      // eslint-disable-next-line no-console
+      console.log("[careers/upload-url] auth header present:", Boolean(req.headers.authorization));
+    }
+
     const parsed = createUploadUrlSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ ok: false, error: "Invalid request", details: parsed.error.flatten() });

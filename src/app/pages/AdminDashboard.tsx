@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { useAuth } from "../auth/AuthProvider";
 import { Seo } from "../components/Seo";
@@ -11,6 +11,7 @@ import {
   fetchAdminOrders,
   fetchAdminSubmissions,
     fetchAdminPricing,
+    createAdminResumesDownloadUrlByPath,
 } from "../services/platformService";
 
 type Tab = "summary" | "users" | "orders" | "pricing" | "submissions";
@@ -34,6 +35,9 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
     const [orders, setOrders] = useState<any[]>([]);
     const [submissions, setSubmissions] = useState<any[]>([]);
     const [pricing, setPricing] = useState<any[]>([]);
+
+    const [expandedSubmissionId, setExpandedSubmissionId] = useState<number | null>(null);
+    const [downloadBusyKey, setDownloadBusyKey] = useState<string | null>(null);
     
     // Pagination / Search
     const [userPage, setUserPage] = useState(1);
@@ -116,11 +120,11 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.35 }}
-                    className="rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg p-6"
+                    className="rounded-2xl border border-gray-200 bg-white shadow-sm p-6"
                 >
-                    <div className="text-sm text-white/70">Welcome</div>
+                    <div className="text-sm text-gray-600">Welcome</div>
                     <div className="text-2xl md:text-3xl font-bold font-poppins">{user?.full_name || "Admin"}</div>
-                    <div className="mt-1 text-sm text-white/70">Manage users, submissions, pricing and orders.</div>
+                    <div className="mt-1 text-sm text-gray-600">Manage users, submissions, pricing and orders.</div>
                 </motion.div>
             </div>
 
@@ -128,14 +132,14 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="mb-6 rounded-xl border border-rose-200/30 bg-rose-500/10 px-4 py-3 text-rose-100"
+                        className="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-800"
                     >
                         <p className="text-sm">{error}</p>
                     </motion.div>
                 )}
 
                 {/* Content */}
-                {loading && <div className="text-white/70 py-4">Loading...</div>}
+                {loading && <div className="text-gray-600 py-4">Loading...</div>}
 
                 {!loading && tab === "summary" && stats && (
                     <motion.div
@@ -156,44 +160,44 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
-                        className="bg-white/5 border border-white/10 shadow-lg overflow-hidden rounded-2xl"
+                        className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-2xl"
                     >
-                        <table className="min-w-full divide-y divide-white/10">
-                            <thead className="bg-white/5">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
                                 <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">User</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Role</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Joined</th>
-                                    <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-white/70 uppercase tracking-wider">Actions</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">User</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Joined</th>
+                                    <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/10">
+                            <tbody className="divide-y divide-gray-200">
                                 {users.map((u) => (
                                     <tr key={u.id}>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
                                                 <div className="flex-shrink-0 h-10 w-10">
-                                                    <img className="h-10 w-10 rounded-full bg-white/10" src={u.avatar_url || "https://www.gravatar.com/avatar?d=mp"} alt="" />
+                                                        <img className="h-10 w-10 rounded-full bg-gray-100" src={u.avatar_url || "https://www.gravatar.com/avatar?d=mp"} alt="" />
                                                 </div>
                                                 <div className="ml-4">
-                                                    <div className="text-sm font-semibold text-white">{u.full_name || "Unknown"}</div>
-                                                    <div className="text-sm text-white/70">{u.email}</div>
+                                                        <div className="text-sm font-semibold text-gray-900">{u.full_name || "Unknown"}</div>
+                                                        <div className="text-sm text-gray-600">{u.email}</div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-white/10 text-white">
+                                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-900">
                                                 {u.role}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white/70">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                             {new Date(u.created_at).toLocaleDateString()}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             {u.role === "admin" ? (
-                                                <button onClick={() => promoteUser(u.id, "user")} className="text-white/80 hover:text-white underline">Demote</button>
+                                                    <button onClick={() => promoteUser(u.id, "user")} className="text-blue-700 hover:text-blue-900 underline">Demote</button>
                                             ) : (
-                                                <button onClick={() => promoteUser(u.id, "admin")} className="text-white/80 hover:text-white underline">Promote</button>
+                                                    <button onClick={() => promoteUser(u.id, "admin")} className="text-blue-700 hover:text-blue-900 underline">Promote</button>
                                             )}
                                         </td>
                                     </tr>
@@ -201,7 +205,7 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                             </tbody>
                         </table>
                         {/* Simple Pagination */}
-                        <div className="bg-white/5 px-4 py-3 flex items-center justify-between border-t border-white/10 sm:px-6">
+                            <div className="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
                             <div className="flex-1 flex justify-between sm:justify-end">
                                 <Button
                                     variant="outline"
@@ -228,24 +232,164 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
-                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                                                className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
                     >
-                        {submissions.map((sub: any) => (
-                            <div key={sub.id} className="rounded-2xl bg-white/5 border border-white/10 shadow-lg p-6 flex flex-col gap-2">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-white font-semibold text-sm uppercase tracking-wide">{sub.type}</span>
-                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-white/10 text-white">New</span>
-                                </div>
-                                <div className="text-white/80 text-sm">
-                                    {Object.entries(sub.data || {}).map(([key, value]) => (
-                                        <div key={key} className="mb-1">
-                                            <span className="font-semibold capitalize">{key}:</span> {String(value)}
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="text-xs text-white/50 mt-2">ID: {sub.id}</div>
-                            </div>
-                        ))}
+                                                <div className="overflow-auto">
+                                                    <table className="min-w-[980px] w-full text-sm">
+                                                        <thead className="bg-gray-50 text-gray-600">
+                                                            <tr>
+                                                                <th className="text-left px-4 py-3">Created</th>
+                                                                <th className="text-left px-4 py-3">Type</th>
+                                                                <th className="text-left px-4 py-3">User</th>
+                                                                <th className="text-left px-4 py-3">Summary</th>
+                                                                <th className="text-right px-4 py-3">Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {submissions.length === 0 ? (
+                                                                <tr>
+                                                                    <td className="px-4 py-4 text-gray-600" colSpan={5}>
+                                                                        No submissions found.
+                                                                    </td>
+                                                                </tr>
+                                                            ) : (
+                                                                submissions.map((sub: any) => {
+                                                                    const created = sub.created_at ? new Date(sub.created_at).toLocaleString() : "—";
+                                                                    const data = (sub.data ?? {}) as Record<string, unknown>;
+                                                                    const summary =
+                                                                        String(
+                                                                            (data["subject"] ?? data["projectName"] ?? data["project_name"] ?? data["name"] ?? data["fullName"] ?? data["full_name"] ?? "")
+                                                                        ).trim() || "—";
+                                                                    const email = String(sub.user_email ?? data["email"] ?? "").trim();
+                                                                    const phone = String(sub.user_phone ?? data["phone"] ?? "").trim();
+                                                                    const isExpanded = expandedSubmissionId === sub.id;
+
+                                                                    const resumePath = (typeof data["resumePath"] === "string" ? data["resumePath"] :
+                                                                        typeof data["resume_path"] === "string" ? data["resume_path"] :
+                                                                        typeof data["resume_url"] === "string" ? data["resume_url"] :
+                                                                        null) as string | null;
+
+                                                                    const cvPath = (typeof data["cvPath"] === "string" ? data["cvPath"] :
+                                                                        typeof data["cv_path"] === "string" ? data["cv_path"] :
+                                                                        null) as string | null;
+
+                                                                    async function downloadByPath(path: string, kindLabel: string) {
+                                                                        if (path.startsWith("http://") || path.startsWith("https://")) {
+                                                                            window.open(path, "_blank", "noopener,noreferrer");
+                                                                            return;
+                                                                        }
+                                                                        const busyKey = `${sub.id}:${kindLabel}`;
+                                                                        setError(null);
+                                                                        setDownloadBusyKey(busyKey);
+                                                                        try {
+                                                                            const r = await createAdminResumesDownloadUrlByPath(path);
+                                                                            window.open(r.url, "_blank", "noopener,noreferrer");
+                                                                        } catch (e: any) {
+                                                                            setError(e?.message ?? "Failed to create download link");
+                                                                        } finally {
+                                                                            setDownloadBusyKey(null);
+                                                                        }
+                                                                    }
+
+                                                                    return (
+                                                                        <Fragment key={sub.id}>
+                                                                            <tr key={sub.id} className="border-t border-gray-200">
+                                                                                <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{created}</td>
+                                                                                <td className="px-4 py-3">
+                                                                                    <span className="inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-900">
+                                                                                        {String(sub.type ?? "—")}
+                                                                                    </span>
+                                                                                </td>
+                                                                                <td className="px-4 py-3">
+                                                                                    <div className="font-semibold text-gray-900">{email || "—"}</div>
+                                                                                    <div className="text-gray-600">{phone || "—"}</div>
+                                                                                </td>
+                                                                                <td className="px-4 py-3 text-gray-700 max-w-[520px] truncate" title={summary}>
+                                                                                    {summary}
+                                                                                </td>
+                                                                                <td className="px-4 py-3 text-right whitespace-nowrap">
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => setExpandedSubmissionId(isExpanded ? null : sub.id)}
+                                                                                        className="min-h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold hover:bg-gray-50"
+                                                                                    >
+                                                                                        {isExpanded ? "Hide details" : "More details"}
+                                                                                    </button>
+                                                                                </td>
+                                                                            </tr>
+
+                                                                            {isExpanded ? (
+                                                                                <tr className="border-t border-gray-200 bg-gray-50/40">
+                                                                                    <td className="px-4 py-4" colSpan={5}>
+                                                                                        <div className="grid gap-4">
+                                                                                            <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                                                                                                <div className="text-sm font-semibold text-gray-900">Submitted fields</div>
+                                                                                                <div className="mt-3 grid gap-2">
+                                                                                                    {Object.keys(data).length === 0 ? (
+                                                                                                        <div className="text-sm text-gray-600">No fields available.</div>
+                                                                                                    ) : (
+                                                                                                        Object.entries(data).map(([k, v]) => (
+                                                                                                            <div key={k} className="grid grid-cols-1 md:grid-cols-[220px,1fr] gap-2">
+                                                                                                                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{k}</div>
+                                                                                                                <div className="text-sm text-gray-800 break-words whitespace-pre-wrap">
+                                                                                                                    {typeof v === "string" && (v.startsWith("http://") || v.startsWith("https://")) ? (
+                                                                                                                        <a
+                                                                                                                            href={v}
+                                                                                                                            target="_blank"
+                                                                                                                            rel="noopener noreferrer"
+                                                                                                                            className="text-blue-700 hover:text-blue-900 underline break-all"
+                                                                                                                        >
+                                                                                                                            {v}
+                                                                                                                        </a>
+                                                                                                                    ) : (typeof v === "string" || typeof v === "number" || typeof v === "boolean" || v == null)
+                                                                                                                        ? String(v ?? "—")
+                                                                                                                        : JSON.stringify(v, null, 2)}
+                                                                                                                </div>
+                                                                                                            </div>
+                                                                                                        ))
+                                                                                                    )}
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            {(resumePath || cvPath) ? (
+                                                                                                <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                                                                                                    <div className="text-sm font-semibold text-gray-900">Documents</div>
+                                                                                                    <div className="mt-3 flex flex-wrap gap-2">
+                                                                                                        {resumePath ? (
+                                                                                                            <button
+                                                                                                                type="button"
+                                                                                                                onClick={() => downloadByPath(resumePath, "resume")}
+                                                                                                                disabled={downloadBusyKey === `${sub.id}:resume`}
+                                                                                                                className="min-h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold hover:bg-gray-50 disabled:opacity-60"
+                                                                                                            >
+                                                                                                                {resumePath.startsWith("http") ? "Open Resume" : "Download Resume"}
+                                                                                                            </button>
+                                                                                                        ) : null}
+                                                                                                        {cvPath ? (
+                                                                                                            <button
+                                                                                                                type="button"
+                                                                                                                onClick={() => downloadByPath(cvPath, "cv")}
+                                                                                                                disabled={downloadBusyKey === `${sub.id}:cv`}
+                                                                                                                className="min-h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold hover:bg-gray-50 disabled:opacity-60"
+                                                                                                            >
+                                                                                                                {cvPath.startsWith("http") ? "Open CV" : "Download CV"}
+                                                                                                            </button>
+                                                                                                        ) : null}
+                                                                                                    </div>
+                                                                                                    <div className="mt-2 text-xs text-gray-500">Downloads use short-lived signed URLs.</div>
+                                                                                                </div>
+                                                                                            ) : null}
+                                                                                        </div>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            ) : null}
+                                                                        </Fragment>
+                                                                    );
+                                                                })
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
                     </motion.div>
                 )}
 
@@ -257,17 +401,17 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                     >
                         {orders.length === 0 ? (
-                            <div className="rounded-2xl bg-white/5 border border-white/10 shadow-lg p-6 text-white/70">
+                            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-6 text-gray-600">
                                 No orders found.
                             </div>
                         ) : (
                             orders.map((o: any, idx: number) => (
-                                <div key={o.id ?? idx} className="rounded-2xl bg-white/5 border border-white/10 shadow-lg p-6 flex flex-col gap-2">
+                                <div key={o.id ?? idx} className="rounded-2xl border border-gray-200 bg-white shadow-sm p-6 flex flex-col gap-2">
                                     <div className="flex items-center justify-between gap-3">
-                                        <div className="text-white font-semibold">Order</div>
-                                        <div className="text-xs text-white/60">#{String(o.id ?? "—")}</div>
+                                        <div className="text-gray-900 font-semibold">Order</div>
+                                        <div className="text-xs text-gray-500">#{String(o.id ?? "—")}</div>
                                     </div>
-                                    <div className="text-sm text-white/80">
+                                    <div className="text-sm text-gray-700">
                                         {Object.entries(o || {}).slice(0, 8).map(([k, v]) => (
                                             <div key={k} className="mb-1">
                                                 <span className="font-semibold capitalize">{k}:</span> {String(v)}
@@ -285,33 +429,33 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
-                        className="rounded-2xl bg-white/5 border border-white/10 shadow-lg overflow-hidden"
+                        className="rounded-2xl bg-white border border-gray-200 shadow-sm overflow-hidden"
                     >
-                        <table className="min-w-full divide-y divide-white/10">
-                            <thead className="bg-white/5">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
                                 <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Service</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Plan</th>
-                                    <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-white/70 uppercase tracking-wider">Price (INR)</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Service</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Plan</th>
+                                    <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Price (INR)</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/10">
+                            <tbody className="divide-y divide-gray-200">
                                 {pricing.length === 0 ? (
                                     <tr>
-                                        <td className="px-6 py-4 text-white/70" colSpan={3}>No pricing items found.</td>
+                                        <td className="px-6 py-4 text-gray-600" colSpan={3}>No pricing items found.</td>
                                     </tr>
                                 ) : (
                                     pricing.map((p: any, idx: number) => (
                                         <tr key={p.id ?? idx}>
                                             <td className="px-6 py-4">
-                                                <div className="text-sm font-semibold text-white">{p.service_name ?? p.service_key ?? "—"}</div>
-                                                <div className="text-xs text-white/60">{p.service_key ?? ""}</div>
+                                                <div className="text-sm font-semibold text-gray-900">{p.service_name ?? p.service_key ?? "—"}</div>
+                                                <div className="text-xs text-gray-500">{p.service_key ?? ""}</div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="text-sm font-semibold text-white">{p.plan_name ?? p.plan_key ?? "—"}</div>
-                                                <div className="text-xs text-white/60">{p.plan_key ?? ""}</div>
+                                                <div className="text-sm font-semibold text-gray-900">{p.plan_name ?? p.plan_key ?? "—"}</div>
+                                                <div className="text-xs text-gray-500">{p.plan_key ?? ""}</div>
                                             </td>
-                                            <td className="px-6 py-4 text-right text-sm text-white/80">
+                                            <td className="px-6 py-4 text-right text-sm text-gray-700">
                                                 {typeof p.price_inr === "number" ? p.price_inr.toLocaleString() : String(p.price_inr ?? "—")}
                                             </td>
                                         </tr>
@@ -328,10 +472,10 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
 
 function StatCard({ title, value }: { title: string; value: number | string }) {
     return (
-        <div className="rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg p-6">
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-6">
             <dl>
-                <dt className="text-sm font-semibold text-white/70 truncate">{title}</dt>
-                <dd className="mt-2 text-3xl font-bold text-white">{value}</dd>
+                <dt className="text-sm font-semibold text-gray-600 truncate">{title}</dt>
+                <dd className="mt-2 text-3xl font-bold text-gray-900">{value}</dd>
             </dl>
         </div>
     );

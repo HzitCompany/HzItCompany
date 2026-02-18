@@ -54,7 +54,7 @@ export function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white text-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <Seo title="Admin Login" description="Restricted access" path="/admin/login" />
 
       <motion.div
@@ -63,20 +63,22 @@ export function AdminLogin() {
         className="sm:mx-auto sm:w-full sm:max-w-md"
       >
         <div className="text-center">
-            <h2 className="mt-6 text-3xl font-bold tracking-tight text-white font-poppins">Admin Portal</h2>
-            <p className="mt-2 text-sm text-white/70">Secure access for HZ administrators</p>
+            <div className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-blue-700 to-blue-900 px-6 py-2 text-white shadow-sm">
+              <h2 className="text-2xl font-bold tracking-tight font-poppins">Admin Portal</h2>
+            </div>
+            <p className="mt-3 text-sm text-gray-600">Secure access for HZ administrators</p>
         </div>
 
-        <div className="mt-8 bg-white/5 backdrop-blur-lg py-8 px-4 shadow sm:rounded-2xl sm:px-10 border border-white/10">
+        <div className="mt-8 bg-white py-8 px-4 shadow-sm sm:rounded-2xl sm:px-10 border border-gray-200">
           {error && (
-            <div className="mb-4 bg-rose-500/10 border border-rose-200/20 text-rose-100 px-4 py-3 rounded-xl relative">
+            <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-xl relative">
               <span className="block sm:inline">{error}</span>
             </div>
           )}
 
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-white/80">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-800">
                 Email address
               </label>
               <div className="mt-1">
@@ -87,12 +89,12 @@ export function AdminLogin() {
                   {...register("email")}
                   className={errors.email ? "border-red-300" : ""}
                 />
-                {errors.email && <p className="mt-1 text-sm text-rose-200">{errors.email.message}</p>}
+                {errors.email && <p className="mt-1 text-sm text-rose-700">{errors.email.message}</p>}
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-white/80">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-800">
                 Password
               </label>
               <div className="mt-1">
@@ -103,7 +105,7 @@ export function AdminLogin() {
                   {...register("password")}
                   className={errors.password ? "border-red-300" : ""}
                 />
-                {errors.password && <p className="mt-1 text-sm text-rose-200">{errors.password.message}</p>}
+                {errors.password && <p className="mt-1 text-sm text-rose-700">{errors.password.message}</p>}
               </div>
             </div>
 
@@ -117,10 +119,10 @@ export function AdminLogin() {
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/10" />
+                <div className="w-full border-t border-gray-200" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="bg-neutral-950 px-2 text-white/60">Or continue with</span>
+                <span className="bg-white px-2 text-gray-500">Or continue with</span>
               </div>
             </div>
 

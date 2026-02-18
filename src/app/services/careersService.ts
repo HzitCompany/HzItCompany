@@ -1,4 +1,5 @@
-import { postJson } from "./apiClient";
+import { supabase } from "../lib/supabase";
+import { postJson, resolveApiAuthToken } from "./apiClient";
 
 export type CareerUploadKind = "resume" | "cv";
 
@@ -17,8 +18,34 @@ export type CreateCareerUploadUrlResponse = {
   signedUrl: string;
 };
 
+async function getRequiredAuthToken() {
+  const sessionRes = await supabase?.auth.getSession();
+  const session = sessionRes?.data?.session ?? null;
+  const sessionToken = session?.access_token ?? null;
+
+  const token = sessionToken ?? (await resolveApiAuthToken());
+
+  if (typeof window !== "undefined" && (import.meta as any).env?.DEV) {
+    // Temporary debug for diagnosing 401 on careers upload.
+    // Keep token details minimal.
+    // eslint-disable-next-line no-console
+    console.debug("[careers] auth debug", {
+      hasSession: Boolean(session),
+      hasSessionToken: Boolean(sessionToken),
+      hasResolvedToken: Boolean(token),
+    });
+  }
+
+  if (!token) {
+    throw new Error("User not logged in");
+  }
+
+  return token;
+}
+
 export async function createCareerUploadUrlAuthed(input: CreateCareerUploadUrlInput) {
-  return postJson<CreateCareerUploadUrlInput, CreateCareerUploadUrlResponse>("/api/careers/upload-url", input);
+  const token = await getRequiredAuthToken();
+  return postJson<CreateCareerUploadUrlInput, CreateCareerUploadUrlResponse>("/api/careers/upload-url", input, { token });
 }
 
 export async function uploadFileToSignedUrl(signedUrl: string, file: File) {
@@ -76,5 +103,6 @@ export type CareerApplyPayload = {
 };
 
 export async function submitCareerApplyAuthed(payload: CareerApplyPayload) {
-  return postJson<CareerApplyPayload, { ok: true; id?: number }>("/api/careers/apply", payload);
+  const token = await getRequiredAuthToken();
+  return postJson<CareerApplyPayload, { ok: true; id?: number }>("/api/careers/apply", payload, { token });
 }

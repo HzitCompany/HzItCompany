@@ -129,6 +129,10 @@ async function getAuthToken(): Promise<string | null> {
   }
 }
 
+export async function resolveApiAuthToken(): Promise<string | null> {
+  return getAuthToken();
+}
+
 async function requestJson<TResponse>(
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
   path: string,

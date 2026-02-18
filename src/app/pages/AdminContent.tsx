@@ -158,22 +158,22 @@ export function AdminContent() {
     <AdminShell title="Content">
       <Seo title="Admin Content" description="Manage site content." path="/admin/content" />
 
-      <div className="mb-6 rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg p-6">
-        <div className="text-sm text-white/70">CMS</div>
+      <div className="mb-6 rounded-2xl border border-gray-200 bg-white shadow-sm p-6">
+        <div className="text-sm text-gray-600">CMS</div>
         <div className="text-2xl md:text-3xl font-bold font-poppins">Site content</div>
-        <div className="mt-1 text-sm text-white/70">Use keys like <span className="font-mono">page.home</span>, <span className="font-mono">page.about</span>, etc.</div>
+        <div className="mt-1 text-sm text-gray-600">Use keys like <span className="font-mono">page.home</span>, <span className="font-mono">page.about</span>, etc.</div>
       </div>
 
-      {error ? <div className="mb-4 rounded-xl border border-rose-200/30 bg-rose-500/10 px-4 py-3 text-rose-100">{error}</div> : null}
+      {error ? <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-800">{error}</div> : null}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg p-4 sm:p-6">
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="text-lg font-bold font-poppins">Editor</div>
-              <div className="text-sm text-white/70">Upsert <span className="font-mono">site_content</span> by key.</div>
+              <div className="text-sm text-gray-600">Upsert <span className="font-mono">site_content</span> by key.</div>
             </div>
-            {loading ? <div className="text-sm text-white/70">Loading…</div> : null}
+            {loading ? <div className="text-sm text-gray-600">Loading…</div> : null}
           </div>
 
           <div className="mt-5 flex flex-wrap gap-2">
@@ -185,7 +185,7 @@ export function AdminContent() {
                   if (!draftKey.trim()) setDraftKey(t.keyHint);
                   setDraftValue(JSON.stringify(t.value, null, 2));
                 }}
-                className="min-h-10 rounded-xl border border-white/15 bg-white/10 px-3 text-sm font-semibold hover:bg-white/15"
+                className="min-h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold hover:bg-gray-50"
               >
                 {t.label}
               </button>
@@ -210,7 +210,7 @@ export function AdminContent() {
               disabled={uploading || loading}
               onClick={() => fileInputRef.current?.click()}
               className={
-                "min-h-10 rounded-xl border border-white/15 bg-white/10 px-3 text-sm font-semibold hover:bg-white/15 " +
+                "min-h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold hover:bg-gray-50 " +
                 (uploading || loading ? "opacity-70 cursor-not-allowed" : "")
               }
             >
@@ -220,25 +220,25 @@ export function AdminContent() {
 
           <div className="mt-5 grid gap-3">
             <div>
-              <label className="block text-sm font-semibold text-white/80 mb-1">Key</label>
+              <label className="block text-sm font-semibold text-gray-800 mb-1">Key</label>
               <input
-                className="w-full min-h-11 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+                className="w-full min-h-11 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30"
                 value={draftKey}
                 onChange={(e) => setDraftKey(e.target.value)}
                 placeholder="page.home"
               />
             </div>
             <div>
-              <label htmlFor="contentValue" className="block text-sm font-semibold text-white/80 mb-1">Value (JSON)</label>
+              <label htmlFor="contentValue" className="block text-sm font-semibold text-gray-800 mb-1">Value (JSON)</label>
               <textarea
                 id="contentValue"
-                className="w-full min-h-56 rounded-xl border border-white/10 bg-white/5 px-3 py-2 font-mono text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+                className="w-full min-h-56 rounded-xl border border-gray-200 bg-white px-3 py-2 font-mono text-xs text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30"
                 value={draftValue}
                 onChange={(e) => setDraftValue(e.target.value)}
                 placeholder='{"blocks":[]}'
                 spellCheck={false}
               />
-              {draftParseError ? <div className="mt-2 text-xs text-rose-200">{draftParseError}</div> : null}
+              {draftParseError ? <div className="mt-2 text-xs text-rose-700">{draftParseError}</div> : null}
             </div>
 
             <div className="flex gap-3">
@@ -247,7 +247,7 @@ export function AdminContent() {
                 onClick={save}
                 disabled={loading}
                 className={
-                  "min-h-11 rounded-xl bg-white text-gray-900 px-4 text-sm font-bold hover:bg-white/90 " +
+                  "min-h-11 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 text-sm font-bold hover:from-blue-700 hover:to-blue-800 " +
                   (loading ? "opacity-70 cursor-not-allowed" : "")
                 }
               >
@@ -258,7 +258,7 @@ export function AdminContent() {
                 onClick={load}
                 disabled={loading}
                 className={
-                  "min-h-11 rounded-xl border border-white/15 bg-white/10 px-4 text-sm font-semibold hover:bg-white/15 " +
+                  "min-h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold hover:bg-gray-50 " +
                   (loading ? "opacity-70 cursor-not-allowed" : "")
                 }
               >
@@ -268,27 +268,27 @@ export function AdminContent() {
           </div>
         </div>
 
-        <div className="rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg p-4 sm:p-6">
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-6">
           <div className="text-lg font-bold font-poppins">Preview</div>
-          <div className="mt-1 text-sm text-white/70">Renders the current draft if it matches the blocks format.</div>
+          <div className="mt-1 text-sm text-gray-600">Renders the current draft if it matches the blocks format.</div>
 
-          <div className="mt-5 rounded-2xl bg-white p-6 border border-white/20">
+          <div className="mt-5 rounded-2xl bg-white p-6 border border-gray-200">
             {parsedDraft && !draftParseError ? <CmsBlocksRenderer value={parsedDraft} /> : <div className="text-sm text-gray-600">Enter valid JSON to preview.</div>}
           </div>
         </div>
       </div>
 
-      <div className="mt-8 rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg p-4 sm:p-6">
+      <div className="mt-8 rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="text-lg font-bold font-poppins">All keys</div>
-            <div className="text-sm text-white/70">Click a row to load it into the editor.</div>
+            <div className="text-sm text-gray-600">Click a row to load it into the editor.</div>
           </div>
         </div>
 
-        <div className="mt-4 overflow-auto rounded-2xl border border-white/10 bg-white/5">
+        <div className="mt-4 overflow-auto rounded-2xl border border-gray-200 bg-white">
           <table className="min-w-[900px] w-full text-sm">
-            <thead className="bg-white/5 text-white/70">
+            <thead className="bg-gray-50 text-gray-600">
               <tr>
                 <th className="text-left px-4 py-3">Key</th>
                 <th className="text-left px-4 py-3">Updated</th>
@@ -299,19 +299,19 @@ export function AdminContent() {
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-4 text-white/70" colSpan={4}>
+                  <td className="px-4 py-4 text-gray-600" colSpan={4}>
                     No content found.
                   </td>
                 </tr>
               ) : (
                 items.map((it) => (
-                  <tr key={it.key} className="border-t border-white/10">
-                    <td className="px-4 py-3 font-semibold text-white">{it.key}</td>
-                    <td className="px-4 py-3 text-white/70 whitespace-nowrap">
+                  <tr key={it.key} className="border-t border-gray-200">
+                    <td className="px-4 py-3 font-semibold text-gray-900">{it.key}</td>
+                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                       {it.updated_at ? new Date(it.updated_at).toLocaleString() : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <pre className="text-xs text-white/80 whitespace-pre-wrap">{JSON.stringify(it.value, null, 2)}</pre>
+                      <pre className="text-xs text-gray-700 whitespace-pre-wrap">{JSON.stringify(it.value, null, 2)}</pre>
                     </td>
                     <td className="px-4 py-3">
                       <button
@@ -320,7 +320,7 @@ export function AdminContent() {
                           setDraftKey(it.key);
                           setDraftValue(JSON.stringify(it.value ?? {}, null, 2));
                         }}
-                        className="min-h-10 rounded-xl border border-white/15 bg-white/10 px-3 text-sm font-semibold hover:bg-white/15"
+                        className="min-h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold hover:bg-gray-50"
                       >
                         Edit
                       </button>

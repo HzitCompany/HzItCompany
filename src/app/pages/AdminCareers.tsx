@@ -92,27 +92,27 @@ export function AdminCareers() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
-          className="rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg p-6"
+          className="rounded-2xl border border-gray-200 bg-white shadow-sm p-6"
         >
-          <div className="text-sm text-white/70">Applications</div>
+          <div className="text-sm text-gray-600">Applications</div>
           <div className="text-2xl md:text-3xl font-bold font-poppins">Career applications</div>
-          <div className="mt-1 text-sm text-white/70">Search, update status, and download resumes.</div>
+          <div className="mt-1 text-sm text-gray-600">Search, update status, and download resumes.</div>
         </motion.div>
       </div>
 
-      {error ? <div className="mb-4 rounded-xl border border-rose-200/30 bg-rose-500/10 px-4 py-3 text-rose-100">{error}</div> : null}
+      {error ? <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-800">{error}</div> : null}
 
-      <div className="rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg p-4 sm:p-6">
+      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
             <input
-              className="w-full sm:w-80 min-h-11 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/50"
+              className="w-full sm:w-80 min-h-11 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30"
               placeholder="Search (name, email, phone, position)…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
             <select
-              className="w-full sm:w-auto min-h-11 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+              className="w-full sm:w-auto min-h-11 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30"
               value={status}
               onChange={(e) => setStatus(e.target.value as any)}
               aria-label="Filter by status"
@@ -125,12 +125,12 @@ export function AdminCareers() {
               ))}
             </select>
           </div>
-          {loading ? <div className="text-sm text-white/70">Loading…</div> : null}
+          {loading ? <div className="text-sm text-gray-600">Loading…</div> : null}
         </div>
 
-        <div className="mt-6 overflow-auto rounded-2xl border border-white/10 bg-white/5">
+        <div className="mt-6 overflow-auto rounded-2xl border border-gray-200 bg-white">
           <table className="min-w-[980px] w-full text-sm">
-            <thead className="bg-white/5 text-white/70">
+            <thead className="bg-gray-50 text-gray-600">
               <tr>
                 <th className="text-left px-4 py-3">Created</th>
                 <th className="text-left px-4 py-3">Candidate</th>
@@ -143,27 +143,27 @@ export function AdminCareers() {
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-4 text-white/70" colSpan={6}>
+                  <td className="px-4 py-4 text-gray-600" colSpan={6}>
                     No applications found.
                   </td>
                 </tr>
               ) : (
                 rows.map((r) => (
-                  <tr key={r.id} className="border-t border-white/10">
-                    <td className="px-4 py-3 text-white/70 whitespace-nowrap">
+                  <tr key={r.id} className="border-t border-gray-200">
+                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                       {r.created_at ? new Date(r.created_at).toLocaleString() : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-semibold text-white">{r.full_name}</div>
-                      <div className="text-white/70">
+                      <div className="font-semibold text-gray-900">{r.full_name}</div>
+                      <div className="text-gray-600">
                         {r.email}
                         {r.phone ? ` • ${r.phone}` : ""}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-white/80">{r.position}</td>
+                    <td className="px-4 py-3 text-gray-700">{r.position}</td>
                     <td className="px-4 py-3">
                       <select
-                        className="min-h-10 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                        className="min-h-10 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30"
                         value={r.status}
                         onChange={(e) => setRowStatus(r.id, e.target.value as CareerApplicationStatus)}
                         disabled={loading}
@@ -184,23 +184,23 @@ export function AdminCareers() {
                         <button
                           type="button"
                           onClick={() => download(r.id, "resume")}
-                          className="min-h-10 rounded-xl border border-white/10 bg-white/10 px-3 text-sm font-semibold hover:bg-white/15"
+                          className="min-h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold hover:bg-gray-50"
                         >
                           Download Resume
                         </button>
                         <button
                           type="button"
                           onClick={() => download(r.id, "cv")}
-                          className="min-h-10 rounded-xl border border-white/10 bg-white/10 px-3 text-sm font-semibold hover:bg-white/15"
+                          className="min-h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold hover:bg-gray-50"
                         >
                           Download CV
                         </button>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <details className="text-white/80">
-                        <summary className="cursor-pointer select-none text-white/70 hover:text-white">View</summary>
-                        <div className="mt-2 whitespace-pre-wrap text-white/80">{r.message || "—"}</div>
+                      <details className="text-gray-800">
+                        <summary className="cursor-pointer select-none text-gray-600 hover:text-gray-900">View</summary>
+                        <div className="mt-2 whitespace-pre-wrap text-gray-800">{r.message || "—"}</div>
                       </details>
                     </td>
                   </tr>

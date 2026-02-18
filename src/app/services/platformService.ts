@@ -125,6 +125,16 @@ export async function createAdminCareerDownloadUrl(
   return getJson<{ ok: true; url: string; expiresInSeconds: number }>(`/api/admin/careers/${id}/download-url?${q}`);
 }
 
+export async function createAdminResumesDownloadUrlByPath(
+  path: string,
+  expiresInSeconds?: number
+) {
+  return postJson<{ path: string; expiresInSeconds?: number }, { ok: true; url: string; expiresInSeconds: number }>(
+    "/api/admin/resumes/download-url",
+    { path, expiresInSeconds }
+  );
+}
+
 export async function fetchAdminContent() {
   return getJson<{ ok: true; items: Array<{ key: string; value: unknown; updated_at: string }> }>("/api/admin/content");
 }

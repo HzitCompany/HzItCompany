@@ -496,6 +496,47 @@ adminRouter.get("/admin/careers/:id/download-url", requireAuth, requireAdmin, as
   }
 });
 
+const resumesDownloadUrlSchema = z
+  .object({
+    kind: z.enum(["resume", "cv"]).optional(),
+    path: z.string().min(1).max(800),
+    expiresInSeconds: z.number().int().positive().max(3600).optional()
+  })
+  .strict();
+
+// POST /api/admin/resumes/download-url
+// Creates a signed download URL for an object in the resumes bucket.
+// Intended for legacy submission records that only store storage paths.
+adminRouter.post("/admin/resumes/download-url", requireAuth, requireAdmin, async (req: AuthedRequest, res, next) => {
+  try {
+    const parsed = resumesDownloadUrlSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, error: "Invalid request", details: parsed.error.flatten() });
+    }
+
+    const expiresInSeconds = parsed.data.expiresInSeconds ?? 600;
+    const path = parsed.data.path;
+
+    // Basic guard against signing arbitrary objects.
+    // Career uploads use the `career/` prefix.
+    if (!path.startsWith("career/")) {
+      return res.status(400).json({ ok: false, error: "Invalid path" });
+    }
+
+    const supabase = getSupabaseAdmin();
+    const bucket = getResumesBucketId();
+
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, expiresInSeconds);
+    if (error || !data?.signedUrl) {
+      throw new HttpError(502, "Failed to create signed URL. Check Supabase Storage configuration.", true);
+    }
+
+    return res.json({ ok: true, url: data.signedUrl, expiresInSeconds });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 // ── User Management ──────────────────────────────────────────────────────────
 
 // GET /admin/users

@@ -57,6 +57,7 @@ export function createApp() {
       },
       credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
       // Avoid being too strict here; let the middleware reflect request headers.
       maxAge: 600
     })
