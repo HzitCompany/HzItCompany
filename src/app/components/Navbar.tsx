@@ -284,7 +284,7 @@ export function Navbar() {
                 ) : null}
 
                 <Link
-                  to="#"
+                  to="/hire-us"
                   onClick={(e) => {
                     e.preventDefault();
                     guardNavigate("/hire-us");
