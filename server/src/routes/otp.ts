@@ -63,11 +63,10 @@ otpRouter.post("/request", async (req, res, next) => {
     if (!userId) throw new HttpError(500, "Failed to create user");
 
     try {
-      const redirectTo = env.WEB_URL || env.CORS_ORIGINS?.[0] || "http://localhost:5173";
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: redirectTo
+          shouldCreateUser: true
         }
       });
       if (error) {

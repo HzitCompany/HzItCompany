@@ -69,12 +69,13 @@ authSessionRouter.post("/auth/email-otp/request", async (req, res, next) => {
 
     const email = parsed.data.email.toLowerCase();
     const supabase = getSupabaseAuth();
-    const redirectTo = env.WEB_URL || env.CORS_ORIGINS?.[0] || "http://localhost:5173";
 
+    // Do NOT pass emailRedirectTo — passing it switches Supabase into magic-link mode
+    // and sends a "Confirm your signup" link instead of a 6-digit OTP code.
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: redirectTo
+        shouldCreateUser: true
       }
     });
 
