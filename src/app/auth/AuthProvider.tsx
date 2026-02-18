@@ -30,8 +30,22 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _location = useLocation();
+  const location = useLocation();
+
+  const AUTH_REDIRECT_KEY = "hz_after_auth_navigate_to";
+
+  const consumePostAuthRedirect = useCallback(() => {
+    try {
+      const next = window.localStorage.getItem(AUTH_REDIRECT_KEY);
+      if (!next) return;
+      window.localStorage.removeItem(AUTH_REDIRECT_KEY);
+      // Avoid no-op navigation loops.
+      const current = `${location.pathname}${location.search}`;
+      if (next !== current) navigate(next);
+    } catch {
+      // Ignore storage errors (private mode, blocked storage, etc.)
+    }
+  }, [location.pathname, location.search, navigate]);
 
   const [user, setUser] = useState<MeUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -116,7 +130,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (event === "SIGNED_IN" && redirectPath) {
                navigate(redirectPath);
                setRedirectPath(null);
+            try { window.localStorage.removeItem(AUTH_REDIRECT_KEY); } catch {}
+            return;
             }
+
+          if (event === "SIGNED_IN") {
+            consumePostAuthRedirect();
+          }
          }
       } else {
          if (mounted) setUser(null);
@@ -128,11 +148,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [fetchProfile, navigate, redirectPath, refreshMe]);
+    // If we loaded a session on refreshMe (e.g. after OAuth redirect), apply redirect once.
+    consumePostAuthRedirect();
+
+  }, [consumePostAuthRedirect, fetchProfile, navigate, redirectPath, refreshMe]);
 
   const openAuthModal = useCallback((opts?: { afterAuthNavigateTo?: string }) => {
     if (opts?.afterAuthNavigateTo) {
       setRedirectPath(opts.afterAuthNavigateTo);
+      try {
+        window.localStorage.setItem(AUTH_REDIRECT_KEY, opts.afterAuthNavigateTo);
+      } catch {
+        // ignore
+      }
     }
     setIsAuthModalOpen(true);
   }, []);

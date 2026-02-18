@@ -15,6 +15,16 @@ export function GoogleLoginButton(props: GoogleLoginButtonProps) {
       props.onError?.();
       return;
     }
+
+    // Persist intended post-auth destination across OAuth full-page redirect.
+    try {
+      const path = `${window.location.pathname}${window.location.search}`;
+      const next = path === "/admin/login" ? "/admin" : path === "/portal/login" ? "/portal" : path;
+      window.localStorage.setItem("hz_after_auth_navigate_to", next);
+    } catch {
+      // ignore
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
