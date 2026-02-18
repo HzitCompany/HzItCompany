@@ -124,10 +124,10 @@ const envSchema = z
   CAREER_UPLOAD_MAX_BYTES: z.coerce.number().int().positive().default(5 * 1024 * 1024)
   })
   .superRefine((val, ctx) => {
-    // Only enforce MAIL_FROM/MAIL_TO when RESEND_API_KEY is set.
+    // Only enforce MAIL_FROM when RESEND_API_KEY is set (needed for OTP emails).
+    // MAIL_TO is optional — only used for admin notification emails.
     if (!val.RESEND_API_KEY) return;
     if (!val.MAIL_FROM) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["MAIL_FROM"], message: "Required when RESEND_API_KEY is set" });
-    if (!val.MAIL_TO) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["MAIL_TO"], message: "Required when RESEND_API_KEY is set" });
 
     // ADMIN_PASSWORD_HASH is optional (admin can login via email OTP or Google OAuth).
   });

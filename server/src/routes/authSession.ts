@@ -1,7 +1,9 @@
+import { randomInt } from "crypto";
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { OAuth2Client } from "google-auth-library";
+import bcrypt from "bcryptjs";
 
 import { env } from "../lib/env.js";
 import { HttpError } from "../middleware/errorHandler.js";
@@ -12,6 +14,7 @@ import { createSession, isSessionActive, revokeSession } from "../lib/sessions.j
 import { clearSessionCookie, setSessionCookie } from "../lib/cookieSession.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
 import { logger } from "../lib/logger.js";
+import { sendOtpEmail } from "../lib/email/resend.js";
 
 export const authSessionRouter = Router();
 
@@ -68,25 +71,40 @@ authSessionRouter.post("/auth/email-otp/request", async (req, res, next) => {
     }
 
     const email = parsed.data.email.toLowerCase();
+    const expiresInSeconds = env.OTP_EXPIRES_SECONDS ?? 300;
 
-    const supabase = getSupabaseAuth();
+    // 1) Ensure the user exists in our own DB.
+    const userId = await ensureLocalUserId({ email });
 
-    // Do NOT pass emailRedirectTo — passing it switches Supabase into magic-link mode
-    // and sends a "Confirm your signup" link instead of a 6-digit OTP code.
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: true
-      }
-    });
+    // 2) Generate an 8-digit numeric OTP.
+    const otpPlain = randomInt(10_000_000, 99_999_999).toString();
 
-    if (error) {
-      const status = typeof (error as any).status === "number" ? (error as any).status : 500;
-      logger.warn({ status, message: error.message, email }, "supabase email otp request failed");
-      throw new HttpError(status === 0 ? 502 : status, error.message || "Failed to send OTP", true);
+    // 3) Hash it with bcrypt.
+    const salt = await bcrypt.genSalt(10);
+    const otpHash = await bcrypt.hash(otpPlain, salt);
+
+    // 4) Persist in otp_codes (invalidate previous ones first).
+    await query(
+      `update otp_codes set consumed_at = now()
+       where user_id = $1 and channel = 'email' and consumed_at is null and expires_at > now()`,
+      [userId]
+    );
+    await query(
+      `insert into otp_codes (user_id, channel, destination, otp_hash, otp_salt, expires_at)
+       values ($1, 'email', $2, $3, $4, now() + ($5 || ' seconds')::interval)`,
+      [userId, email, otpHash, salt, expiresInSeconds]
+    );
+
+    // 5) Send via Resend.
+    try {
+      await sendOtpEmail({ to: email, otp: otpPlain, expiresInSeconds });
+    } catch (mailErr: any) {
+      logger.error({ err: mailErr, email }, "Failed to send OTP email via Resend");
+      throw new HttpError(503, "Failed to send OTP email. Please try again later or use Google Sign In.", true);
     }
 
-    return res.json({ ok: true, message: "OTP sent to your email", expiresInSeconds: 600 });
+    logger.info({ email, userId }, "email OTP sent via Resend");
+    return res.json({ ok: true, message: "OTP sent to your email", expiresInSeconds });
   } catch (err) {
     return next(err);
   }
@@ -107,51 +125,60 @@ authSessionRouter.post("/auth/email-otp/verify", async (req, res, next) => {
     }
 
     const email = parsed.data.email.toLowerCase();
-    const supabase = getSupabaseAuth();
+    const otpPlain = parsed.data.token;
 
-    const { data, error } = await supabase.auth.verifyOtp({
-      email,
-      token: parsed.data.token,
-      type: "email"
-    });
-
-    if (error || !data?.user) {
-      const status = typeof (error as any)?.status === "number" ? (error as any).status : 400;
-      logger.warn({ status, message: error?.message, email }, "supabase email otp verify failed");
-      throw new HttpError(status === 0 ? 400 : status, error?.message || "Invalid OTP", true);
+    // 1) Look up user.
+    const userRows = await query<{ id: number; name: string | null }>("select id, name from users where email = $1 limit 1", [email]);
+    const userRow = userRows[0];
+    if (!userRow) {
+      throw new HttpError(400, "Invalid or expired OTP", true);
     }
 
-    const user = data.user;
-    const meta: any = user.user_metadata ?? {};
-    const nameRaw =
-      (typeof meta.full_name === "string" && meta.full_name.trim())
-        ? meta.full_name.trim()
-        : (typeof meta.name === "string" && meta.name.trim())
-          ? meta.name.trim()
-          : null;
-    const name = nameRaw ?? null;
-    const roleRaw = (meta.role ?? (user.app_metadata as any)?.role) as unknown;
-    const role = roleRaw === "admin" ? "admin" : "user";
+    // 2) Find latest valid OTP code.
+    const otpRows = await query<{ id: number; otp_hash: string }>(
+      `select id, otp_hash from otp_codes
+       where user_id = $1 and channel = 'email' and consumed_at is null and expires_at > now()
+       order by expires_at desc limit 1`,
+      [userRow.id]
+    );
+    const otpRow = otpRows[0];
+    if (!otpRow) {
+      throw new HttpError(400, "OTP has expired or was already used. Please request a new one.", true);
+    }
 
-    const localUserId = await ensureLocalUserId({ email: user.email ?? email, name });
+    // 3) Verify hash.
+    const match = await bcrypt.compare(otpPlain, otpRow.otp_hash);
+    if (!match) {
+      logger.warn({ email, userId: userRow.id }, "email OTP verify failed — wrong code");
+      throw new HttpError(400, "Invalid OTP code", true);
+    }
 
+    // 4) Mark as consumed.
+    await query("update otp_codes set consumed_at = now() where id = $1", [otpRow.id]);
+
+    // 5) Determine role (admin email check).
+    const role: "admin" | "user" = env.ADMIN_EMAIL && email === env.ADMIN_EMAIL.toLowerCase() ? "admin" : "user";
+    const name = userRow.name ?? null;
+
+    // 6) Issue session cookie.
     const token = signToken({
-      sub: String(localUserId),
-      email: (user.email ?? email),
+      sub: String(userRow.id),
+      email,
       role,
       name: name ?? undefined,
       provider: "otp"
     });
 
     const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_MS);
-    await createSession({ userId: localUserId, token, expiresAt });
+    await createSession({ userId: userRow.id, token, expiresAt });
     setSessionCookie(res, token, SESSION_MAX_AGE_MS);
 
+    logger.info({ email, userId: userRow.id, role }, "email OTP verified — session created");
     return res.json({
       ok: true,
       user: {
-        id: String(localUserId),
-        email: user.email ?? email,
+        id: String(userRow.id),
+        email,
         full_name: name,
         role
       }
