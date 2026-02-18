@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { careerSchema, type CareerFormValues } from "../schemas/careerSchema";
-import { createCareerUploadUrlAuthed, submitCareerApplyAuthed, uploadFileToSignedUrl } from "../services/careersService";
+import { createCareerUploadUrlAuthed, submitCareerApplyAuthed, uploadFileToSignedUrlWithProgress } from "../services/careersService";
 import { useAuth } from "../auth/AuthProvider";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
 import { trackEvent } from "../analytics/track";
@@ -59,7 +59,7 @@ export function Careers() {
   });
 
   const onSubmit = async (values: CareerFormValues) => {
-    setSubmitState({ status: "loading" });
+    setSubmitState({ status: "loading", message: "Preparing…" });
 
     if (values.companyWebsite && values.companyWebsite.trim().length > 0) {
       setSubmitState({ status: "success", message: "Thanks — we’ll get back to you shortly." });
@@ -80,6 +80,8 @@ export function Careers() {
 
       if (!resumeFile) throw new Error("Resume is required.");
 
+      setSubmitState({ status: "loading", message: "Creating upload link…" });
+
       const upload = await createCareerUploadUrlAuthed({
         kind: "resume",
         fileName: resumeFile.name,
@@ -87,8 +89,19 @@ export function Careers() {
         fileSize: resumeFile.size,
       });
 
-      await uploadFileToSignedUrl(upload.signedUrl, resumeFile);
+      let lastPct = -1;
+      setSubmitState({ status: "loading", message: "Uploading resume…" });
+      await uploadFileToSignedUrlWithProgress(upload.signedUrl, resumeFile, {
+        onProgress: (pct) => {
+          // Avoid excessive re-renders.
+          if (pct === lastPct) return;
+          lastPct = pct;
+          setSubmitState({ status: "loading", message: `Uploading resume… ${pct}%` });
+        }
+      });
       const resumePath = upload.path;
+
+      setSubmitState({ status: "loading", message: "Submitting application…" });
 
       await submitCareerApplyAuthed({
         fullName: values.name,

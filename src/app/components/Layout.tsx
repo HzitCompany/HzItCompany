@@ -7,10 +7,18 @@ import { AuthProvider } from "../auth/AuthProvider";
 import { AuthModal } from "./AuthModal";
 import { AnimatePresence } from "motion/react";
 import { PageTransition } from "./PageTransition";
+import { useEffect } from "react";
+import { getJson } from "../services/apiClient";
 
 export function Layout() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith("/admin");
+
+  useEffect(() => {
+    // Warm up the backend (Render cold starts) so user actions like submit feel faster.
+    // Non-blocking and safe even if the server returns 503 while starting.
+    getJson("/api/health").catch(() => undefined);
+  }, []);
 
   return (
     <AuthProvider>
