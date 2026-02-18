@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import jwt, { type Algorithm } from "jsonwebtoken";
 
 type JwksKey = {
   kid: string;
@@ -13,7 +13,7 @@ type JwksResponse = {
 };
 
 type DecodedComplete = {
-  header: { kid?: string };
+  header: { kid?: string; alg?: string };
   payload: any;
 };
 
@@ -67,10 +67,23 @@ export async function verifySupabaseJwtViaJwks(token: string): Promise<VerifiedS
   const decoded = jwt.decode(token, { complete: true }) as DecodedComplete | null;
   if (!decoded?.payload) throw new Error("Invalid token");
 
+  const algRaw = String(decoded.header?.alg ?? "");
+  const alg = (algRaw || undefined) as Algorithm | undefined;
   const kid = decoded.header?.kid;
   const iss = decoded.payload?.iss as string | undefined;
   const projectBase = getProjectBaseFromIss(iss);
-  if (!kid || !projectBase) throw new Error("Missing kid/iss");
+
+  if (!projectBase) throw new Error("Missing iss");
+  if (!kid) {
+    // HS256 tokens often don't carry kid, so JWKS can't be used.
+    throw new Error(`Missing kid (alg=${algRaw || "unknown"})`);
+  }
+
+  // JWKS validation only makes sense for asymmetric algorithms.
+  // If we see HS256, the backend must validate via Supabase Auth (auth.getUser) using the correct project keys.
+  if (algRaw && !algRaw.startsWith("RS") && !algRaw.startsWith("ES")) {
+    throw new Error(`Unsupported alg for JWKS (${algRaw})`);
+  }
 
   const keys = await fetchJwks(projectBase);
   const key = keys.find((k) => k.kid === kid);
@@ -79,7 +92,7 @@ export async function verifySupabaseJwtViaJwks(token: string): Promise<VerifiedS
 
   const pem = toPemFromX5c(cert);
   const verified = jwt.verify(token, pem, {
-    algorithms: ["RS256"],
+    algorithms: alg ? [alg] : (["RS256"] as Algorithm[]),
     issuer: iss,
   }) as any;
 

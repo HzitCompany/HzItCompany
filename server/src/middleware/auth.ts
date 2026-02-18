@@ -74,12 +74,23 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
 
     // Validate the token and resolve the user.
     // Order:
-    // 1) Supabase Auth (anon key) if configured
-    // 2) Supabase Admin (service role) if configured
-    // 3) JWKS verification fallback (doesn't require backend Supabase env vars)
+    // 1) JWKS verification (based on token issuer) — works even if backend env vars are misconfigured
+    // 2) Supabase Auth (anon key) if configured
+    // 3) Supabase Admin (service role) if configured
     //
-    // This ensures production doesn't break if backend Supabase keys are missing or
-    // if Supabase is temporarily unreachable.
+    // This reduces "401 Unauthorized" caused by backend/ frontend Supabase project mismatch.
+
+    // 1) Prefer JWKS verification (no dependency on backend SUPABASE_* env vars).
+    try {
+      const verified = await verifySupabaseJwtViaJwks(token);
+      user = { id: verified.sub, email: verified.email ?? null, app_metadata: { provider: verified.provider } };
+      provider = verified.provider;
+      phone = verified.phone;
+    } catch (jwksErr: any) {
+      // Continue to Supabase API fallback.
+      // We'll use this error if other strategies fail.
+      (req as any).__jwksAuthError = jwksErr;
+    }
 
     const trySupabaseGetUser = async (mode: "auth" | "admin") => {
       try {
@@ -97,19 +108,14 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
       return false;
     };
 
-    await trySupabaseGetUser("auth");
+    if (!user) await trySupabaseGetUser("auth");
     if (!user) await trySupabaseGetUser("admin");
 
-    if (!user) {
-      // Final fallback: verify the JWT via Supabase JWKS.
-      const verified = await verifySupabaseJwtViaJwks(token);
-      user = { id: verified.sub, email: verified.email ?? null, app_metadata: { provider: verified.provider } };
-      provider = verified.provider;
-      phone = verified.phone;
-    }
-
     if (!user?.id) {
-      return next(new HttpError(401, "Unauthorized: Invalid token", true));
+      const jwksMessage = (req as any).__jwksAuthError?.message
+        ? ` JWKS: ${(req as any).__jwksAuthError.message}`
+        : "";
+      return next(new HttpError(401, `Unauthorized: Invalid token.${jwksMessage}`, true));
     }
 
     // Determine Role from DB only (use Supabase profiles.role)
