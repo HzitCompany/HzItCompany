@@ -1,25 +1,28 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { useLocation, useNavigate } from "react-router"; 
 import { useAuth } from "../auth/AuthProvider";
 import { Seo } from "../components/Seo";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Navbar } from "../components/Navbar";
+import { AdminShell } from "../components/admin/AdminShell";
 import {
   fetchAdminPortalStats,
   fetchAdminUsers,
   updateUserRole,
   fetchAdminOrders,
-  fetchAdminPricing,
   fetchAdminSubmissions,
 } from "../services/platformService";
 
 type Tab = "summary" | "users" | "orders" | "pricing" | "submissions";
 
+function getAdminEmail(): string {
+    const envAny = (import.meta as any).env ?? {};
+    return ((envAny.VITE_ADMIN_EMAIL as string | undefined) ?? "hzitcompany@gmail.com")
+        .trim()
+        .toLowerCase();
+}
+
 export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string }) {
-    const { isAuthed, role, user, logout } = useAuth();
-    const navigate = useNavigate();
+    const { isAuthed, role, user } = useAuth();
     const [tab, setTab] = useState<Tab>(initialTab as Tab);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -40,10 +43,8 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
     }, [tab, isAuthed, role, userPage]);
     
 
-        // Only allow admin email
-        if (!isAuthed || role !== "admin" || user?.email !== "hzitcompany@gmail.com") {
-                return <div className="p-10 text-center">Access Denied</div>;
-        }
+    const adminEmail = getAdminEmail();
+    const isAdminEmail = (user?.email ?? "").trim().toLowerCase() === adminEmail;
 
         async function loadTab(t: Tab) {
                 setLoading(true);
@@ -80,38 +81,34 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                 }
         }
 
-    // Only allow admin email
-    if (!isAuthed || role !== "admin" || user?.email !== "hzitcompany@gmail.com") {
+    // RequireAdmin already guards this route, but keep a defensive check.
+    if (!isAuthed || role !== "admin" || !isAdminEmail) {
         return <div className="p-10 text-center">Access Denied</div>;
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-gray-900 flex flex-col">
-            <Navbar />
+        <AdminShell title="Dashboard">
             <Seo title="Admin Dashboard" description="HZ Company Admin" path="/admin" />
 
-            {/* Gradient Hero Section */}
-            <section className="relative pt-24 md:pt-28 pb-8">
+            <div className="mb-6">
                 <motion.div
-                    initial={{ opacity: 0, y: 30 }}
+                    initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8 }}
-                    className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
+                    transition={{ duration: 0.35 }}
+                    className="rounded-2xl bg-white/10 backdrop-blur-lg border border-white/15 shadow-lg p-6"
                 >
-                    <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white leading-tight font-poppins">
-                        Admin Dashboard
-                    </h1>
-                    <p className="text-lg text-blue-100 mb-2">Welcome, {user?.full_name || "Admin"}!</p>
+                    <div className="text-sm text-blue-100/80">Welcome</div>
+                    <div className="text-2xl md:text-3xl font-bold font-poppins">{user?.full_name || "Admin"}</div>
+                    <div className="mt-1 text-sm text-blue-100/80">Manage users, submissions, pricing and orders.</div>
                 </motion.div>
-            </section>
+            </div>
 
-            <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pb-12">
                 {/* Tabs */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
-                    className="border-b border-white/20 mb-8"
+                    className="border-b border-white/15 mb-8"
                 >
                     <nav className="-mb-px flex space-x-8 justify-center">
                         {(["summary", "users", "orders", "submissions"] as Tab[]).map((t) => (
@@ -259,20 +256,17 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                     </motion.div>
                 )}
 
-            </main>
-        </div>
+        </AdminShell>
     );
 }
 
 function StatCard({ title, value }: { title: string; value: number | string }) {
     return (
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-                                <dl>
-                                    <dt className="text-sm font-medium text-gray-500 truncate">{title}</dt>
-                                    <dd className="mt-1 text-3xl font-semibold text-gray-900">{value}</dd>
-                                </dl>
-            </div>
+        <div className="rounded-2xl bg-white/10 backdrop-blur-lg border border-white/15 shadow-lg p-6">
+            <dl>
+                <dt className="text-sm font-semibold text-blue-100/80 truncate">{title}</dt>
+                <dd className="mt-2 text-3xl font-bold text-white">{value}</dd>
+            </dl>
         </div>
     );
 }

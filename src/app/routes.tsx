@@ -100,6 +100,13 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: "admin/users",
+        lazy: async () => {
+          const { AdminDashboard } = await import("./pages/AdminDashboard");
+          return { Component: () => <RequireAdmin><AdminDashboard initialTab="users" /></RequireAdmin> };
+        },
+      },
+      {
         path: "admin/orders",
         lazy: async () => {
           const { AdminDashboard } = await import("./pages/AdminDashboard");

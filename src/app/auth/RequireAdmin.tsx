@@ -5,9 +5,18 @@ import { Link, useLocation } from "react-router";
 import { useAuth } from "./AuthProvider";
 import { CTAButton } from "../components/CTAButton";
 
+function getAdminEmail(): string {
+  const envAny = (import.meta as any).env ?? {};
+  return ((envAny.VITE_ADMIN_EMAIL as string | undefined) ?? "hzitcompany@gmail.com")
+    .trim()
+    .toLowerCase();
+}
+
 export function RequireAdmin({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const { isAuthed, role, isLoading, openAuthModal, logout } = useAuth();
+  const { isAuthed, role, isLoading, openAuthModal, logout, user } = useAuth();
+  const adminEmail = getAdminEmail();
+  const isAdminEmail = (user?.email ?? "").trim().toLowerCase() === adminEmail;
 
   useEffect(() => {
     if (isLoading) return;
@@ -39,7 +48,7 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
     );
   }
 
-  if (role !== "admin") {
+  if (role !== "admin" || !isAdminEmail) {
     return (
       <div className="min-h-[70vh] bg-gray-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
