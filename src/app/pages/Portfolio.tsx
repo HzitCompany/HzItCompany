@@ -120,10 +120,10 @@ export function Portfolio() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
-              { value: "500+", label: "Projects Delivered" },
-              { value: "150+", label: "Happy Clients" },
-              { value: "98%", label: "Success Rate" },
-              { value: "50+", label: "Industry Awards" },
+              { label: "Projects Delivered" },
+              { label: "Happy Clients" },
+              { label: "Success Rate" },
+              { label: "Industry Awards" },
             ].map((stat, index) => (
               <motion.div
                 key={index}
@@ -131,14 +131,11 @@ export function Portfolio() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="text-center"
+                className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 flex flex-col items-center gap-2"
               >
-                <div
-                  className="text-5xl font-bold mb-2 font-poppins"
-                >
-                  {stat.value}
-                </div>
-                <div className="text-gray-300">{stat.label}</div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-300"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <div className="text-sm font-bold text-blue-200 tracking-widest uppercase">Coming Soon</div>
+                <div className="text-gray-300 text-sm text-center">{stat.label}</div>
               </motion.div>
             ))}
           </div>

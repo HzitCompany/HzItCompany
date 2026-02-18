@@ -68,6 +68,7 @@ authSessionRouter.post("/auth/email-otp/request", async (req, res, next) => {
     }
 
     const email = parsed.data.email.toLowerCase();
+
     const supabase = getSupabaseAuth();
 
     // Do NOT pass emailRedirectTo — passing it switches Supabase into magic-link mode
