@@ -1,10 +1,17 @@
 import { Link } from "react-router";
 import { Mail, Phone, MapPin, Linkedin, Twitter, Instagram, Facebook, Youtube } from "lucide-react";
 import { siteConfig } from "@/app/config/site";
+import { useAuth } from "../auth/AuthProvider";
 import { useAuthGuard } from "../auth/useAuthGuard";
 
 export function Footer() {
+  const { user } = useAuth();
   const { guardNavigate } = useAuthGuard();
+  const envAny = (import.meta as any).env ?? {};
+  const adminEmail = ((envAny.VITE_ADMIN_EMAIL as string | undefined) ?? "hzitcompany@gmail.com")
+    .trim()
+    .toLowerCase();
+  const isAdminEmail = (user?.email ?? "").trim().toLowerCase() === adminEmail;
   const phoneDigits = siteConfig.contact.phone.replace(/\D/g, "");
   const telHref = phoneDigits.length === 10 ? `tel:+91${phoneDigits}` : `tel:+${phoneDigits}`;
   const addressText = [
@@ -125,9 +132,11 @@ export function Footer() {
                 </button>
               </li>
               <li>
-                <Link to="/admin/login" className="text-gray-300 hover:text-blue-400 transition-colors text-sm">
-                  Admin
-                </Link>
+                {isAdminEmail ? (
+                  <Link to="/admin" className="text-gray-300 hover:text-blue-400 transition-colors text-sm">
+                    Admin
+                  </Link>
+                ) : null}
               </li>
             </ul>
           </div>

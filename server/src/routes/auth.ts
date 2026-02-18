@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { getSupabaseAdmin } from "../lib/supabase.js";
 import { HttpError } from "../middleware/errorHandler.js";
+import { env } from "../lib/env.js";
 
 export const authRouter = Router();
 
@@ -26,7 +27,8 @@ authRouter.post("/auth/sync-profile", async (req, res, next) => {
 
     const parsed = syncProfileSchema.safeParse(req.body);
     const fullName = parsed.success ? parsed.data.full_name : (user.user_metadata?.full_name || user.email?.split("@")[0] || "User");
-    const role = user.email === "hzitcompany@gmail.com" ? "admin" : "user";
+    const adminEmail = env.ADMIN_EMAIL?.trim().toLowerCase();
+    const role = adminEmail && user.email?.trim().toLowerCase() === adminEmail ? "admin" : "user";
 
     // Upsert profile
     const { error: upsertError } = await supabase
