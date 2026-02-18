@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { HttpError } from "./errorHandler.js";
-import { getSupabaseAdmin } from "../lib/supabase.js";
+import { env } from "../lib/env.js";
+import { getSupabaseAdmin, getSupabaseAuth } from "../lib/supabase.js";
 import { query } from "../lib/db.js";
 
 // Helper interface for typed requests
@@ -59,9 +60,21 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
   }
 
   try {
-    const supabase = getSupabaseAdmin();
-    // Validate the token and get the user
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    // Validate the token and get the user.
+    // Prefer anon-key client (doesn't require service role), but fall back to service-role
+    // client to preserve compatibility with deployments that only set SUPABASE_SERVICE_ROLE_KEY.
+    const getUserResult = async () => {
+      try {
+        return await getSupabaseAuth().auth.getUser(token);
+      } catch (err) {
+        if (err instanceof HttpError && err.status === 503) {
+          return await getSupabaseAdmin().auth.getUser(token);
+        }
+        throw err;
+      }
+    };
+
+    const { data: { user }, error } = await getUserResult();
 
     if (error || !user) {
       return next(new HttpError(401, "Unauthorized: Invalid token", true));
@@ -70,14 +83,20 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
     // Determine Role from DB only (use Supabase profiles.role)
     let role: "admin" | "user" = "user";
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-    
-    if (profile?.role === "admin") {
-      role = "admin";
+    // Prefer profiles.role via service-role (bypasses RLS). If storage/admin env isn't configured,
+    // fall back to ADMIN_EMAIL for bootstrap.
+    try {
+      const supabaseAdmin = getSupabaseAdmin();
+      const { data: profile } = await supabaseAdmin.from("profiles").select("role").eq("id", user.id).single();
+      if (profile?.role === "admin") role = "admin";
+    } catch {
+      // Ignore role lookup failures; we'll default to "user" and rely on ADMIN_EMAIL fallback.
+    }
+
+    if (role !== "admin" && env.ADMIN_EMAIL && user.email) {
+      if (user.email.trim().toLowerCase() === env.ADMIN_EMAIL.trim().toLowerCase()) {
+        role = "admin";
+      }
     }
 
     const provider = (user.app_metadata as any)?.provider as string | undefined;
@@ -95,6 +114,7 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
 
     next();
   } catch (err: any) {
+    if (err instanceof HttpError) return next(err);
     // Distinguish between network errors and auth errors if possible
     return next(new HttpError(401, "Unauthorized: Validation failed", true));
   }
