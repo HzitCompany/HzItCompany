@@ -34,9 +34,9 @@ const envSchema = z
     z.string().email().optional()
   ),
 
-  ADMIN_PASSWORD: z.preprocess(
+  ADMIN_PASSWORD_HASH: z.preprocess(
     (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
-    z.string().min(8).max(200).optional()
+    z.string().min(20).max(200).optional()
   ),
 
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
@@ -107,13 +107,8 @@ const envSchema = z
     if (!val.MAIL_FROM) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["MAIL_FROM"], message: "Required when RESEND_API_KEY is set" });
     if (!val.MAIL_TO) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["MAIL_TO"], message: "Required when RESEND_API_KEY is set" });
 
-    // SMS: if template is set, auth key must be set.
-    if (val.MSG91_TEMPLATE_ID && !val.MSG91_AUTH_KEY) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["MSG91_AUTH_KEY"], message: "Required when MSG91_TEMPLATE_ID is set" });
-    }
-
-    if (val.ADMIN_EMAIL && !val.ADMIN_PASSWORD) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["ADMIN_PASSWORD"], message: "Required when ADMIN_EMAIL is set" });
+    if (val.ADMIN_EMAIL && !val.ADMIN_PASSWORD_HASH) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["ADMIN_PASSWORD_HASH"], message: "Required when ADMIN_EMAIL is set" });
     }
   });
 

@@ -402,6 +402,10 @@ export function Careers() {
                   >
                     Submit application
                   </button>
+
+                  <a href="/" className="block text-center text-sm text-gray-600 hover:underline">
+                    Back to website
+                  </a>
                 </form>
 
                 <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">

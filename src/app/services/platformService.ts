@@ -38,6 +38,13 @@ export async function login(input: { email: string; password: string }) {
   return postJson<typeof input, { ok: true; token: string; role: "client" | "admin" }>("/api/auth/login", input);
 }
 
+export async function loginWithSupabase(accessToken: string) {
+  return postJson<{ accessToken: string }, { ok: true; token: string; role: "client" | "admin" }>(
+    "/api/auth/supabase",
+    { accessToken }
+  );
+}
+
 export async function fetchPortalOrders(token: string) {
   return getJson<{ ok: true; items: any[] }>("/api/portal/orders", { token });
 }

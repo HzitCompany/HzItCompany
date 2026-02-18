@@ -2,7 +2,6 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { Link, useLocation } from "react-router";
 import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import logoImage from "../../assets/d02f6d670ee484ccb5b3f98463b90941b5d1ead6.png";
 import { useAuth } from "../auth/AuthProvider";
 import { useAuthGuard } from "../auth/useAuthGuard";
 
@@ -171,7 +170,7 @@ export function Navbar() {
               <Link to="/" className="flex items-center group">
                 <div className="h-11 w-11 md:h-12 md:w-12 rounded-xl overflow-hidden shrink-0">
                   <img
-                    src={logoImage}
+                    src="/logo.png"
                     alt="HZ IT Logo"
                     className="h-full w-full object-contain"
                   />

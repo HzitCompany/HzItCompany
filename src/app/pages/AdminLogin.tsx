@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { motion } from "framer-motion";
 import { Seo } from "../components/Seo";
-import { login } from "../services/platformService";
+import { login, loginWithSupabase } from "../services/platformService";
 import { setSession } from "../auth/session";
+import { supabase } from "../lib/supabase";
 
 function getErrorMessage(err: unknown) {
   if (typeof err === "string") return err;
@@ -21,6 +22,53 @@ export function AdminLogin() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const accessToken = data.session?.access_token;
+        if (!accessToken) return;
+
+        setLoading(true);
+        setError(null);
+
+        const r = await loginWithSupabase(accessToken);
+
+        if (cancelled) return;
+        setSession(r.token, r.role);
+
+        // App uses its own JWT; clear Supabase session to avoid loops.
+        await supabase.auth.signOut();
+
+        navigate(r.role === "admin" ? "/admin" : "/portal");
+      } catch (e: unknown) {
+        if (cancelled) return;
+        // If OAuth completion fails, fall back to password login.
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
+
+  async function onGoogle() {
+    if (loading) return;
+    setError(null);
+
+    const redirectTo = `${window.location.origin}/admin/login`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo }
+    });
+
+    if (error) setError(error.message || "Google login failed");
+  }
 
   async function onSubmit() {
     if (loading) return;
@@ -117,6 +165,15 @@ export function AdminLogin() {
                   className="min-h-11 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-white font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
                 >
                   {loading ? "Please wait…" : "Login"}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={onGoogle}
+                  className="min-h-11 rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Continue with Google
                 </button>
 
                 <Link to="/" className="text-center text-sm text-gray-600 hover:underline">

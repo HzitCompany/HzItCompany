@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router";
 
 import { Seo } from "../components/Seo";
-import { login, registerClient } from "../services/platformService";
+import { login, loginWithSupabase, registerClient } from "../services/platformService";
 import { setSession } from "../auth/session";
+import { supabase } from "../lib/supabase";
 
 export function PortalLogin() {
   const navigate = useNavigate();
@@ -15,6 +16,45 @@ export function PortalLogin() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const accessToken = data.session?.access_token;
+        if (!accessToken) return;
+
+        setLoading(true);
+        setError(null);
+        const r = await loginWithSupabase(accessToken);
+        if (cancelled) return;
+        setSession(r.token, r.role);
+        await supabase.auth.signOut();
+        navigate(r.role === "admin" ? "/admin" : "/portal");
+      } catch (e: any) {
+        if (cancelled) return;
+        setError(typeof e?.message === "string" ? e.message : "Google authentication failed");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
+
+  async function onGoogle() {
+    if (loading) return;
+    setError(null);
+    const redirectTo = `${window.location.origin}/portal/login`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo }
+    });
+    if (error) setError(error.message || "Google login failed");
+  }
 
   async function onSubmit() {
     setError(null);
@@ -96,6 +136,15 @@ export function PortalLogin() {
               className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
             >
               {loading ? "Please wait…" : mode === "login" ? "Login" : "Create account"}
+            </button>
+
+            <button
+              type="button"
+              disabled={loading}
+              onClick={onGoogle}
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 hover:bg-gray-50 disabled:opacity-50"
+            >
+              Continue with Google
             </button>
 
             <Link to="/auth" className="text-center text-sm text-blue-700 hover:underline">

@@ -1,6 +1,5 @@
 import { Link } from "react-router";
 import { Mail, Phone, MapPin, Linkedin, Twitter, Instagram, Facebook, Youtube } from "lucide-react";
-import logoImage from "../../assets/d02f6d670ee484ccb5b3f98463b90941b5d1ead6.png";
 import { siteConfig } from "@/app/config/site";
 import { useAuthGuard } from "../auth/useAuthGuard";
 
@@ -27,7 +26,7 @@ export function Footer() {
             <div className="flex items-center mb-4">
               <div className="h-12 w-12 rounded-2xl overflow-hidden">
                 <img
-                  src={logoImage}
+                  src="/logo.png"
                   alt="HZ IT Logo"
                   className="h-full w-full object-contain"
                 />
@@ -175,7 +174,7 @@ export function Footer() {
         <div className="border-t border-white/10 mt-8 pt-8 text-sm text-gray-400">
           <div className="flex items-center justify-center gap-3">
             <div className="h-8 w-8 rounded-lg overflow-hidden bg-white/10">
-              <img src={logoImage} alt="HZ IT Logo" className="h-full w-full object-contain" />
+              <img src="/logo.png" alt="HZ IT Logo" className="h-full w-full object-contain" />
             </div>
             <p>&copy; 2026 HZ IT Company. All rights reserved.</p>
           </div>

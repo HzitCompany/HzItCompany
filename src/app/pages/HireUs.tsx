@@ -660,6 +660,10 @@ export function HireUs() {
                   )}
                 </div>
               </div>
+
+              <a href="/" className="mt-6 block text-center text-sm text-gray-600 hover:underline">
+                Back to website
+              </a>
             </form>
           </motion.div>
         </div>

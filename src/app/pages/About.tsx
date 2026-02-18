@@ -79,13 +79,11 @@ export function About() {
                 A Founder-Led Delivery Culture
               </h2>
               <p className="text-gray-600 mb-4 leading-relaxed">
-                HZ IT Company was built around one belief: great software comes from clarity, ownership, and communication.
-                We don’t “throw it over the wall.” We work as an extension of your team—planning carefully, shipping iteratively,
-                and measuring success by business outcomes.
+                HZ IT Company was established in 2026 with a vision to provide reliable, affordable, and high-quality digital solutions.
+                We work as an extension of your team—planning clearly, shipping iteratively, and measuring success by business outcomes.
               </p>
               <p className="text-gray-600 leading-relaxed">
-                Our founder started as an engineer and product builder—so every engagement is structured around practical tradeoffs:
-                security, performance, maintainability, and a roadmap your stakeholders can trust.
+                Our delivery is founder-led and engineering-driven, with a strong focus on long-term support and transparent communication.
               </p>
             </motion.div>
 
@@ -101,7 +99,7 @@ export function About() {
                 </p>
                 <div>
                   <p className="font-bold font-poppins">
-                    Founder, HZ IT Company
+                    Manish Kumar Singh — Founder & CEO
                   </p>
                   <p className="text-blue-200 text-sm">Engineering-led. Product-minded.</p>
                 </div>
@@ -126,14 +124,10 @@ export function About() {
                 Our Story
               </h2>
               <p className="text-gray-600 mb-4 leading-relaxed">
-                Founded in 2011, HZ IT Company emerged from a simple yet powerful vision: to help businesses harness the full potential of technology. What started as a small team of passionate developers has grown into a leading IT services provider serving clients across the globe.
+                HZ IT Company was established in 2026 with a vision to provide reliable, affordable, and high-quality digital solutions.
               </p>
-              <p className="text-gray-600 mb-4 leading-relaxed">
-                Over the past 15 years, we've evolved alongside the rapidly changing tech landscape, consistently staying ahead of the curve. Our commitment to innovation, coupled with deep industry expertise, has enabled us to deliver transformative solutions that drive real business results.
-              </p>
-              <p className="text-gray-600 leading-relaxed">
-                Today, we're proud to be a trusted partner to startups, SMBs, and Fortune 500 companies alike, helping them navigate digital transformation and achieve their strategic objectives.
-              </p>
+              <p className="text-gray-600 mb-4 leading-relaxed">From day one, our focus has been simple: deliver quality work, keep communication clear, and support clients long after launch.</p>
+              <p className="text-gray-600 leading-relaxed">Today, we help businesses across India build and scale products with dependable execution and practical guidance.</p>
             </motion.div>
 
             <motion.div
@@ -168,7 +162,7 @@ export function About() {
                 Our Mission
               </h3>
               <p className="text-gray-600 leading-relaxed">
-                To empower businesses worldwide with innovative technology solutions that drive growth, efficiency, and competitive advantage. We're committed to delivering exceptional value through cutting-edge expertise and unwavering dedication to our clients' success.
+                Empower businesses with reliable digital solutions and long-term support.
               </p>
             </motion.div>
 
@@ -188,7 +182,7 @@ export function About() {
                 Our Vision
               </h3>
               <p className="text-blue-100 leading-relaxed">
-                To be the world's most trusted technology partner, recognized for transforming businesses through innovation, excellence, and sustainable digital solutions. We envision a future where technology seamlessly enhances every aspect of business operations.
+                Become a trusted IT partner driving digital transformation.
               </p>
             </motion.div>
           </div>

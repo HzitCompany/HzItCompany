@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { env } from "../lib/env.js";
 import { query } from "../lib/db.js";
-import { normalizeIndianPhoneE164 } from "../lib/sms/msg91.js";
+import { normalizeIndianPhoneE164 } from "../lib/phone.js";
 import { HttpError } from "../middleware/errorHandler.js";
 import { signToken } from "../lib/auth.js";
 import { createOtpSession } from "../lib/sessions.js";

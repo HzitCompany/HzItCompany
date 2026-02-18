@@ -329,6 +329,10 @@ export function Contact() {
                     {isSubmitting ? "Sending…" : "Send Message"}
                     <Send size={18} className="ml-2" />
                   </button>
+
+                  <a href="/" className="block text-center text-sm text-gray-600 hover:underline">
+                    Back to website
+                  </a>
                 </form>
               </div>
             </motion.div>
