@@ -52,36 +52,79 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [redirectPath, setRedirectPath] = useState<string | null>(null);
 
-  const fetchBackendRole = useCallback(async (): Promise<"user" | "admin"> => {
+  // -- Role cache helpers (localStorage) so we never need to hit /api/me on every reload --
+  const ROLE_CACHE_KEY = "hz_user_role_cache";
+
+  const getCachedRole = useCallback((userId: string): "user" | "admin" | null => {
     try {
-      const res = await getJson<{ ok: true; user: { role?: "admin" | "user" } }>("/api/me");
-      return res.user?.role === "admin" ? "admin" : "user";
-    } catch {
-      return "user";
-    }
+      const raw = window.localStorage.getItem(ROLE_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed?.userId === userId) return parsed.role ?? "user";
+    } catch {}
+    return null;
   }, []);
 
-  const refreshMe = useCallback(async () => {
-    if (!supabase) {
-      setUser(null);
-      return;
-    }
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
-      setUser(null);
-      return;
-    }
+  const setCachedRole = useCallback((userId: string, role: "user" | "admin") => {
+    try {
+      window.localStorage.setItem(ROLE_CACHE_KEY, JSON.stringify({ userId, role }));
+    } catch {}
+  }, []);
 
-    const role = await fetchBackendRole();
-    const fullName = session.user.user_metadata?.full_name ?? null;
-    
-    setUser({
-      id: session.user.id,
-      email: session.user.email ?? null,
-      full_name: fullName,
-      role
-    });
-  }, [fetchBackendRole]);
+  const clearCachedRole = useCallback(() => {
+    try { window.localStorage.removeItem(ROLE_CACHE_KEY); } catch {}
+  }, []);
+
+  // Tracks whether we've already sent a fresh /api/me call for the current session.
+  const roleFetchedForSession = useCallback(
+    (() => {
+      let lastFetchedUserId: string | null = null;
+      let inFlight: Promise<"user" | "admin"> | null = null;
+      return async (userId: string): Promise<"user" | "admin"> => {
+        // Deduplicate: if we already have an in-flight request, reuse it.
+        if (lastFetchedUserId === userId && inFlight) return inFlight;
+        lastFetchedUserId = userId;
+        inFlight = (async () => {
+          try {
+            const res = await getJson<{ ok: true; user: { role?: "admin" | "user" } }>("/api/me");
+            const role = res.user?.role === "admin" ? "admin" : "user";
+            setCachedRole(userId, role);
+            return role;
+          } catch {
+            // Backend unavailable (503/network) — use cache or default to "user"
+            return getCachedRole(userId) ?? "user";
+          } finally {
+            inFlight = null;
+          }
+        })();
+        return inFlight;
+      };
+    })(),
+    [getCachedRole, setCachedRole]
+  );
+
+  const buildUser = useCallback(async (sessionUser: any, freshFetch: boolean): Promise<MeUser> => {
+    const cached = getCachedRole(sessionUser.id);
+    // Use cache immediately for instant load; fetch fresh in background only on new sign-in.
+    const role = cached && !freshFetch
+      ? cached
+      : await roleFetchedForSession(sessionUser.id);
+
+    return {
+      id: sessionUser.id,
+      email: sessionUser.email ?? null,
+      full_name: sessionUser.user_metadata?.full_name ?? null,
+      role,
+    };
+  }, [getCachedRole, roleFetchedForSession]);
+
+  const refreshMe = useCallback(async () => {
+    if (!supabase) { setUser(null); return; }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) { setUser(null); return; }
+    const me = await buildUser(session.user, false);
+    setUser(me);
+  }, [buildUser]);
 
   useEffect(() => {
     if (!supabase) {
@@ -91,37 +134,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     let mounted = true;
 
-    // Initial load
-    refreshMe().finally(() => {
-      if (mounted) setIsLoading(false);
-    });
-
+    // CORRECT Supabase v2 pattern: do NOT call getSession() on mount.
+    // onAuthStateChange always fires INITIAL_SESSION synchronously with the
+    // stored localStorage session — this is the only reliable way to restore
+    // a session on reload without forcing the user to re-login.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
       if (session?.user) {
-         if (mounted) {
-            // Optimistic update
-            const role = await fetchBackendRole();
-            const fullName = session.user.user_metadata?.full_name ?? null;
-            setUser({
-              id: session.user.id,
-              email: session.user.email ?? null,
-              full_name: fullName,
-              role
-            });
+        // freshFetch only on real sign-in; INITIAL_SESSION + TOKEN_REFRESHED use cache.
+        const freshFetch = event === "SIGNED_IN" || event === "USER_UPDATED";
+        const me = await buildUser(session.user, freshFetch);
+        if (mounted) setUser(me);
 
-            if (event === "SIGNED_IN" && redirectPath) {
-               navigate(redirectPath);
-               setRedirectPath(null);
+        if (event === "SIGNED_IN") {
+          if (redirectPath) {
+            navigate(redirectPath);
+            setRedirectPath(null);
             try { window.localStorage.removeItem(AUTH_REDIRECT_KEY); } catch {}
-            return;
-            }
-
-          if (event === "SIGNED_IN") {
+          } else {
             consumePostAuthRedirect();
           }
-         }
+        }
       } else {
-         if (mounted) setUser(null);
+        // Only clear if it's an explicit sign-out, not just a transient null session.
+        if (event === "SIGNED_OUT") {
+          clearCachedRole();
+          if (mounted) setUser(null);
+        }
       }
       if (mounted) setIsLoading(false);
     });
@@ -130,10 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-    // If we loaded a session on refreshMe (e.g. after OAuth redirect), apply redirect once.
-    consumePostAuthRedirect();
-
-  }, [consumePostAuthRedirect, fetchBackendRole, navigate, redirectPath, refreshMe]);
+  }, [buildUser, clearCachedRole, consumePostAuthRedirect, navigate, redirectPath]);
 
   const openAuthModal = useCallback((opts?: { afterAuthNavigateTo?: string }) => {
     if (opts?.afterAuthNavigateTo) {
@@ -155,9 +192,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (supabase) {
       await supabase.auth.signOut();
     }
+    clearCachedRole();
     setUser(null);
     navigate("/");
-  }, [navigate]);
+  }, [clearCachedRole, navigate]);
 
   const value = useMemo(() => ({
     user,
