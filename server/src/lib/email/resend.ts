@@ -1,14 +1,17 @@
-import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+import nodemailer from "nodemailer";
 
 import { env } from "../env.js";
 
-function getSesClient(): SESClient | null {
-  if (!env.AWS_ACCESS_KEY_ID || !env.AWS_SECRET_ACCESS_KEY) return null;
-  return new SESClient({
-    region: env.AWS_SES_REGION ?? "us-east-1",
-    credentials: {
-      accessKeyId: env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: env.AWS_SECRET_ACCESS_KEY
+function getTransport() {
+  if (!env.SES_SMTP_USER || !env.SES_SMTP_PASSWORD) return null;
+  const host = `email-smtp.${env.AWS_SES_REGION ?? "ap-south-1"}.amazonaws.com`;
+  return nodemailer.createTransport({
+    host,
+    port: 465,
+    secure: true,
+    auth: {
+      user: env.SES_SMTP_USER,
+      pass: env.SES_SMTP_PASSWORD
     }
   });
 }
@@ -19,32 +22,23 @@ async function sesSend(opts: {
   text: string;
   html?: string;
 }) {
-  const client = getSesClient();
-  if (!client) return null;
-  if (!env.MAIL_FROM) return null;
+  const transport = getTransport();
+  if (!transport || !env.MAIL_FROM) return null;
 
-  const toAddresses = Array.isArray(opts.to) ? opts.to : [opts.to];
-
-  await client.send(
-    new SendEmailCommand({
-      Source: env.MAIL_FROM,
-      Destination: { ToAddresses: toAddresses },
-      Message: {
-        Subject: { Data: opts.subject, Charset: "UTF-8" },
-        Body: {
-          Text: { Data: opts.text, Charset: "UTF-8" },
-          ...(opts.html ? { Html: { Data: opts.html, Charset: "UTF-8" } } : {})
-        }
-      }
-    })
-  );
+  await transport.sendMail({
+    from: env.MAIL_FROM,
+    to: opts.to,
+    subject: opts.subject,
+    text: opts.text,
+    html: opts.html
+  });
 
   return true;
 }
 
 export async function sendOtpEmail(input: { to: string; otp: string; expiresInSeconds: number }) {
-  if (!env.AWS_ACCESS_KEY_ID || !env.AWS_SECRET_ACCESS_KEY) {
-    throw new Error("Email provider is not configured (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY missing)");
+  if (!env.SES_SMTP_USER || !env.SES_SMTP_PASSWORD) {
+    throw new Error("Email provider is not configured (SES_SMTP_USER / SES_SMTP_PASSWORD missing)");
   }
   if (!env.MAIL_FROM) {
     throw new Error("MAIL_FROM is required for sending email");
@@ -63,7 +57,7 @@ export async function sendOtpEmail(input: { to: string; otp: string; expiresInSe
 
   const sent = await sesSend({ to: input.to, subject, text, html });
   if (!sent) {
-    throw new Error("Email provider is not configured (AWS credentials missing)");
+    throw new Error("Email provider is not configured (SMTP credentials missing)");
   }
 }
 
@@ -98,7 +92,7 @@ export async function sendUserSubmissionEmail(input: {
   to: string;
   submissionType: "contact" | "hire" | "career";
 }) {
-  const subject = "We received your request — HZ IT Company";
+  const subject = "We received your request \u2014 HZ IT Company";
   const text =
     `Thanks for reaching out to HZ IT Company.\n\n` +
     `We received your ${input.submissionType} request and will respond within 1 business day.\n`;

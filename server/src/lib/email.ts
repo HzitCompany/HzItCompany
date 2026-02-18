@@ -1,4 +1,4 @@
-import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+import nodemailer from "nodemailer";
 import { env } from "./env.js";
 
 export type LeadEmail = {
@@ -6,33 +6,28 @@ export type LeadEmail = {
   text: string;
 };
 
-function getSesClient(): SESClient | null {
-  if (!env.AWS_ACCESS_KEY_ID || !env.AWS_SECRET_ACCESS_KEY) return null;
-  return new SESClient({
-    region: env.AWS_SES_REGION ?? "us-east-1",
-    credentials: {
-      accessKeyId: env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: env.AWS_SECRET_ACCESS_KEY
-    }
+function getTransport() {
+  if (!env.SES_SMTP_USER || !env.SES_SMTP_PASSWORD) return null;
+  const host = `email-smtp.${env.AWS_SES_REGION ?? "ap-south-1"}.amazonaws.com`;
+  return nodemailer.createTransport({
+    host,
+    port: 465,
+    secure: true,
+    auth: { user: env.SES_SMTP_USER, pass: env.SES_SMTP_PASSWORD }
   });
 }
 
 export function isEmailEnabled() {
-  return Boolean(env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY && env.MAIL_FROM && env.MAIL_TO);
+  return Boolean(env.SES_SMTP_USER && env.SES_SMTP_PASSWORD && env.MAIL_FROM && env.MAIL_TO);
 }
 
 export async function sendLeadEmail(message: LeadEmail) {
   if (!isEmailEnabled()) return;
-
-  const client = getSesClient()!;
-  await client.send(
-    new SendEmailCommand({
-      Source: env.MAIL_FROM!,
-      Destination: { ToAddresses: [env.MAIL_TO!] },
-      Message: {
-        Subject: { Data: message.subject, Charset: "UTF-8" },
-        Body: { Text: { Data: message.text, Charset: "UTF-8" } }
-      }
-    })
-  );
+  const transport = getTransport()!;
+  await transport.sendMail({
+    from: env.MAIL_FROM!,
+    to: env.MAIL_TO!,
+    subject: message.subject,
+    text: message.text
+  });
 }
