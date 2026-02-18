@@ -23,12 +23,13 @@ const envSchema = z
 
   DATABASE_URL: z.string().url(),
 
-  // Dev helper: auto-apply db/schema.sql on startup if core tables are missing.
-  // Keep this disabled in production unless you explicitly want the server to run DDL.
+  // Auto-apply db/schema.sql on startup if core tables are missing.
+  // Defaults to true so a fresh deployment works without manual SQL steps.
+  // Set DB_AUTO_SCHEMA=false to disable if you want full manual control.
   DB_AUTO_SCHEMA: z
     .preprocess(
       (v) => (typeof v === "string" ? v.trim().toLowerCase() : v),
-      z.enum(["true", "false"]).optional()
+      z.enum(["true", "false"]).default("true")
     )
     .transform((v) => v === "true"),
 
