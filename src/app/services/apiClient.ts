@@ -54,15 +54,52 @@ async function parseJsonSafe(response: Response) {
   }
 }
 
+let cachedAuthToken: string | null = null;
+
+export function setApiAuthToken(token: string | null) {
+  cachedAuthToken = token;
+}
+
+function readStoredAccessToken(): string | null {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return null;
+    // Supabase stores sessions under keys like: sb-<project-ref>-auth-token
+    // We scan for any such key to avoid hardcoding the ref.
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i);
+      if (!key) continue;
+      if (!/^sb-[a-z0-9]+-auth-token$/i.test(key)) continue;
+      const raw = window.localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+
+      // Depending on supabase-js version, token may be nested.
+      const token =
+        (parsed?.currentSession?.access_token as string | undefined) ??
+        (parsed?.access_token as string | undefined) ??
+        null;
+      if (token && typeof token === "string") return token;
+    }
+  } catch {
+    // Ignore storage parsing issues.
+  }
+  return null;
+}
+
 async function getAuthToken(): Promise<string | null> {
+  if (cachedAuthToken) return cachedAuthToken;
   if (!supabase) return null;
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token ?? null;
+    const token = session?.access_token ?? null;
+    if (token) cachedAuthToken = token;
+    return token;
   } catch {
     // In some browsers / multi-tab scenarios, Supabase may fail acquiring a lock
     // (Navigator LockManager) and throw. Public pages must keep working.
-    return null;
+    const token = readStoredAccessToken();
+    if (token) cachedAuthToken = token;
+    return token;
   }
 }
 

@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useLocation, useNavigate } from "react-router";
 
 import { supabase } from "../lib/supabase";
-import { getJson } from "../services/apiClient";
+import { getJson, setApiAuthToken } from "../services/apiClient";
 
 export type MeUser = {
   id: string;
@@ -122,9 +122,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!supabase) { setUser(null); return; }
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) { setUser(null); return; }
+    setApiAuthToken(session.access_token ?? null);
     const me = await buildUser(session.user, false);
     setUser(me);
   }, [buildUser]);
+
+  const restoreFromStoredToken = useCallback(async () => {
+    // Best-effort restore for browsers that fail Supabase lock acquisition on reload.
+    try {
+      const keys = Object.keys(window.localStorage);
+      const tokenKey = keys.find((k) => /^sb-[a-z0-9]+-auth-token$/i.test(k));
+      if (!tokenKey) return false;
+
+      const raw = window.localStorage.getItem(tokenKey);
+      if (!raw) return false;
+
+      const parsed = JSON.parse(raw);
+      const token =
+        (parsed?.currentSession?.access_token as string | undefined) ??
+        (parsed?.access_token as string | undefined) ??
+        null;
+      if (!token) return false;
+
+      setApiAuthToken(token);
+
+      // Decode JWT payload without verification (UI restore only).
+      const parts = token.split(".");
+      if (parts.length < 2) return false;
+      const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+      const json = JSON.parse(decodeURIComponent(escape(atob(payload.padEnd(Math.ceil(payload.length / 4) * 4, "=")))));
+
+      const id = typeof json?.sub === "string" ? json.sub : null;
+      const email = typeof json?.email === "string" ? json.email : null;
+      if (!id) return false;
+
+      const role = getCachedRole(id) ?? "user";
+      setUser({ id, email, full_name: null, role });
+      return true;
+    } catch {
+      return false;
+    }
+  }, [getCachedRole]);
 
   useEffect(() => {
     if (!supabase) {
@@ -134,12 +172,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     let mounted = true;
 
+    // If Supabase fails to restore session due to LockManager issues,
+    // restore from stored token so refresh doesn't force a re-login.
+    restoreFromStoredToken().finally(() => undefined);
+
     // CORRECT Supabase v2 pattern: do NOT call getSession() on mount.
     // onAuthStateChange always fires INITIAL_SESSION synchronously with the
     // stored localStorage session — this is the only reliable way to restore
     // a session on reload without forcing the user to re-login.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
+
+      // Keep apiClient in sync with latest token.
+      setApiAuthToken(session?.access_token ?? null);
 
       if (session?.user) {
         // freshFetch only on real sign-in; INITIAL_SESSION + TOKEN_REFRESHED use cache.
@@ -192,6 +237,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (supabase) {
       await supabase.auth.signOut();
     }
+    setApiAuthToken(null);
     clearCachedRole();
     setUser(null);
     navigate("/");
