@@ -39,12 +39,17 @@ export type CareerPayload = {
 };
 
 export async function submitContactAuthed(payload: ContactPayload) {
-  return postJson<{ type: "contact"; data: ContactPayload; honeypot?: string }, { ok: true; id?: number }>(
-    "/api/submissions",
+  const normalizedMessage = [payload.subject ? `Subject: ${payload.subject}` : "", payload.message]
+    .filter(Boolean)
+    .join("\n\n");
+
+  return postJson<{ name: string; email: string; phone?: string; message: string }, { success: true }>(
+    "/api/contact",
     {
-      type: "contact",
-      data: payload,
-      honeypot: payload.honeypot,
+      name: payload.name,
+      email: payload.email,
+      phone: payload.phone,
+      message: normalizedMessage,
     }
   );
 }

@@ -1,5 +1,29 @@
 {
   "version": 2,
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.hzitcompany.com"
+        }
+      ],
+      "destination": "https://hzitcompany.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "hz-it-company-fny3.vercel.app"
+        }
+      ],
+      "destination": "https://hzitcompany.com/:path*",
+      "permanent": true
+    }
+  ],
   "builds": [
     {
       "src": "package.json",

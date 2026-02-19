@@ -89,23 +89,6 @@ function readStoredAccessToken(): string | null {
       }
     }
 
-    // Supabase stores sessions under keys like: sb-<project-ref>-auth-token
-    // We scan for any such key to avoid hardcoding the ref.
-    for (let i = 0; i < window.localStorage.length; i++) {
-      const key = window.localStorage.key(i);
-      if (!key) continue;
-      if (!/^sb-[a-z0-9]+-auth-token$/i.test(key)) continue;
-      const raw = window.localStorage.getItem(key);
-      if (!raw) continue;
-      const parsed = JSON.parse(raw);
-
-      // Depending on supabase-js version, token may be nested.
-      const token =
-        (parsed?.currentSession?.access_token as string | undefined) ??
-        (parsed?.access_token as string | undefined) ??
-        null;
-      if (token && typeof token === "string") return token;
-    }
   } catch {
     // Ignore storage parsing issues.
   }
@@ -142,26 +125,38 @@ async function requestJson<TResponse>(
     token?: string; // Optional manual override
   }
 ): Promise<TResponse> {
-  const headers: Record<string, string> = {
-    Accept: "application/json",
+  const send = async (bearerToken: string | null) => {
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+    };
+
+    if (method !== "GET" && method !== "DELETE") {
+      headers["Content-Type"] = "application/json";
+    }
+
+    if (bearerToken) {
+      headers.Authorization = `Bearer ${bearerToken}`;
+    }
+
+    return fetch(joinBaseAndPath(getBaseUrl(), path), {
+      method,
+      headers,
+      body: options?.body ? JSON.stringify(options.body) : undefined,
+      signal: options?.signal,
+    });
   };
 
-  if (method !== "GET" && method !== "DELETE") {
-    headers["Content-Type"] = "application/json";
-  }
+  const tokenWasExplicit = typeof options?.token === "string";
 
   // Get Supabase token if not provided explicitly
   const token = options?.token ?? await getAuthToken();
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
+  let response = await send(token);
 
-  const response = await fetch(joinBaseAndPath(getBaseUrl(), path), {
-    method,
-    headers,
-    body: options?.body ? JSON.stringify(options.body) : undefined,
-    signal: options?.signal,
-  });
+  // If we auto-attached a stale token (common after project switches), retry once without token.
+  if (response.status === 401 && token && !tokenWasExplicit) {
+    cachedAuthToken = null;
+    response = await send(null);
+  }
 
   if (!response.ok) {
     const details = await parseJsonSafe(response);

@@ -9,12 +9,9 @@ import { contactSchema, type ContactFormValues } from "../schemas/contactSchema"
 import { submitContactAuthed } from "../services/contactService";
 import { trackEvent } from "../analytics/track";
 import { siteConfig } from "../config/site";
-import { useAuth } from "../auth/AuthProvider";
-import { GoogleLoginButton } from "../components/GoogleLoginButton";
 import { CmsSlot } from "../components/cms/CmsBlocks";
 
 export function Contact() {
-  const { isAuthed, openAuthModal } = useAuth();
   const [submitState, setSubmitState] = useState<{
     status: "idle" | "loading" | "success" | "error";
     message?: string;
@@ -60,12 +57,6 @@ export function Contact() {
     }
 
     try {
-      if (!isAuthed) {
-        openAuthModal();
-        setSubmitState({ status: "idle" });
-        return;
-      }
-
       await submitContactAuthed({
         name: values.name,
         email: values.email,
@@ -323,13 +314,6 @@ export function Contact() {
                       <p className="mt-2 text-sm text-rose-700">{errors.message.message}</p>
                     ) : null}
                   </div>
-
-                  {!isAuthed ? (
-                    <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 flex flex-col items-center gap-3">
-                      <p className="text-sm text-blue-800 font-medium text-center">Sign in to send your message</p>
-                      <GoogleLoginButton onSuccess={() => {}} onError={() => {}} />
-                    </div>
-                  ) : null}
 
                   <button
                     type="submit"

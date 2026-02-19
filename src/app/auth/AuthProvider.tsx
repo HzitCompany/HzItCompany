@@ -135,8 +135,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const restoreFromStoredToken = useCallback(async () => {
     // Best-effort restore for browsers that fail Supabase lock acquisition on reload.
     try {
-      const keys = Object.keys(window.localStorage);
-      const tokenKey = keys.find((k) => /^sb-[a-z0-9]+-auth-token$/i.test(k));
+      const supabaseUrl = (supabase as any)?.supabaseUrl as string | undefined;
+      if (!supabaseUrl) return false;
+
+      const host = new URL(supabaseUrl).host;
+      const ref = host.split(".")[0];
+      if (!ref) return false;
+
+      const tokenKey = `sb-${ref}-auth-token`;
       if (!tokenKey) return false;
 
       const raw = window.localStorage.getItem(tokenKey);
@@ -256,7 +262,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     if (supabase) {
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // Keep local logout working even if auth storage lock/session API fails.
+      }
     }
     setApiAuthToken(null);
     clearCachedRole();

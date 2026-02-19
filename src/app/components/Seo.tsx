@@ -44,14 +44,47 @@ export function Seo({
 
   const image = absoluteUrl(ogImage ?? siteConfig.defaultOgImage);
 
+  const sameAs = [
+    siteConfig.socials.instagram,
+    siteConfig.socials.x,
+    siteConfig.socials.facebook,
+    siteConfig.socials.youtube,
+    siteConfig.socials.linkedin,
+  ].filter((value): value is string => Boolean(value));
+
   const computedSchema =
     schema ??
     ({
       "@context": "https://schema.org",
-      "@type": "Organization",
-      name: siteConfig.name,
-      url: siteConfig.url,
-      sameAs: siteConfig.socials.linkedin ? [siteConfig.socials.linkedin] : []
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": `${siteConfig.url}/#organization`,
+          name: siteConfig.legalName,
+          url: siteConfig.url,
+          email: siteConfig.contact.email,
+          telephone: siteConfig.contact.phone,
+          sameAs,
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: siteConfig.address.streetAddress,
+            addressLocality: siteConfig.address.addressLocality,
+            addressRegion: siteConfig.address.addressRegion,
+            postalCode: siteConfig.address.postalCode,
+            addressCountry: siteConfig.address.addressCountry,
+          },
+        },
+        {
+          "@type": "WebSite",
+          "@id": `${siteConfig.url}/#website`,
+          url: siteConfig.url,
+          name: siteConfig.name,
+          inLanguage: "en-IN",
+          publisher: {
+            "@id": `${siteConfig.url}/#organization`
+          }
+        }
+      ]
     } satisfies Record<string, unknown>);
 
   return (

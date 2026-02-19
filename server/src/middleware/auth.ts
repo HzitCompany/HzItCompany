@@ -118,10 +118,7 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
     if (!user) await trySupabaseGetUser("admin");
 
     if (!user?.id) {
-      const jwksMessage = (req as any).__jwksAuthError?.message
-        ? ` JWKS: ${(req as any).__jwksAuthError.message}`
-        : "";
-      return next(new HttpError(401, `Unauthorized: Invalid token.${jwksMessage}`, true));
+      return next(new HttpError(401, "Unauthorized: Invalid token", true));
     }
 
     // Determine Role from DB only (use Supabase profiles.role)
