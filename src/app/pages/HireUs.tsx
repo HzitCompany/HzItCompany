@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import {
   Code,
@@ -25,6 +25,12 @@ export function HireUs() {
     status: "idle" | "loading" | "success" | "error";
     message?: string;
   }>({ status: "idle" });
+
+  useEffect(() => {
+    if (submitState.status === "success") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [submitState.status]);
 
   const services = [
     {

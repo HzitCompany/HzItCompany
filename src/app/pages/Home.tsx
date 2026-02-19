@@ -75,6 +75,7 @@ export function Home() {
       <Seo
         title="Premium IT Services"
         description="HZ IT Company helps teams ship reliable software faster. Custom web and mobile development, cloud, cybersecurity, UI/UX, and consulting."
+        keywords="HZ IT Company, hz it company, hzitcompany, hz it, IT company India, web development India, AI solutions India, digital marketing India, software development India, cybersecurity India, mobile app development India, UI UX design India"
         path="/"
         schema={{
           "@context": "https://schema.org",

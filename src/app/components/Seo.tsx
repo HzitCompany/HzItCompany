@@ -33,7 +33,7 @@ export function Seo({
 }: SeoProps) {
   const computedTitle = title ? `${title} | ${siteConfig.name}` : siteConfig.defaultTitle;
   const computedDescription = description ?? siteConfig.defaultDescription;
-  const computedKeywords = keywords ?? "IT company India, web development, AI services, digital marketing";
+  const computedKeywords = keywords ?? "HZ IT Company, hz it company, hzitcompany, hz it, IT company India, web development India, AI services India, digital marketing India, software development India, mobile app development India, cybersecurity India";
   const computedAuthor = author ?? siteConfig.name;
 
   const canonical = canonicalUrl

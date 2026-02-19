@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { Mail, Phone, MapPin, Send, Clock, MessageSquare } from "lucide-react";
 import { CTAButton } from "../components/CTAButton";
@@ -16,6 +16,12 @@ export function Contact() {
     status: "idle" | "loading" | "success" | "error";
     message?: string;
   }>({ status: "idle" });
+
+  useEffect(() => {
+    if (submitState.status === "success") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [submitState.status]);
 
   const addressLine = [
     siteConfig.address.streetAddress,

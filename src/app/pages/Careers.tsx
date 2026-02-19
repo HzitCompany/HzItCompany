@@ -40,6 +40,12 @@ export function Careers() {
   const whatsappDigitsRaw = siteConfig.contact.whatsapp.replace(/\D/g, "");
   const whatsappDigits = whatsappDigitsRaw.length === 10 ? `91${whatsappDigitsRaw}` : whatsappDigitsRaw;
 
+  useEffect(() => {
+    if (submitState.status === "success") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [submitState.status]);
+
   const mailtoHref = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(
     "Career Application — HZ IT Company"
   )}&body=${encodeURIComponent(

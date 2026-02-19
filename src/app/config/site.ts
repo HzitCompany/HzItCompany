@@ -4,7 +4,7 @@ export const siteConfig = {
   url: "https://hzitcompany.com",
   tagline: "IT services and software development for growing teams",
   defaultTitle: "HZ IT Company | IT Services & Software Development",
-  defaultDescription: "HZ IT Company — Web, AI, Cloud & Digital Solutions in India",
+  defaultDescription: "HZ IT Company (hz it company) — Custom web development, mobile apps, AI, cloud, cybersecurity & digital marketing services in India. Trusted IT partner for growing businesses.",
   locale: "en_IN",
   themeColor: "#2563eb",
   contact: {
