@@ -22,8 +22,8 @@ export const supabase = isSupabaseConfigured
         detectSessionInUrl: true,
         // Bypass the Web Locks API which times out in some browser environments
         // (embedded contexts, iframes, certain mobile browsers)
-        lock: async (_name: string, _acquireTimeout: number, fn: (lock: null) => Promise<unknown>) =>
-          fn(null),
+        lock: ((_name: string, _acquireTimeout: number, fn: (lock: null) => Promise<unknown>) =>
+          fn(null)) as any,
       },
     })
   : null;

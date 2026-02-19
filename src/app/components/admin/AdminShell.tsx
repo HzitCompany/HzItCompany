@@ -24,7 +24,7 @@ export function AdminShell({ title, children }: { title: string; children: React
       { label: "Overview", to: "/admin/dashboard" },
       { label: "Users", to: "/admin/users" },
       { label: "Submissions", to: "/admin/submissions" },
-      { label: "Orders", to: "/admin/orders" },
+      { label: "Hire List", to: "/admin/orders" },
       { label: "Pricing", to: "/admin/pricing" },
       { label: "Careers", to: "/admin/careers" },
       { label: "Content", to: "/admin/content" },

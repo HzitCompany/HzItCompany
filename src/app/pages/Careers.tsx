@@ -463,22 +463,59 @@ export function Careers() {
                         <p className="mt-2 text-sm text-rose-700">{errors.portfolioUrl.message}</p>
                       ) : null}
                     </div>
-                    <div>
-                      <label htmlFor="resumeFile" className="block text-sm font-medium text-gray-700 mb-2">
-                        Resume *
-                      </label>
-                      <input
-                        id="resumeFile"
-                        type="file"
-                        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                        {...register("resumeFile")}
-                        className={
-                          "w-full px-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-600/20 " +
-                          (errors.resumeFile ? "border-rose-300 focus:border-rose-500" : "border-gray-300 focus:border-blue-600")
-                        }
-                      />
-                      {errors.resumeFile ? <p className="mt-2 text-sm text-rose-700">{String(errors.resumeFile.message ?? "Invalid file")}</p> : null}
-                    </div>
+                  </div>
+
+                  {/* CV / Resume Upload — full-width styled zone */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      CV / Resume <span className="text-rose-500">*</span>
+                    </label>
+                    <label
+                      htmlFor="resumeFile"
+                      className={
+                        "flex flex-col items-center justify-center w-full min-h-[140px] rounded-2xl border-2 border-dashed cursor-pointer transition-all " +
+                        (errors.resumeFile
+                          ? "border-rose-300 bg-rose-50/50 hover:bg-rose-50"
+                          : resumeFile
+                          ? "border-emerald-400 bg-emerald-50/50 hover:bg-emerald-50"
+                          : "border-gray-300 bg-gray-50/50 hover:bg-gray-100 hover:border-blue-400")
+                      }
+                    >
+                      {resumeFile ? (
+                        <div className="flex flex-col items-center gap-2 py-4 px-6 text-center">
+                          <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
+                            <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                          <div className="text-sm font-semibold text-emerald-700 break-all max-w-xs">{resumeFile.name}</div>
+                          <div className="text-xs text-gray-500">{(resumeFile.size / 1024).toFixed(0)} KB · Click to change</div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-3 py-6 px-6 text-center pointer-events-none">
+                          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                            <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                          </div>
+                          <div>
+                            <span className="text-sm font-semibold text-blue-600">Click to upload</span>
+                            <span className="text-sm text-gray-600"> or drag &amp; drop</span>
+                          </div>
+                          <div className="text-xs text-gray-400">PDF, DOC, DOCX — max 10 MB</div>
+                        </div>
+                      )}
+                    </label>
+                    <input
+                      id="resumeFile"
+                      type="file"
+                      accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      className="sr-only"
+                      {...register("resumeFile")}
+                    />
+                    {errors.resumeFile ? (
+                      <p className="mt-2 text-sm text-rose-700">{String(errors.resumeFile.message ?? "Invalid file")}</p>
+                    ) : null}
                   </div>
 
                   <div>

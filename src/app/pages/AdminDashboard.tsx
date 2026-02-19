@@ -8,7 +8,6 @@ import {
   fetchAdminPortalStats,
   fetchAdminUsers,
   updateUserRole,
-  fetchAdminOrders,
   fetchAdminSubmissions,
         updateAdminSubmissionStatus,
     fetchAdminPricing,
@@ -84,7 +83,7 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                                 setUsers(res.items);
                                 setTotalUsers(res.total);
                         } else if (t === "orders") {
-                                const res = await fetchAdminOrders();
+                                const res = await fetchAdminSubmissions({ type: "hire" });
                                 setOrders(res.items);
                 } else if (t === "pricing") {
                     const res = await fetchAdminPricing();
@@ -118,7 +117,7 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
     const shellTitle =
         tab === "summary" ? "Overview" :
         tab === "users" ? "Users" :
-        tab === "orders" ? "Orders" :
+        tab === "orders" ? "Hire List" :
         tab === "pricing" ? "Pricing" :
         tab === "submissions" ? "Submissions" :
         "Admin";
@@ -457,29 +456,138 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
-                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                        className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
                     >
-                        {orders.length === 0 ? (
-                            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-6 text-gray-600">
-                                No orders found.
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-900">Hire Us Applications</h2>
+                                <p className="text-xs text-gray-500 mt-0.5">All requests submitted via the Hire Us form</p>
                             </div>
-                        ) : (
-                            orders.map((o: any, idx: number) => (
-                                <div key={o.id ?? idx} className="rounded-2xl border border-gray-200 bg-white shadow-sm p-6 flex flex-col gap-2">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <div className="text-gray-900 font-semibold">Order</div>
-                                        <div className="text-xs text-gray-500">#{String(o.id ?? "—")}</div>
-                                    </div>
-                                    <div className="text-sm text-gray-700">
-                                        {Object.entries(o || {}).slice(0, 8).map(([k, v]) => (
-                                            <div key={k} className="mb-1">
-                                                <span className="font-semibold capitalize">{k}:</span> {String(v)}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))
-                        )}
+                            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                                {orders.length} total
+                            </span>
+                        </div>
+                        <div className="overflow-auto">
+                            <table className="min-w-[900px] w-full text-sm">
+                                <thead className="bg-gray-50 text-gray-600">
+                                    <tr>
+                                        <th className="text-left px-4 py-3 font-semibold">Date</th>
+                                        <th className="text-left px-4 py-3 font-semibold">Name</th>
+                                        <th className="text-left px-4 py-3 font-semibold">Contact</th>
+                                        <th className="text-left px-4 py-3 font-semibold">Project</th>
+                                        <th className="text-left px-4 py-3 font-semibold">Services</th>
+                                        <th className="text-left px-4 py-3 font-semibold">Status</th>
+                                        <th className="text-right px-4 py-3 font-semibold">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {orders.length === 0 ? (
+                                        <tr>
+                                            <td className="px-4 py-8 text-gray-500 text-center" colSpan={7}>
+                                                No hire us applications yet.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        orders.map((o: any) => {
+                                            const data = (o.data ?? {}) as Record<string, unknown>;
+                                            const name = String(data["name"] ?? data["fullName"] ?? o.user_email ?? "—");
+                                            const email = String(o.user_email ?? data["email"] ?? "—");
+                                            const phone = String(data["phone"] ?? o.user_phone ?? "—");
+                                            const project = String(data["projectName"] ?? data["project_name"] ?? "—");
+                                            const services = Array.isArray(data["services"])
+                                                ? (data["services"] as string[]).join(", ")
+                                                : String(data["services"] ?? "—");
+                                            const statusValue = typeof o.status === "string" ? o.status : "new";
+                                            const isExpanded = expandedSubmissionId === o.id;
+
+                                            async function onChangeHireStatus(nextStatus: string) {
+                                                if (!o?.id || nextStatus === statusValue) return;
+                                                setError(null);
+                                                setStatusSavingId(o.id);
+                                                try {
+                                                    await updateAdminSubmissionStatus(Number(o.id), nextStatus as any);
+                                                    setOrders((prev) =>
+                                                        prev.map((row: any) =>
+                                                            row.id === o.id ? { ...row, status: nextStatus } : row
+                                                        )
+                                                    );
+                                                } catch (e: any) {
+                                                    setError(e?.message ?? "Failed to update status");
+                                                } finally {
+                                                    setStatusSavingId(null);
+                                                }
+                                            }
+
+                                            return (
+                                                <Fragment key={o.id}>
+                                                    <tr className="hover:bg-gray-50/60 transition-colors">
+                                                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">
+                                                            {o.created_at ? new Date(o.created_at).toLocaleDateString("en-IN") : "—"}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="font-semibold text-gray-900">{name}</div>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="text-gray-700">{email}</div>
+                                                            <div className="text-gray-500 text-xs">{phone}</div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-gray-700 max-w-[180px] truncate" title={project}>{project}</td>
+                                                        <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate text-xs" title={services}>{services}</td>
+                                                        <td className="px-4 py-3 whitespace-nowrap">
+                                                            <div className="flex items-center gap-2">
+                                                                <select
+                                                                    value={statusValue}
+                                                                    onChange={(e) => void onChangeHireStatus(e.target.value)}
+                                                                    disabled={statusSavingId === o.id}
+                                                                    className="h-9 rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-900 disabled:opacity-60"
+                                                                >
+                                                                    {submissionStatuses.map((st) => (
+                                                                        <option key={st} value={st}>{formatSubmissionStatus(st)}</option>
+                                                                    ))}
+                                                                </select>
+                                                                {statusSavingId === o.id ? <span className="text-xs text-gray-400">Saving…</span> : null}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setExpandedSubmissionId(isExpanded ? null : o.id)}
+                                                                className="min-h-9 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold hover:bg-gray-50"
+                                                            >
+                                                                {isExpanded ? "Hide" : "Details"}
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                    {isExpanded ? (
+                                                        <tr className="border-t border-gray-100 bg-gray-50/40">
+                                                            <td className="px-4 py-4" colSpan={7}>
+                                                                <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                                                                    <div className="text-sm font-semibold text-gray-900 mb-3">Full Submission</div>
+                                                                    <div className="grid gap-2">
+                                                                        {Object.entries(data)
+                                                                            .filter(([k]) => !["adminStatus", "honeypot"].includes(k))
+                                                                            .map(([k, v]) => (
+                                                                                <div key={k} className="grid grid-cols-1 md:grid-cols-[200px,1fr] gap-2">
+                                                                                    <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{k.replace(/([A-Z])/g, " $1")}</div>
+                                                                                    <div className="text-sm text-gray-800 break-words whitespace-pre-wrap">
+                                                                                        {typeof v === "string" && (v.startsWith("http://") || v.startsWith("https://")) ? (
+                                                                                            <a href={v} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline break-all">{v}</a>
+                                                                                        ) : Array.isArray(v) ? v.join(", ") : String(v ?? "—")}
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ) : null}
+                                                </Fragment>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </motion.div>
                 )}
 
