@@ -3,33 +3,9 @@
   "framework": "vite",
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "dist",
-  "redirects": [
-    {
-      "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "www.hzitcompany.com"
-        }
-      ],
-      "destination": "https://hzitcompany.com/:path*",
-      "permanent": true
-    },
-    {
-      "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "hz-it-company-fny3.vercel.app"
-        }
-      ],
-      "destination": "https://hzitcompany.com/:path*",
-      "permanent": true
-    }
-  ],
   "rewrites": [
     {
-      "source": "/((?!_next|assets|favicon\\.ico).*)",
+      "source": "/((?!assets|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)",
       "destination": "/index.html"
     }
   ]
