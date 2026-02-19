@@ -120,11 +120,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshMe = useCallback(async () => {
     if (!supabase) { setUser(null); return; }
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) { setUser(null); return; }
-    setApiAuthToken(session.access_token ?? null);
-    const me = await buildUser(session.user, false);
-    setUser(me);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) { setUser(null); return; }
+      setApiAuthToken(session.access_token ?? null);
+      const me = await buildUser(session.user, false);
+      setUser(me);
+    } catch {
+      // Ignore lock-manager/session restore errors.
+      // Existing auth state (or stored-token restore) remains in effect.
+    }
   }, [buildUser]);
 
   const restoreFromStoredToken = useCallback(async () => {
@@ -171,48 +176,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     let mounted = true;
+    const loadingFallbackTimer = window.setTimeout(() => {
+      if (mounted) setIsLoading(false);
+    }, 2500);
 
     // If Supabase fails to restore session due to LockManager issues,
     // restore from stored token so refresh doesn't force a re-login.
-    restoreFromStoredToken().finally(() => undefined);
+    restoreFromStoredToken()
+      .then((restored) => {
+        if (mounted && restored) setIsLoading(false);
+      })
+      .finally(() => undefined);
 
     // CORRECT Supabase v2 pattern: do NOT call getSession() on mount.
     // onAuthStateChange always fires INITIAL_SESSION synchronously with the
     // stored localStorage session — this is the only reliable way to restore
     // a session on reload without forcing the user to re-login.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      void (async () => {
+        if (!mounted) return;
 
-      // Keep apiClient in sync with latest token.
-      setApiAuthToken(session?.access_token ?? null);
+        try {
+          // Keep apiClient in sync with latest token.
+          setApiAuthToken(session?.access_token ?? null);
 
-      if (session?.user) {
-        // freshFetch only on real sign-in; INITIAL_SESSION + TOKEN_REFRESHED use cache.
-        const freshFetch = event === "SIGNED_IN" || event === "USER_UPDATED";
-        const me = await buildUser(session.user, freshFetch);
-        if (mounted) setUser(me);
+          if (session?.user) {
+            // freshFetch only on real sign-in; INITIAL_SESSION + TOKEN_REFRESHED use cache.
+            const freshFetch = event === "SIGNED_IN" || event === "USER_UPDATED";
+            const me = await buildUser(session.user, freshFetch);
+            if (mounted) setUser(me);
 
-        if (event === "SIGNED_IN") {
-          if (redirectPath) {
-            navigate(redirectPath);
-            setRedirectPath(null);
-            try { window.localStorage.removeItem(AUTH_REDIRECT_KEY); } catch {}
+            if (event === "SIGNED_IN") {
+              if (redirectPath) {
+                navigate(redirectPath);
+                setRedirectPath(null);
+                try { window.localStorage.removeItem(AUTH_REDIRECT_KEY); } catch {}
+              } else {
+                consumePostAuthRedirect();
+              }
+            }
           } else {
-            consumePostAuthRedirect();
+            // Only clear if it's an explicit sign-out, not just a transient null session.
+            if (event === "SIGNED_OUT") {
+              clearCachedRole();
+              if (mounted) setUser(null);
+            }
           }
+        } catch {
+          // Swallow auth restoration race errors (LockManager timeout etc.)
+          // to avoid unhandled promise rejections that break guarded pages.
+        } finally {
+          if (mounted) setIsLoading(false);
         }
-      } else {
-        // Only clear if it's an explicit sign-out, not just a transient null session.
-        if (event === "SIGNED_OUT") {
-          clearCachedRole();
-          if (mounted) setUser(null);
-        }
-      }
-      if (mounted) setIsLoading(false);
+      })();
     });
 
     return () => {
       mounted = false;
+      window.clearTimeout(loadingFallbackTimer);
       subscription.unsubscribe();
     };
   }, [buildUser, clearCachedRole, consumePostAuthRedirect, navigate, redirectPath]);

@@ -19,9 +19,17 @@ export type CreateCareerUploadUrlResponse = {
 };
 
 async function getRequiredAuthToken() {
-  const sessionRes = await supabase?.auth.getSession();
-  const session = sessionRes?.data?.session ?? null;
-  const sessionToken = session?.access_token ?? null;
+  let session: any = null;
+  let sessionToken: string | null = null;
+
+  try {
+    const sessionRes = await supabase?.auth.getSession();
+    session = sessionRes?.data?.session ?? null;
+    sessionToken = session?.access_token ?? null;
+  } catch {
+    // Supabase session lock can timeout in some browsers/devtools modes.
+    // Fall through to API token resolver/localStorage path.
+  }
 
   const token = sessionToken ?? (await resolveApiAuthToken());
 
