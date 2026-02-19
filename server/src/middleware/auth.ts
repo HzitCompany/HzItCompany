@@ -21,6 +21,11 @@ export interface AuthedRequest extends Request {
 }
 
 async function getOrCreateLocalUserId(input: { email: string | null; phone: string | null }) {
+  const toFiniteUserId = (value: unknown) => {
+    const numeric = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  };
+
   const email = input.email?.trim().toLowerCase() ?? null;
   const phone = input.phone?.trim() ?? null;
 
@@ -39,14 +44,15 @@ async function getOrCreateLocalUserId(input: { email: string | null; phone: stri
     [email, phone]
   );
 
-  if (existing[0]?.id) return existing[0].id;
+  const existingId = toFiniteUserId(existing[0]?.id);
+  if (existingId) return existingId;
 
   const inserted = await query<{ id: number }>(
     "insert into users (email, phone) values ($1,$2) returning id",
     [email, phone]
   );
 
-  const id = inserted[0]?.id;
+  const id = toFiniteUserId(inserted[0]?.id);
   if (!id) throw new HttpError(500, "Failed to create local user", false);
   return id;
 }
