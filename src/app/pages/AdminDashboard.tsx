@@ -10,11 +10,22 @@ import {
   updateUserRole,
   fetchAdminOrders,
   fetchAdminSubmissions,
+        updateAdminSubmissionStatus,
     fetchAdminPricing,
     createAdminResumesDownloadUrlByPath,
 } from "../services/platformService";
 
 type Tab = "summary" | "users" | "orders" | "pricing" | "submissions";
+
+const submissionStatuses = ["new", "reviewing", "shortlisted", "rejected", "hired"] as const;
+
+function formatSubmissionStatus(status?: string | null) {
+    if (!status) return "—";
+    return status
+        .split("_")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+}
 
 function getAdminEmail(): string {
     const envAny = (import.meta as any).env ?? {};
@@ -38,6 +49,7 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
 
     const [expandedSubmissionId, setExpandedSubmissionId] = useState<number | null>(null);
     const [downloadBusyKey, setDownloadBusyKey] = useState<string | null>(null);
+    const [statusSavingId, setStatusSavingId] = useState<number | null>(null);
     
     // Pagination / Search
     const [userPage, setUserPage] = useState(1);
@@ -242,13 +254,14 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                                                                 <th className="text-left px-4 py-3">Type</th>
                                                                 <th className="text-left px-4 py-3">User</th>
                                                                 <th className="text-left px-4 py-3">Summary</th>
+                                                                <th className="text-left px-4 py-3">Status</th>
                                                                 <th className="text-right px-4 py-3">Actions</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
                                                             {submissions.length === 0 ? (
                                                                 <tr>
-                                                                    <td className="px-4 py-4 text-gray-600" colSpan={5}>
+                                                                    <td className="px-4 py-4 text-gray-600" colSpan={6}>
                                                                         No submissions found.
                                                                     </td>
                                                                 </tr>
@@ -263,6 +276,7 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                                                                     const email = String(sub.user_email ?? data["email"] ?? "").trim();
                                                                     const phone = String(sub.user_phone ?? data["phone"] ?? "").trim();
                                                                     const isExpanded = expandedSubmissionId === sub.id;
+                                                                    const statusValue = typeof sub.status === "string" ? sub.status : "new";
 
                                                                     const resumePath = (typeof data["resumePath"] === "string" ? data["resumePath"] :
                                                                         typeof data["resume_path"] === "string" ? data["resume_path"] :
@@ -291,6 +305,34 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                                                                         }
                                                                     }
 
+                                                                    async function onChangeStatus(nextStatus: string) {
+                                                                        if (!sub?.id) return;
+                                                                        if (nextStatus === statusValue) return;
+                                                                        setError(null);
+                                                                        setStatusSavingId(sub.id);
+                                                                        try {
+                                                                            await updateAdminSubmissionStatus(Number(sub.id), nextStatus as any);
+                                                                            setSubmissions((prev) =>
+                                                                                prev.map((row: any) =>
+                                                                                    row.id === sub.id
+                                                                                        ? {
+                                                                                            ...row,
+                                                                                            status: nextStatus,
+                                                                                            data: {
+                                                                                                ...((row.data ?? {}) as Record<string, unknown>),
+                                                                                                ...(row.type === "career" ? {} : { adminStatus: nextStatus })
+                                                                                            }
+                                                                                        }
+                                                                                        : row
+                                                                                )
+                                                                            );
+                                                                        } catch (e: any) {
+                                                                            setError(e?.message ?? "Failed to update submission status");
+                                                                        } finally {
+                                                                            setStatusSavingId(null);
+                                                                        }
+                                                                    }
+
                                                                     return (
                                                                         <Fragment key={sub.id}>
                                                                             <tr key={sub.id} className="border-t border-gray-200">
@@ -307,6 +349,23 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                                                                                 <td className="px-4 py-3 text-gray-700 max-w-[520px] truncate" title={summary}>
                                                                                     {summary}
                                                                                 </td>
+                                                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <select
+                                                                                            value={statusValue}
+                                                                                            onChange={(e) => void onChangeStatus(e.target.value)}
+                                                                                            disabled={statusSavingId === sub.id}
+                                                                                            className="h-9 rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-900 disabled:opacity-60"
+                                                                                        >
+                                                                                            {submissionStatuses.map((st) => (
+                                                                                                <option key={st} value={st}>{formatSubmissionStatus(st)}</option>
+                                                                                            ))}
+                                                                                        </select>
+                                                                                        {statusSavingId === sub.id ? (
+                                                                                            <span className="text-xs text-gray-500">Saving…</span>
+                                                                                        ) : null}
+                                                                                    </div>
+                                                                                </td>
                                                                                 <td className="px-4 py-3 text-right whitespace-nowrap">
                                                                                     <button
                                                                                         type="button"
@@ -320,7 +379,7 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
 
                                                                             {isExpanded ? (
                                                                                 <tr className="border-t border-gray-200 bg-gray-50/40">
-                                                                                    <td className="px-4 py-4" colSpan={5}>
+                                                                                    <td className="px-4 py-4" colSpan={6}>
                                                                                         <div className="grid gap-4">
                                                                                             <div className="rounded-2xl border border-gray-200 bg-white p-4">
                                                                                                 <div className="text-sm font-semibold text-gray-900">Submitted fields</div>

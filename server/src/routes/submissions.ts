@@ -89,8 +89,22 @@ submissionsRouter.get("/submissions", requireAuth, async (req: AuthedRequest, re
 
     const userId = req.user.sub;
 
-    const rows = await query<{ id: number; created_at: string; type: string; data: unknown }>(
-      "select id, created_at, type, data from submissions where user_id = $1 order by created_at desc limit 200",
+    const rows = await query<{
+      id: number;
+      created_at: string;
+      type: string;
+      data: unknown;
+      status: string | null;
+    }>(
+      [
+        "select s.id, s.created_at, s.type, s.data,",
+        "       coalesce(ca.status, s.data ->> 'adminStatus') as status",
+        "from submissions s",
+        "left join career_applications ca on ca.submission_id = s.id",
+        "where s.user_id = $1",
+        "order by s.created_at desc",
+        "limit 200"
+      ].join("\n"),
       [userId]
     );
 

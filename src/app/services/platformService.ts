@@ -96,6 +96,12 @@ export async function deleteAdminSubmission(id: number) {
   return deleteJson<{ ok: true }>(`/api/admin/submissions/${id}`);
 }
 
+export type SubmissionStatus = "new" | "reviewing" | "shortlisted" | "rejected" | "hired";
+
+export async function updateAdminSubmissionStatus(id: number, status: SubmissionStatus) {
+  return patchJson<{ status: SubmissionStatus }, { ok: true }>(`/api/admin/submissions/${id}/status`, { status });
+}
+
 export type CareerApplicationStatus = "new" | "reviewing" | "shortlisted" | "rejected" | "hired";
 
 export async function fetchAdminCareers(

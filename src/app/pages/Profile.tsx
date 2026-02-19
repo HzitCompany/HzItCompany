@@ -19,6 +19,14 @@ const profileSchema = z.object({
 
 type ProfileData = z.infer<typeof profileSchema>;
 
+function formatSubmissionStatus(status?: string | null) {
+  if (!status) return null;
+  return status
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 export function Profile() {
   const { user, logout, refreshMe } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -254,12 +262,15 @@ export function Profile() {
                       ? data.projectName || "Hire Us"
                       : data.role || "Career";
 
+                const statusLabel = formatSubmissionStatus(item.status);
+
                 return (
                   <div key={item.id} className="p-4">
                     <div className="text-sm font-semibold text-gray-900">{String(title || item.type)}</div>
                     <div className="mt-1 text-xs text-gray-600">
                       {String(item.type).toUpperCase()} • {new Date(item.created_at).toLocaleString()} • #{item.id}
                     </div>
+                    {statusLabel ? <div className="mt-1 text-xs font-medium text-blue-700">Status: {statusLabel}</div> : null}
                   </div>
                 );
               })}

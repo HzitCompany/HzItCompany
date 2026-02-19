@@ -53,6 +53,7 @@ adminRouter.get("/admin/analytics", requireAuth, requireAdmin, async (_req: Auth
 
 // ── Summary (existing endpoint kept for backwards compatibility) ────────────────
 const submissionsTypeSchema = z.enum(["contact", "hire", "career"]);
+const submissionStatusSchema = z.enum(["new", "reviewing", "shortlisted", "rejected", "hired"]);
 
 adminRouter.get("/admin/submissions", requireAuth, requireAdmin, async (req: AuthedRequest, res, next) => {
   try {
@@ -68,8 +69,11 @@ adminRouter.get("/admin/submissions", requireAuth, requireAdmin, async (req: Aut
 
     const rows = await query(
       [
-        "select s.id, s.created_at, s.type, s.data, u.email as user_email, u.phone as user_phone",
+        "select s.id, s.created_at, s.type, s.data,",
+        "       coalesce(ca.status, s.data ->> 'adminStatus') as status,",
+        "       u.email as user_email, u.phone as user_phone",
         "from submissions s",
+        "left join career_applications ca on ca.submission_id = s.id",
         "join users u on u.id = s.user_id",
         "where ($1::text is null or s.type = $1)",
         "and ($2::text = '' or s.data::text ilike ('%' || $2 || '%') or coalesce(u.email,'') ilike ('%' || $2 || '%') or coalesce(u.phone,'') ilike ('%' || $2 || '%'))",
@@ -80,6 +84,58 @@ adminRouter.get("/admin/submissions", requireAuth, requireAdmin, async (req: Aut
     );
 
     return res.json({ ok: true, items: rows });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+const updateSubmissionStatusSchema = z
+  .object({
+    status: submissionStatusSchema
+  })
+  .strict();
+
+adminRouter.patch("/admin/submissions/:id/status", requireAuth, requireAdmin, async (req: AuthedRequest, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: "Invalid id" });
+
+    const parsed = updateSubmissionStatusSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, error: "Invalid status" });
+    }
+
+    const found = await query<{ id: number; type: "contact" | "hire" | "career" }>(
+      "select id, type from submissions where id = $1 limit 1",
+      [id]
+    );
+    const submission = found[0];
+    if (!submission?.id) return res.status(404).json({ ok: false, error: "Not found" });
+
+    if (submission.type === "career") {
+      const updatedCareer = await query<{ id: number }>(
+        "update career_applications set status = $2 where submission_id = $1 returning id",
+        [id, parsed.data.status]
+      );
+      if (!updatedCareer[0]?.id) {
+        return res.status(404).json({ ok: false, error: "Career application not found" });
+      }
+      return res.json({ ok: true });
+    }
+
+    const updated = await query<{ id: number }>(
+      [
+        "update submissions",
+        "set data = jsonb_set(coalesce(data, '{}'::jsonb), '{adminStatus}', to_jsonb($2::text), true)",
+        "where id = $1 and type in ('contact','hire')",
+        "returning id"
+      ].join("\n"),
+      [id, parsed.data.status]
+    );
+
+    if (!updated[0]?.id) return res.status(404).json({ ok: false, error: "Not found" });
+
+    return res.json({ ok: true });
   } catch (err) {
     return next(err);
   }

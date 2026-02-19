@@ -12,6 +12,14 @@ function formatDate(d: string) {
   return dt.toLocaleString();
 }
 
+function formatStatus(status?: string | null) {
+  if (!status) return null;
+  return status
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 export function Submissions() {
   const { isAuthed } = useAuth();
   const [items, setItems] = useState<SubmissionItem[]>([]);
@@ -103,6 +111,8 @@ export function Submissions() {
                           ? (data.deliveryDays ? `${data.deliveryDays} days` : undefined)
                           : data.email;
 
+                    const statusLabel = formatStatus(item.status);
+
                     return (
                       <div key={item.id} className="p-6">
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
@@ -114,6 +124,9 @@ export function Submissions() {
                               {String(item.type).toUpperCase()} • {formatDate(item.created_at)}
                               {subtitle ? ` • ${String(subtitle)}` : ""}
                             </div>
+                            {statusLabel ? (
+                              <div className="mt-1 text-xs font-medium text-blue-700">Status: {statusLabel}</div>
+                            ) : null}
                           </div>
                           <div className="text-xs text-gray-500">#{item.id}</div>
                         </div>
