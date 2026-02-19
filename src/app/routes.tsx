@@ -32,10 +32,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "hire-us",
-        lazy: async () => {
-          const { HireUs } = await import("./pages/HireUs");
-          return { Component: () => <RequireAuth><HireUs /></RequireAuth> };
-        },
+        lazy: async () => ({ Component: (await import("./pages/HireUs")).HireUs }),
       },
       {
         path: "careers",

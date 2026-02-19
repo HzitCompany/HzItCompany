@@ -17,12 +17,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { hireUsSchema, type HireUsFormValues } from "../schemas/hireUsSchema";
 import { submitHireUsAuthed } from "../services/contactService";
 import { trackEvent } from "../analytics/track";
-import { useAuth } from "../auth/AuthProvider";
-import { GoogleLoginButton } from "../components/GoogleLoginButton";
 import { CmsSlot } from "../components/cms/CmsBlocks";
 
 export function HireUs() {
-  const { isAuthed, openAuthModal } = useAuth();
   const [step, setStep] = useState(1);
   const [submitState, setSubmitState] = useState<{
     status: "idle" | "loading" | "success" | "error";
@@ -212,12 +209,6 @@ export function HireUs() {
     }
 
     try {
-      if (!isAuthed) {
-        openAuthModal();
-        setSubmitState({ status: "idle" });
-        return;
-      }
-
       await submitHireUsAuthed({
         name: values.name,
         email: values.email,
@@ -744,13 +735,6 @@ export function HireUs() {
                   </div>
                 </motion.div>
               )}
-
-                  {step === 4 && !isAuthed ? (
-                    <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 flex flex-col items-center gap-3">
-                      <p className="text-sm text-blue-800 font-medium text-center">Sign in to submit your request</p>
-                      <GoogleLoginButton onSuccess={() => {}} onError={() => {}} />
-                    </div>
-                  ) : null}
 
               {/* Navigation Buttons */}
               <div className="flex justify-between mt-8 pt-8 border-t border-gray-200">

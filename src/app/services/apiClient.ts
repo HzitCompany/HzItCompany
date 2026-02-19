@@ -149,13 +149,34 @@ async function requestJson<TResponse>(
   const tokenWasExplicit = typeof options?.token === "string";
 
   // Get Supabase token if not provided explicitly
-  const token = options?.token ?? await getAuthToken();
+  const tokenWasEmpty = options?.token === "";
+  const token = tokenWasEmpty ? null : (options?.token ?? await getAuthToken());
   let response = await send(token);
 
-  // If we auto-attached a stale token (common after project switches), retry once without token.
-  if (response.status === 401 && token && !tokenWasExplicit) {
+  // If we auto-attached a stale token (common after session expiry), try refreshing.
+  if (response.status === 401 && token && !tokenWasExplicit && !tokenWasEmpty) {
     cachedAuthToken = null;
-    response = await send(null);
+
+    // Try refreshing the Supabase session to get a new token.
+    let refreshedToken: string | null = null;
+    try {
+      if (supabase) {
+        const { data } = await supabase.auth.refreshSession();
+        refreshedToken = data?.session?.access_token ?? null;
+        if (refreshedToken) {
+          cachedAuthToken = refreshedToken;
+        }
+      }
+    } catch {
+      // Refresh may fail due to LockManager timeout — fall through.
+    }
+
+    if (refreshedToken) {
+      response = await send(refreshedToken);
+    } else {
+      // Last resort: retry without token (works for public endpoints).
+      response = await send(null);
+    }
   }
 
   if (!response.ok) {

@@ -271,6 +271,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setApiAuthToken(null);
     clearCachedRole();
     setUser(null);
+
+    // Clear Supabase auth tokens from localStorage to prevent stale token issues.
+    try {
+      const supabaseUrl = (supabase as any)?.supabaseUrl as string | undefined;
+      if (supabaseUrl) {
+        const host = new URL(supabaseUrl).host;
+        const ref = host.split(".")[0];
+        if (ref) {
+          window.localStorage.removeItem(`sb-${ref}-auth-token`);
+        }
+      }
+    } catch {
+      // Ignore storage errors.
+    }
+
     navigate("/");
   }, [clearCachedRole, navigate]);
 

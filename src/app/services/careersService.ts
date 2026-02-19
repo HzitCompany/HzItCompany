@@ -31,21 +31,24 @@ async function getRequiredAuthToken() {
     // Fall through to API token resolver/localStorage path.
   }
 
-  const token = sessionToken ?? (await resolveApiAuthToken());
-
-  if (typeof window !== "undefined" && (import.meta as any).env?.DEV) {
-    // Temporary debug for diagnosing 401 on careers upload.
-    // Keep token details minimal.
-    // eslint-disable-next-line no-console
-    console.debug("[careers] auth debug", {
-      hasSession: Boolean(session),
-      hasSessionToken: Boolean(sessionToken),
-      hasResolvedToken: Boolean(token),
-    });
+  // If no session token, try refreshing before falling back to localStorage.
+  if (!sessionToken) {
+    try {
+      const refreshRes = await supabase?.auth.refreshSession();
+      const refreshed = refreshRes?.data?.session ?? null;
+      if (refreshed?.access_token) {
+        sessionToken = refreshed.access_token;
+        session = refreshed;
+      }
+    } catch {
+      // Refresh can also hit LockManager issues — fall through.
+    }
   }
 
+  const token = sessionToken ?? (await resolveApiAuthToken());
+
   if (!token) {
-    throw new Error("User not logged in");
+    throw new Error("User not logged in. Please log in and try again.");
   }
 
   return token;

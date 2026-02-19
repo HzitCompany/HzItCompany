@@ -188,9 +188,12 @@ export function Careers() {
       trackEvent("career_submit", { result: "success" });
       reset();
     } catch (e: any) {
+      const is401 = e?.status === 401 || (typeof e?.message === "string" && e.message.toLowerCase().includes("unauthorized"));
       setSubmitState({
         status: "error",
-        message: typeof e?.message === "string" ? e.message : "Something went wrong. Please try again.",
+        message: is401
+          ? "Session expired. Please log out and log in again, then resubmit."
+          : typeof e?.message === "string" ? e.message : "Something went wrong. Please try again.",
       });
       trackEvent("career_submit", { result: "error" });
     }

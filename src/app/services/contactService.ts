@@ -43,6 +43,8 @@ export async function submitContactAuthed(payload: ContactPayload) {
     .filter(Boolean)
     .join("\n\n");
 
+  // Contact is a public endpoint — pass token "" to skip auto-token acquisition
+  // which otherwise blocks for ~10s on LockManager timeout.
   return postJson<{ name: string; email: string; phone?: string; message: string }, { success: true }>(
     "/api/contact",
     {
@@ -50,18 +52,38 @@ export async function submitContactAuthed(payload: ContactPayload) {
       email: payload.email,
       phone: payload.phone,
       message: normalizedMessage,
-    }
+    },
+    { token: "" }
   );
 }
 
 export async function submitHireUsAuthed(payload: HireUsPayload) {
-  return postJson<{ type: "hire"; data: HireUsPayload; honeypot?: string }, { ok: true; id?: number }>(
-    "/api/submissions",
+  // Use the public /api/hire-us endpoint so no auth token is required.
+  const serviceSummary = payload.services?.join(", ") ?? "";
+  const details = JSON.stringify({
+    phone: payload.phone,
+    company: payload.company,
+    services: payload.services,
+    projectName: payload.projectName,
+    projectDescription: payload.projectDescription,
+    serviceDetails: payload.serviceDetails,
+    deliveryDays: payload.deliveryDays,
+    clarification: payload.clarification,
+    personalMessage: payload.personalMessage,
+    referenceUrl: payload.referenceUrl,
+    additionalNotes: payload.additionalNotes,
+  });
+
+  return postJson<{ name: string; email: string; phone?: string; service: string; details?: string }, { success: true }>(
+    "/api/hire-us",
     {
-      type: "hire",
-      data: payload,
-      honeypot: payload.honeypot,
-    }
+      name: payload.name,
+      email: payload.email,
+      phone: payload.phone,
+      service: serviceSummary,
+      details,
+    },
+    { token: "" }
   );
 }
 

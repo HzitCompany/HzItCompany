@@ -20,7 +20,7 @@ export function Navbar() {
       { name: "About", path: "/about" },
       { name: "Services", path: "/services" },
       { name: "Portfolio", path: "/portfolio" },
-      { name: "Contact", path: "/contact", protected: true },
+      { name: "Contact", path: "/contact" },
       { name: "Careers", path: "/careers", protected: true },
     ],
     []
@@ -285,10 +285,6 @@ export function Navbar() {
 
                 <Link
                   to="/hire-us"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    guardNavigate("/hire-us");
-                  }}
                   className="min-h-11 inline-flex items-center justify-center px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl shadow-sm hover:shadow-lg hover:scale-[1.03] transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white/60"
                 >
                   Hire Us
@@ -436,16 +432,13 @@ export function Navbar() {
                   </div>
 
                   <div className="pt-4">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        guardNavigate("/hire-us");
-                      }}
+                    <Link
+                      to="/hire-us"
+                      onClick={() => setIsMobileMenuOpen(false)}
                       className="min-h-11 w-full inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-center shadow-sm hover:shadow-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white/60"
                     >
                       Hire Us
-                    </button>
+                    </Link>
                   </div>
 
                   <button

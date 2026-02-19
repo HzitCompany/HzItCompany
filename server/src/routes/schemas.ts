@@ -13,8 +13,9 @@ export const hireRequestSchema = z
   .object({
     name: z.string().min(1).max(120),
     email: z.string().email().max(254),
-    service: z.string().min(1).max(140),
+    phone: z.string().min(1).max(40).optional(),
+    service: z.string().min(1).max(500),
     budget: z.string().min(1).max(80).optional(),
-    details: z.string().min(1).max(8000).optional()
+    details: z.string().min(1).max(16000).optional()
   })
   .strict();

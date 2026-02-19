@@ -159,6 +159,7 @@ export async function insertContactMessage(input: {
 export async function insertHireRequest(input: {
   name: string;
   email: string;
+  phone?: string;
   service: string;
   budget?: string;
   details?: string;
