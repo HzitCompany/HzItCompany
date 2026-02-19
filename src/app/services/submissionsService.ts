@@ -1,4 +1,4 @@
-import { getJson } from "./apiClient";
+import { getJson, patchJson } from "./apiClient";
 
 export type SubmissionItem = {
   id: number;
@@ -10,4 +10,11 @@ export type SubmissionItem = {
 
 export async function fetchMySubmissions() {
   return getJson<{ ok: true; items: SubmissionItem[] }>("/api/submissions");
+}
+
+export async function updateSubmission(id: number, data: Record<string, unknown>) {
+  return patchJson<{ data: Record<string, unknown> }, { ok: true }>(
+    `/api/submissions/${id}`,
+    { data }
+  );
 }

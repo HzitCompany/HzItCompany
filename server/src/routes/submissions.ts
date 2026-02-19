@@ -113,3 +113,39 @@ submissionsRouter.get("/submissions", requireAuth, async (req: AuthedRequest, re
     return next(err);
   }
 });
+
+// Allow a user to update the data of their own submission (only if not yet reviewed).
+submissionsRouter.patch("/submissions/:id", requireAuth, async (req: AuthedRequest, res, next) => {
+  try {
+    if (!req.user) throw new HttpError(401, "Unauthorized", true);
+
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id) || id <= 0) throw new HttpError(400, "Invalid submission ID", true);
+
+    const { data } = req.body as { data?: Record<string, unknown> };
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw new HttpError(400, "Invalid data payload", true);
+    }
+
+    const userId = req.user.sub;
+
+    // Only allow editing own submissions that haven't been reviewed yet.
+    const result = await query<{ id: number }>(
+      `update submissions
+       set data = data || $1::jsonb
+       where id = $2
+         and user_id = $3
+         and coalesce(data->>'adminStatus', 'new') = 'new'
+       returning id`,
+      [JSON.stringify(data), id, userId]
+    );
+
+    if (!result[0]) {
+      throw new HttpError(404, "Submission not found or already under review (cannot edit)", true);
+    }
+
+    return res.json({ ok: true });
+  } catch (err) {
+    return next(err);
+  }
+});

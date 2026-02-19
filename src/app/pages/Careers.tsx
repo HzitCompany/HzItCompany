@@ -241,13 +241,74 @@ export function Careers() {
                 <h2 className="text-2xl font-bold text-gray-900 font-poppins">Application form</h2>
                 <p className="mt-2 text-gray-600">Fill this like a quick Google Form — we’ll reach out soon.</p>
 
+                {submitState.status === "success" ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.85 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center py-10 text-center"
+                  >
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 220, damping: 16, delay: 0.1 }}
+                      className="w-24 h-24 rounded-full bg-emerald-100 flex items-center justify-center mb-6 ring-4 ring-emerald-400/40"
+                    >
+                      <svg className="w-12 h-12 text-emerald-600" fill="none" viewBox="0 0 24 24">
+                        <motion.path
+                          initial={{ pathLength: 0 }}
+                          animate={{ pathLength: 1 }}
+                          transition={{ duration: 0.55, delay: 0.35, ease: "easeOut" }}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2.5}
+                          stroke="currentColor"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </motion.div>
+                    <motion.h3
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 }}
+                      className="text-2xl font-bold text-gray-900 font-poppins"
+                    >
+                      Application Submitted!
+                    </motion.h3>
+                    <motion.p
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.6 }}
+                      className="mt-2 text-gray-600 max-w-sm"
+                    >
+                      {submitState.message}
+                    </motion.p>
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.7 }}
+                      className="mt-8 flex flex-col sm:flex-row gap-3 w-full sm:w-auto"
+                    >
+                      <a
+                        href="/profile"
+                        className="px-6 py-3 rounded-xl border border-blue-600 text-blue-700 font-semibold hover:bg-blue-50 transition-all text-center"
+                      >
+                        View my Profile
+                      </a>
+                      <a
+                        href="/"
+                        className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold text-center hover:shadow-lg transition-all"
+                      >
+                        Back to Home
+                      </a>
+                    </motion.div>
+                  </motion.div>
+                ) : (
+                  <>
                 {submitState.status !== "idle" ? (
                   <div
                     className={
                       "mt-6 rounded-xl px-4 py-3 text-sm border " +
-                      (submitState.status === "success"
-                        ? "bg-emerald-50 border-emerald-200 text-emerald-900"
-                        : submitState.status === "error"
+                      (submitState.status === "error"
                           ? "bg-rose-50 border-rose-200 text-rose-900"
                           : "bg-gray-50 border-gray-200 text-gray-800")
                     }
@@ -496,6 +557,8 @@ export function Careers() {
                     </a>
                   </div>
                 </div>
+                  </>
+                )}
               </div>
             </motion.div>
           </div>
