@@ -50,7 +50,7 @@ export function Seo({
     siteConfig.socials.facebook,
     siteConfig.socials.youtube,
     siteConfig.socials.linkedin,
-  ].filter((value): value is string => Boolean(value));
+  ].filter((value): value is NonNullable<typeof value> => Boolean(value)) as string[];
 
   const computedSchema =
     schema ??
