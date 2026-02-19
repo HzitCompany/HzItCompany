@@ -141,6 +141,7 @@ export function AuthModal() {
                     <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
                     <Input
                       type="password"
+                      autoComplete="current-password"
                       placeholder="••••••••"
                       {...register("password")}
                       className={errors.password ? "border-red-300 focus-visible:ring-red-500" : ""}
