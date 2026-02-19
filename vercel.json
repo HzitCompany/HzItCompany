@@ -1,5 +1,8 @@
 {
   "version": 2,
+  "framework": "vite",
+  "buildCommand": "npm run vercel-build",
+  "outputDirectory": "dist",
   "redirects": [
     {
       "source": "/:path*",
@@ -24,22 +27,10 @@
       "permanent": true
     }
   ],
-  "builds": [
+  "rewrites": [
     {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/((?!_next|assets|favicon\\.ico).*)",
+      "destination": "/index.html"
     }
   ]
 }
