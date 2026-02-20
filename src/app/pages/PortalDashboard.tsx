@@ -7,7 +7,7 @@ import { fetchPortalOrders } from "../services/platformService";
 import { CmsSlot } from "../components/cms/CmsBlocks";
 
 export function PortalDashboard() {
-  const { isAuthed, role, logout } = useAuth();
+  const { isAuthed, role, logout, user } = useAuth();
 
   type PortalOrderItem = {
     id: number;
@@ -24,7 +24,14 @@ export function PortalDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isAuthed) return;
+    setItems([]);
+    setError(null);
+
+    if (!isAuthed) {
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
     setLoading(true);
     fetchPortalOrders()
@@ -44,7 +51,7 @@ export function PortalDashboard() {
     return () => {
       mounted = false;
     };
-  }, [isAuthed]);
+  }, [isAuthed, user?.id]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

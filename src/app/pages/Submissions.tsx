@@ -164,7 +164,7 @@ function EditForm({
 }
 
 export function Submissions() {
-  const { isAuthed } = useAuth();
+  const { isAuthed, user } = useAuth();
   const [items, setItems] = useState<SubmissionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -173,10 +173,18 @@ export function Submissions() {
   const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    if (!isAuthed) return;
+    // Always clear stale data first — prevents previous user's submissions
+    // from showing while the new user's fetch is in progress.
+    setItems([]);
+    setFetchError(null);
+
+    if (!isAuthed) {
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
     setLoading(true);
-    setFetchError(null);
 
     fetchMySubmissions()
       .then((r) => { if (mounted) setItems(r.items ?? []); })
@@ -184,7 +192,7 @@ export function Submissions() {
       .finally(() => { if (mounted) setLoading(false); });
 
     return () => { mounted = false; };
-  }, [isAuthed]);
+  }, [isAuthed, user?.id]);
 
   const handleSaved = (item: SubmissionItem, updatedFields: Record<string, string>) => {
     setItems((prev) =>

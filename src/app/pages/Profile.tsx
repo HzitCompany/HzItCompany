@@ -90,6 +90,8 @@ export function Profile() {
   }, [user, setValue]);
 
   useEffect(() => {
+    setRecentSubmissions([]);
+
     if (!user) return;
     let mounted = true;
     setSubmissionsLoading(true);
