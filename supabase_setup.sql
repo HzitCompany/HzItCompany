@@ -77,3 +77,107 @@ CREATE POLICY "Admins can update all profiles" ON public.profiles
   FOR UPDATE
   TO authenticated
   USING (public.is_admin(auth.uid()));
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- RLS for submissions table
+-- submissions.user_id is a bigint from the custom `users` table.
+-- We bridge to Supabase auth via email: users.email = auth.email().
+-- Note: the Express backend uses a service-role / direct PG connection that
+-- bypasses RLS entirely, so these policies protect only direct client queries.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.submissions ENABLE ROW LEVEL SECURITY;
+
+-- Helper: resolve the local bigint user id for the currently authenticated user.
+CREATE OR REPLACE FUNCTION public.current_local_user_id()
+RETURNS bigint
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT id FROM public.users WHERE email = auth.email() LIMIT 1;
+$$;
+
+REVOKE ALL ON FUNCTION public.current_local_user_id() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.current_local_user_id() TO authenticated;
+
+-- Users can read their own submissions.
+CREATE POLICY "Users can read own submissions" ON public.submissions
+  FOR SELECT
+  TO authenticated
+  USING (
+    user_id = public.current_local_user_id()
+    OR public.is_admin(auth.uid())
+  );
+
+-- Users can insert their own submissions (user_id must match their local id).
+CREATE POLICY "Users can insert own submissions" ON public.submissions
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (user_id = public.current_local_user_id());
+
+-- Users can update their own submissions (only if not yet reviewed).
+CREATE POLICY "Users can update own submissions" ON public.submissions
+  FOR UPDATE
+  TO authenticated
+  USING (
+    user_id = public.current_local_user_id()
+    OR public.is_admin(auth.uid())
+  );
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- RLS for career_applications
+-- ─────────────────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.career_applications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read own career applications" ON public.career_applications
+  FOR SELECT
+  TO authenticated
+  USING (
+    user_id = public.current_local_user_id()
+    OR public.is_admin(auth.uid())
+  );
+
+CREATE POLICY "Users can insert own career applications" ON public.career_applications
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (user_id = public.current_local_user_id());
+
+CREATE POLICY "Admins can update career applications" ON public.career_applications
+  FOR UPDATE
+  TO authenticated
+  USING (public.is_admin(auth.uid()));
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Legacy tables (no user reference) — restrict to admin only
+-- ─────────────────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.contact_submissions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins only: contact_submissions" ON public.contact_submissions
+  FOR ALL
+  TO authenticated
+  USING (public.is_admin(auth.uid()));
+
+ALTER TABLE public.hire_us_submissions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins only: hire_us_submissions" ON public.hire_us_submissions
+  FOR ALL
+  TO authenticated
+  USING (public.is_admin(auth.uid()));
+
+ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins only: contact_messages" ON public.contact_messages
+  FOR ALL
+  TO authenticated
+  USING (public.is_admin(auth.uid()));
+
+ALTER TABLE public.hire_requests ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins only: hire_requests" ON public.hire_requests
+  FOR ALL
+  TO authenticated
+  USING (public.is_admin(auth.uid()));
