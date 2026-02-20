@@ -39,51 +39,44 @@ export type CareerPayload = {
 };
 
 export async function submitContactAuthed(payload: ContactPayload) {
-  const normalizedMessage = [payload.subject ? `Subject: ${payload.subject}` : "", payload.message]
-    .filter(Boolean)
-    .join("\n\n");
-
-  // Contact is a public endpoint — pass token "" to skip auto-token acquisition
-  // which otherwise blocks for ~10s on LockManager timeout.
-  return postJson<{ name: string; email: string; phone?: string; message: string }, { success: true }>(
-    "/api/contact",
+  return postJson<{ type: string; data: Record<string, unknown>; honeypot?: string }, { ok: true }>(
+    "/api/submissions",
     {
-      name: payload.name,
-      email: payload.email,
-      phone: payload.phone,
-      message: normalizedMessage,
-    },
-    { token: "" }
+      type: "contact",
+      data: {
+        name: payload.name,
+        email: payload.email,
+        phone: payload.phone,
+        subject: payload.subject,
+        message: payload.message,
+      },
+      honeypot: payload.honeypot,
+    }
   );
 }
 
 export async function submitHireUsAuthed(payload: HireUsPayload) {
-  // Use the public /api/hire-us endpoint so no auth token is required.
-  const serviceSummary = payload.services?.join(", ") ?? "";
-  const details = JSON.stringify({
-    phone: payload.phone,
-    company: payload.company,
-    services: payload.services,
-    projectName: payload.projectName,
-    projectDescription: payload.projectDescription,
-    serviceDetails: payload.serviceDetails,
-    deliveryDays: payload.deliveryDays,
-    clarification: payload.clarification,
-    personalMessage: payload.personalMessage,
-    referenceUrl: payload.referenceUrl,
-    additionalNotes: payload.additionalNotes,
-  });
-
-  return postJson<{ name: string; email: string; phone?: string; service: string; details?: string }, { success: true }>(
-    "/api/hire-us",
+  return postJson<{ type: string; data: Record<string, unknown>; honeypot?: string }, { ok: true }>(
+    "/api/submissions",
     {
-      name: payload.name,
-      email: payload.email,
-      phone: payload.phone,
-      service: serviceSummary,
-      details,
-    },
-    { token: "" }
+      type: "hire",
+      data: {
+        name: payload.name,
+        email: payload.email,
+        phone: payload.phone,
+        company: payload.company,
+        services: payload.services,
+        projectName: payload.projectName,
+        projectDescription: payload.projectDescription,
+        serviceDetails: payload.serviceDetails,
+        deliveryDays: payload.deliveryDays,
+        clarification: payload.clarification,
+        personalMessage: payload.personalMessage,
+        referenceUrl: payload.referenceUrl,
+        additionalNotes: payload.additionalNotes,
+      },
+      honeypot: payload.honeypot,
+    }
   );
 }
 

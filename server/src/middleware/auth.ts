@@ -160,6 +160,83 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
   }
 }
 
+// Middleware that tries to authenticate the request but does NOT reject unauthenticated callers.
+// If a valid token is present, req.user is set exactly as requireAuth does.
+// If no token or the token is invalid, req.user remains undefined and the request continues.
+export async function optionalAuth(req: AuthedRequest, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
+
+  if (!token) return next(); // No token → continue as anonymous
+
+  try {
+    let user:
+      | {
+          id: string;
+          email?: string | null;
+          app_metadata?: unknown;
+        }
+      | null = null;
+
+    let phone: string | undefined;
+    let provider: string | undefined;
+
+    try {
+      const verified = await verifySupabaseJwtViaJwks(token);
+      user = { id: verified.sub, email: verified.email ?? null, app_metadata: { provider: verified.provider } };
+      provider = verified.provider;
+      phone = verified.phone;
+    } catch {
+      // Ignore JWKS failure — try Supabase API fallbacks below
+    }
+
+    const trySupabaseGetUser = async (mode: "auth" | "admin") => {
+      try {
+        const client = mode === "auth" ? getSupabaseAuth() : getSupabaseAdmin();
+        const { data, error } = await client.auth.getUser(token);
+        if (!error && data?.user) {
+          user = data.user as any;
+          provider = (data.user.app_metadata as any)?.provider;
+          phone = (data.user as any)?.phone;
+          return true;
+        }
+      } catch {
+        // Ignore
+      }
+      return false;
+    };
+
+    if (!user) await trySupabaseGetUser("auth");
+    if (!user) await trySupabaseGetUser("admin");
+
+    if (!user?.id) return next(); // Token invalid → continue as anonymous
+
+    let role: "admin" | "user" = "user";
+    try {
+      const supabaseAdmin = getSupabaseAdmin();
+      const { data: profile } = await supabaseAdmin.from("profiles").select("role").eq("id", user.id).single();
+      if (profile?.role === "admin") role = "admin";
+    } catch {
+      // Ignore
+    }
+
+    if (role !== "admin" && env.ADMIN_EMAIL && user.email) {
+      if (user.email.trim().toLowerCase() === env.ADMIN_EMAIL.trim().toLowerCase()) {
+        role = "admin";
+      }
+    }
+
+    const email = (user as any)?.email ?? null;
+    const sub = await getOrCreateLocalUserId({ email, phone: phone ?? null });
+
+    req.user = { id: user.id, email: email ?? undefined, phone, provider, sub, role };
+    next();
+  } catch {
+    // Any unexpected error → continue as anonymous (don't block the request)
+    next();
+  }
+}
+
 // Middleware to enforce Admin role
 export function requireAdmin(req: AuthedRequest, res: Response, next: NextFunction) {
   if (!req.user) return next(new HttpError(401, "Unauthorized", true));
