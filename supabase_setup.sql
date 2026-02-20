@@ -92,6 +92,16 @@ ALTER TABLE public.submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS supabase_uid TEXT NULL;
 CREATE INDEX IF NOT EXISTS idx_submissions_supabase_uid ON public.submissions (supabase_uid, created_at DESC);
 
+-- Backfill: assign supabase_uid for old submissions where email can be unambiguously matched.
+-- Safe: only touches rows with supabase_uid IS NULL, and only when one Supabase profile matches.
+UPDATE public.submissions s
+SET supabase_uid = p.id::text
+FROM public.users u
+JOIN public.profiles p ON lower(p.email) = lower(u.email)
+WHERE s.user_id = u.id
+  AND s.supabase_uid IS NULL
+  AND u.email IS NOT NULL;
+
 -- Helper: resolve the local bigint user id for the currently authenticated user.
 CREATE OR REPLACE FUNCTION public.current_local_user_id()
 RETURNS bigint

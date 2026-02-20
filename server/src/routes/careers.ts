@@ -145,6 +145,8 @@ careersRouter.post("/apply", requireAuth, async (req: AuthedRequest, res, next) 
     const userId = req.user?.sub;
     if (!Number.isFinite(userId)) throw new HttpError(401, "Unauthorized", true);
 
+    const supabaseUid = req.user?.id ?? null; // Supabase auth UUID for reliable user isolation
+
     // Quietly accept honeypot submissions.
     if (parsed.data.honeypot && parsed.data.honeypot.trim().length > 0) {
       return res.json({ ok: true });
@@ -181,8 +183,8 @@ careersRouter.post("/apply", requireAuth, async (req: AuthedRequest, res, next) 
     };
 
     const submissionRows = await query<{ id: number }>(
-      "insert into submissions (user_id, type, data) values ($1,'career',$2) returning id",
-      [userId, submissionData]
+      "insert into submissions (user_id, supabase_uid, type, data) values ($1,$2,'career',$3) returning id",
+      [userId, supabaseUid, submissionData]
     );
 
     const submissionId = submissionRows[0]?.id;
