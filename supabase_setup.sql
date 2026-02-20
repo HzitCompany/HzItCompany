@@ -88,6 +88,10 @@ CREATE POLICY "Admins can update all profiles" ON public.profiles
 
 ALTER TABLE public.submissions ENABLE ROW LEVEL SECURITY;
 
+-- Migration: add supabase_uid to existing submissions table.
+ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS supabase_uid TEXT NULL;
+CREATE INDEX IF NOT EXISTS idx_submissions_supabase_uid ON public.submissions (supabase_uid, created_at DESC);
+
 -- Helper: resolve the local bigint user id for the currently authenticated user.
 CREATE OR REPLACE FUNCTION public.current_local_user_id()
 RETURNS bigint
@@ -107,7 +111,8 @@ CREATE POLICY "Users can read own submissions" ON public.submissions
   FOR SELECT
   TO authenticated
   USING (
-    user_id = public.current_local_user_id()
+    (supabase_uid = auth.uid()::text AND supabase_uid IS NOT NULL)
+    OR (supabase_uid IS NULL AND user_id = public.current_local_user_id())
     OR public.is_admin(auth.uid())
   );
 
@@ -115,14 +120,15 @@ CREATE POLICY "Users can read own submissions" ON public.submissions
 CREATE POLICY "Users can insert own submissions" ON public.submissions
   FOR INSERT
   TO authenticated
-  WITH CHECK (user_id = public.current_local_user_id());
+  WITH CHECK (supabase_uid = auth.uid()::text);
 
 -- Users can update their own submissions (only if not yet reviewed).
 CREATE POLICY "Users can update own submissions" ON public.submissions
   FOR UPDATE
   TO authenticated
   USING (
-    user_id = public.current_local_user_id()
+    (supabase_uid = auth.uid()::text AND supabase_uid IS NOT NULL)
+    OR (supabase_uid IS NULL AND user_id = public.current_local_user_id())
     OR public.is_admin(auth.uid())
   );
 

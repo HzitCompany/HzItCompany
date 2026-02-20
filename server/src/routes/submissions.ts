@@ -54,9 +54,11 @@ submissionsRouter.post("/submissions", requireAuth, async (req: AuthedRequest, r
       );
     }
 
+    const supabaseUid = req.user.id; // Supabase auth UUID — unambiguous per user
+
     const inserted = await query<{ id: number; created_at: string }>(
-      "insert into submissions (user_id, type, data) values ($1,$2,$3) returning id, created_at",
-      [userId, parsed.data.type, parsed.data.data]
+      "insert into submissions (user_id, supabase_uid, type, data) values ($1,$2,$3,$4) returning id, created_at",
+      [userId, supabaseUid, parsed.data.type, parsed.data.data]
     );
 
     const createdId = inserted[0]?.id;
@@ -87,6 +89,9 @@ submissionsRouter.get("/submissions", requireAuth, async (req: AuthedRequest, re
   try {
     if (!req.user) throw new HttpError(401, "Unauthorized", true);
 
+    // Prefer filtering by supabase_uid (Supabase auth UUID) — unambiguous, set on all new
+    // submissions. Fall back to user_id for any legacy rows that pre-date the uid column.
+    const supabaseUid = req.user.id;
     const userId = req.user.sub;
 
     const rows = await query<{
@@ -101,11 +106,11 @@ submissionsRouter.get("/submissions", requireAuth, async (req: AuthedRequest, re
         "       coalesce(ca.status, s.data ->> 'adminStatus') as status",
         "from submissions s",
         "left join career_applications ca on ca.submission_id = s.id",
-        "where s.user_id = $1",
+        "where (s.supabase_uid = $1 or (s.supabase_uid is null and s.user_id = $2))",
         "order by s.created_at desc",
         "limit 200"
       ].join("\n"),
-      [userId]
+      [supabaseUid, userId]
     );
 
     return res.json({ ok: true, items: rows });
@@ -127,6 +132,7 @@ submissionsRouter.patch("/submissions/:id", requireAuth, async (req: AuthedReque
       throw new HttpError(400, "Invalid data payload", true);
     }
 
+    const supabaseUid = req.user.id;
     const userId = req.user.sub;
 
     // Only allow editing own submissions that haven't been reviewed yet.
@@ -134,10 +140,10 @@ submissionsRouter.patch("/submissions/:id", requireAuth, async (req: AuthedReque
       `update submissions
        set data = data || $1::jsonb
        where id = $2
-         and user_id = $3
+         and (supabase_uid = $3 or (supabase_uid is null and user_id = $4))
          and coalesce(data->>'adminStatus', 'new') = 'new'
        returning id`,
-      [JSON.stringify(data), id, userId]
+      [JSON.stringify(data), id, supabaseUid, userId]
     );
 
     if (!result[0]) {

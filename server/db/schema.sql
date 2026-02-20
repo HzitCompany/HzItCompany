@@ -156,12 +156,28 @@ create table if not exists submissions (
   id bigserial primary key,
   created_at timestamptz not null default now(),
   user_id bigint not null references users(id) on delete cascade,
+  -- Supabase auth UUID stored directly for reliable per-user filtering.
+  -- This bypasses the email-based local user_id lookup which can mismap users.
+  supabase_uid text null,
   type text not null check (type in ('contact','hire','career')),
   data jsonb not null
 );
 
+-- Migration: add supabase_uid if it doesn't already exist.
+do $$ begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name   = 'submissions'
+      and column_name  = 'supabase_uid'
+  ) then
+    alter table submissions add column supabase_uid text null;
+  end if;
+end $$;
+
 create index if not exists idx_submissions_user_created_at on submissions (user_id, created_at desc);
 create index if not exists idx_submissions_type_created_at on submissions (type, created_at desc);
+create index if not exists idx_submissions_supabase_uid on submissions (supabase_uid, created_at desc);
 
 -- Career applications (private resume storage paths)
 create table if not exists career_applications (
