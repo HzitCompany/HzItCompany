@@ -34,10 +34,10 @@ submissionsRouter.post("/submissions", requireAuth, async (req: AuthedRequest, r
 
     const userId = req.user.sub;
 
-    // Rate limit: 5 submissions per hour per user.
+    // Rate limit: 5 submissions per hour per user — use supabase_uid for accuracy.
     const recent = await query<{ count: string }>(
-      "select count(*)::text as count from submissions where user_id = $1 and created_at > now() - interval '1 hour'",
-      [userId]
+      "select count(*)::text as count from submissions where supabase_uid = $1 and created_at > now() - interval '1 hour'",
+      [req.user.id]
     );
 
     const count = Number(recent[0]?.count ?? 0);
@@ -89,10 +89,10 @@ submissionsRouter.get("/submissions", requireAuth, async (req: AuthedRequest, re
   try {
     if (!req.user) throw new HttpError(401, "Unauthorized", true);
 
-    // Prefer filtering by supabase_uid (Supabase auth UUID) — unambiguous, set on all new
-    // submissions. Fall back to user_id for any legacy rows that pre-date the uid column.
+    // Filter ONLY by supabase_uid — the Supabase auth UUID is 100% unique per user.
+    // Never fall back to user_id: multiple Supabase users can share the same local
+    // user_id (via phone-based lookup), which causes cross-user data leaks.
     const supabaseUid = req.user.id;
-    const userId = req.user.sub;
 
     const rows = await query<{
       id: number;
@@ -106,11 +106,11 @@ submissionsRouter.get("/submissions", requireAuth, async (req: AuthedRequest, re
         "       coalesce(ca.status, s.data ->> 'adminStatus') as status",
         "from submissions s",
         "left join career_applications ca on ca.submission_id = s.id",
-        "where (s.supabase_uid = $1 or (s.supabase_uid is null and s.user_id = $2))",
+        "where s.supabase_uid = $1",
         "order by s.created_at desc",
         "limit 200"
       ].join("\n"),
-      [supabaseUid, userId]
+      [supabaseUid]
     );
 
     return res.json({ ok: true, items: rows });
@@ -133,17 +133,16 @@ submissionsRouter.patch("/submissions/:id", requireAuth, async (req: AuthedReque
     }
 
     const supabaseUid = req.user.id;
-    const userId = req.user.sub;
 
-    // Only allow editing own submissions that haven't been reviewed yet.
+    // Only allow editing own submissions — match by supabase_uid only, no user_id fallback.
     const result = await query<{ id: number }>(
       `update submissions
        set data = data || $1::jsonb
        where id = $2
-         and (supabase_uid = $3 or (supabase_uid is null and user_id = $4))
+         and supabase_uid = $3
          and coalesce(data->>'adminStatus', 'new') = 'new'
        returning id`,
-      [JSON.stringify(data), id, supabaseUid, userId]
+      [JSON.stringify(data), id, supabaseUid]
     );
 
     if (!result[0]) {
