@@ -139,6 +139,47 @@ export function About() {
         </div>
       </section>
 
+      {/* MSME Registration */}
+      <section className="py-14 bg-gradient-to-r from-blue-700 to-blue-900 text-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="flex flex-col md:flex-row items-start md:items-center gap-6"
+          >
+            <div className="flex-shrink-0">
+              <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <Award className="text-white" size={36} />
+              </div>
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-2 bg-white/15 rounded-full px-4 py-1 text-sm font-medium mb-3">
+                <Shield size={14} />
+                Government of India — Registered MSME
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-2 font-poppins">
+                Registered MSME under Government of India
+              </h2>
+              <p className="text-blue-100 leading-relaxed mb-4 max-w-2xl">
+                HZ IT Company is a registered MSME under the Government of India. We are officially registered under
+                Udyam Registration (Ministry of MSME), ensuring reliability and professional standards in our services.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 border border-white/20">
+                  <p className="text-xs text-blue-200 mb-0.5">Registered Under</p>
+                  <p className="font-semibold text-sm">Ministry of Micro, Small &amp; Medium Enterprises</p>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 border border-white/20">
+                  <p className="text-xs text-blue-200 mb-0.5">Udyam Registration Number</p>
+                  <p className="font-semibold text-sm tracking-wide">UDYAM-BR-03-0042718</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Mission & Vision */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -546,36 +546,36 @@ export function HireUs() {
                             key={service.id}
                             type="button"
                             onClick={() => toggleService(service.id)}
-                            className={`p-6 rounded-2xl border-2 transition-all duration-200 text-left ${
+                            className={`p-3 sm:p-6 rounded-2xl border-2 transition-all duration-200 text-left w-full ${
                               isSelected
                                 ? "border-blue-600 bg-blue-50 shadow-lg"
                                 : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
                             }`}
                           >
-                            <div className="flex items-center">
+                            <div className="flex items-start min-w-0">
                               <div
-                                className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 ${
+                                className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-xl flex items-center justify-center mr-3 sm:mr-4 mt-0.5 ${
                                   isSelected
                                     ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white"
                                     : "bg-gray-100 text-gray-600"
                                 }`}
                                 aria-hidden="true"
                               >
-                                <service.icon size={24} />
+                                <service.icon size={20} />
                               </div>
-                              <div className="flex-1">
-                                <div className="font-semibold text-gray-900">{service.label}</div>
-                                <div className="mt-1 text-sm text-gray-600">
+                              <div className="flex-1 min-w-0 overflow-hidden">
+                                <div className="font-semibold text-gray-900 text-sm sm:text-base">{service.label}</div>
+                                <div className="mt-1 text-xs sm:text-sm text-gray-600 space-y-0.5">
                                   {service.pricing.map((p: any) => (
-                                    <div key={p.plan} className="flex items-center justify-between gap-3">
-                                      <span className="truncate">{p.plan}</span>
-                                      <span className="shrink-0 font-semibold text-gray-900">{fmtInr(p.priceInr)}</span>
+                                    <div key={p.plan} className="flex items-start justify-between gap-2">
+                                      <span className="leading-snug break-words min-w-0">{p.plan}</span>
+                                      <span className="shrink-0 font-semibold text-gray-900 whitespace-nowrap pl-1">{fmtInr(p.priceInr)}</span>
                                     </div>
                                   ))}
                                 </div>
                               </div>
                               {isSelected ? (
-                                <CheckCircle2 className="text-blue-600" size={24} aria-hidden="true" />
+                                <CheckCircle2 className="text-blue-600 shrink-0 ml-2 mt-0.5" size={20} aria-hidden="true" />
                               ) : null}
                             </div>
                           </button>

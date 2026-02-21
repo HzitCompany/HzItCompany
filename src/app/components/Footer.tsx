@@ -181,11 +181,17 @@ export function Footer() {
         </div>
 
         <div className="border-t border-white/10 mt-8 pt-8 text-sm text-gray-400">
-          <div className="flex items-center justify-center gap-3">
-            <div className="h-8 w-8 rounded-lg overflow-hidden bg-white/10">
-              <img src="/logo.png" alt="HZ IT Logo" className="h-full w-full object-contain" />
+          <div className="flex flex-col items-center gap-2 text-center">
+            <div className="flex items-center justify-center gap-3">
+              <div className="h-8 w-8 rounded-lg overflow-hidden bg-white/10">
+                <img src="/logo.png" alt="HZ IT Logo" className="h-full w-full object-contain" />
+              </div>
+              <p>&copy; 2026 HZ IT Company. All rights reserved.</p>
             </div>
-            <p>&copy; 2026 HZ IT Company. All rights reserved.</p>
+            <p className="text-xs text-gray-500">
+              Registered MSME · Ministry of Micro, Small &amp; Medium Enterprises ·{" "}
+              <span className="text-gray-400 font-medium">Udyam: UDYAM-BR-03-0042718</span>
+            </p>
           </div>
         </div>
       </div>
