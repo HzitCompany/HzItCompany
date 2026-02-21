@@ -3,6 +3,7 @@ import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
 import { ScrollToTop } from "./ScrollToTop";
 import { FloatingWhatsApp } from "./FloatingWhatsApp";
+import { InstagramBrowserBanner } from "./InstagramBrowserBanner";
 import { AuthProvider } from "../auth/AuthProvider";
 import { AuthModal } from "./AuthModal";
 import { AnimatePresence } from "motion/react";
@@ -39,6 +40,7 @@ export function Layout() {
         <ScrollToTop />
         {isAdminRoute ? null : <FloatingWhatsApp />}
         <AuthModal />
+        <InstagramBrowserBanner />
       </div>
     </AuthProvider>
   );
