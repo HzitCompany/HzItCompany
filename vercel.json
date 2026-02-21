@@ -3,6 +3,19 @@
   "framework": "vite",
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "(?!www\\.hzitcompany\\.com).*\\.vercel\\.app"
+        }
+      ],
+      "destination": "https://www.hzitcompany.com/$1",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/((?!assets|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)",
