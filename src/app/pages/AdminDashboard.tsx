@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
+import { Link } from "react-router";
 import { motion } from "motion/react";
 import { useAuth } from "../auth/AuthProvider";
 import { Seo } from "../components/Seo";
@@ -159,10 +160,10 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                         transition={{ duration: 0.5, delay: 0.1 }}
                         className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"
                     >
-                        <StatCard title="Total Users" value={stats.totalUsers} />
-                        <StatCard title="Contact Submissions" value={stats.contactSubmissions} />
-                        <StatCard title="Hire Requests" value={stats.hireSubmissions} />
-                        <StatCard title="Career Applications" value={stats.careerApplications} />
+                        <StatCard title="Total Users" value={stats.totalUsers} to="/admin/users" />
+                        <StatCard title="Contact Submissions" value={stats.contactSubmissions} to="/admin/submissions" />
+                        <StatCard title="Hire Requests" value={stats.hireSubmissions} to="/admin/orders" />
+                        <StatCard title="Career Applications" value={stats.careerApplications} to="/admin/careers" />
                     </motion.div>
                 )}
 
@@ -637,13 +638,31 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
     );
 }
 
-function StatCard({ title, value }: { title: string; value: number | string }) {
+function StatCard({ title, value, to }: { title: string; value: number | string; to?: string }) {
+    const inner = (
+        <dl>
+            <dt className="text-sm font-semibold text-gray-600 truncate">{title}</dt>
+            <dd className="mt-2 text-3xl font-bold text-gray-900">{value}</dd>
+            {to && (
+                <dd className="mt-3 text-xs font-semibold text-blue-600 group-hover:underline">
+                    View all →
+                </dd>
+            )}
+        </dl>
+    );
+    if (to) {
+        return (
+            <Link
+                to={to}
+                className="group rounded-2xl border border-gray-200 bg-white shadow-sm p-6 block hover:border-blue-300 hover:shadow-md transition-all duration-150"
+            >
+                {inner}
+            </Link>
+        );
+    }
     return (
         <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-6">
-            <dl>
-                <dt className="text-sm font-semibold text-gray-600 truncate">{title}</dt>
-                <dd className="mt-2 text-3xl font-bold text-gray-900">{value}</dd>
-            </dl>
+            {inner}
         </div>
     );
 }
