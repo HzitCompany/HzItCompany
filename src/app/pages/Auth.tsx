@@ -44,6 +44,26 @@ export function Auth() {
     resolver: zodResolver(authSchema),
   });
 
+  /**
+   * Wraps a promise with a timeout. Throws a user-friendly error if the promise
+   * doesn't resolve within `ms` milliseconds (e.g. Supabase project is paused).
+   */
+  async function withTimeout<T>(promise: Promise<T>, ms = 12000): Promise<T> {
+    let timer: ReturnType<typeof setTimeout>;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () =>
+          reject(
+            new Error(
+              "The authentication service is not responding. It may be temporarily unavailable — please try again in a few minutes."
+            )
+          ),
+        ms
+      );
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer!));
+  }
+
   const onSubmit = async (data: AuthFormData) => {
     setLoading(true);
     setMessage(null);
@@ -52,11 +72,30 @@ export function Auth() {
       if (!supabase) {
         throw new Error("Authentication is not configured. Please contact support.");
       }
+
+      /** Normalise common network-level fetch failures into a readable message. */
+      function normaliseError(err: any): Error {
+        const msg: string = err?.message ?? "";
+        if (
+          msg.toLowerCase().includes("failed to fetch") ||
+          msg.toLowerCase().includes("network request failed") ||
+          msg.toLowerCase().includes("networkerror")
+        ) {
+          return new Error(
+            "Cannot reach the authentication service. Please check your internet connection or try again later."
+          );
+        }
+        return err instanceof Error ? err : new Error(msg || "An unexpected error occurred.");
+      }
+
       if (isLogin) {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: data.email,
-          password: data.password,
-        });
+        const { error: signInError } = await withTimeout(
+          supabase.auth.signInWithPassword({
+            email: data.email,
+            password: data.password,
+          })
+        ).catch((e) => { throw normaliseError(e); });
+
         if (signInError) {
           const msg = signInError.message?.toLowerCase() ?? "";
           if (
@@ -66,20 +105,22 @@ export function Auth() {
             msg.includes("no user found")
           ) {
             throw new Error(
-              "You are not signed in. No account was found with these credentials — please sign up first or check your email and password."
+              "No account was found with these credentials. Please check your email and password, or sign up for a new account."
             );
           }
-          throw signInError;
+          throw normaliseError(signInError);
         }
         navigate(nextUrl, { replace: true });
       } else {
         // Use server-side registration with auto email-confirm so users
         // can log in immediately without waiting for a Supabase verification email.
         try {
-          await postJson("/api/auth/register", {
-            email: data.email,
-            password: data.password,
-          });
+          await withTimeout(
+            postJson("/api/auth/register", {
+              email: data.email,
+              password: data.password,
+            })
+          ).catch((e) => { throw normaliseError(e); });
         } catch (regErr: any) {
           const regMsg = regErr?.message?.toLowerCase() ?? "";
           if (regMsg.includes("already registered") || regMsg.includes("already exists") || regMsg.includes("conflict") || regErr?.status === 409) {
@@ -90,12 +131,15 @@ export function Auth() {
         }
 
         // Sign in immediately (account is already confirmed)
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: data.email,
-          password: data.password,
-        });
+        const { error: signInError } = await withTimeout(
+          supabase.auth.signInWithPassword({
+            email: data.email,
+            password: data.password,
+          })
+        ).catch((e) => { throw normaliseError(e); });
+
         if (signInError) {
-          throw new Error(signInError.message || "Account created but login failed. Please try signing in.");
+          throw normaliseError(signInError);
         }
         navigate(nextUrl, { replace: true });
       }
