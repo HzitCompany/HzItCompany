@@ -80,6 +80,7 @@ export function Auth() {
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [signupDone, setSignupDone] = useState(false); // success screen state
 
   const loginForm = useForm<LoginData>({ resolver: zodResolver(loginSchema) });
   const signupForm = useForm<SignupData>({ resolver: zodResolver(signupSchema) });
@@ -90,6 +91,7 @@ export function Auth() {
     setMessage(null);
     setShowPassword(false);
     setShowConfirmPassword(false);
+    setSignupDone(false);
   }
 
   async function withTimeout<T>(promise: Promise<T>, ms = 12000): Promise<T> {
@@ -170,8 +172,11 @@ export function Auth() {
             regMsg.includes("conflict") ||
             regErr?.status === 409
           ) {
-            registered = true; // account exists â€” just sign in below
-            break;
+            // Account already exists — switch to login with email pre-filled
+            loginForm.setValue("email", data.email);
+            switchMode("login");
+            setMessage({ type: "error", text: "An account with this email already exists. Please sign in below." });
+            return;
           }
           // Retry on any network-level failure (cold start / ERR_CONNECTION_CLOSED /
           // ERR_CONNECTION_TIMED_OUT / 503 starting) â€” up to 3 attempts.
@@ -194,21 +199,14 @@ export function Auth() {
         }
       }
 
-      if (!registered) throw new Error("Could not reach the server. Please try again.");
-      setMessage(null);
-
-      // Sign in via server proxy (same as handleLogin)
-      let loginResult: any;
-      try {
-        loginResult = await withTimeout(postJson("/api/auth/login", { email: data.email, password: data.password }));
-      } catch (e: any) {
-        throw normaliseError(e);
-      }
-      if (!loginResult?.ok) throw new Error(loginResult?.error || "Account created but login failed. Please try signing in.");
-      if (supabase) {
-        await supabase.auth.setSession({ access_token: loginResult.access_token, refresh_token: loginResult.refresh_token });
-      }
-      navigate(nextUrl, { replace: true });
+      // ✔ Account created — show success screen, then switch to login with email pre-filled
+      setSignupDone(true);
+      loginForm.setValue("email", data.email);
+      setTimeout(() => {
+        setSignupDone(false);
+        switchMode("login");
+        setMessage({ type: "success", text: "Account created! Enter your password below to sign in." });
+      }, 2500);
     } catch (err: any) {
       setMessage({ type: "error", text: err.message });
     } finally {
@@ -269,7 +267,20 @@ export function Auth() {
                 </button>
               </p>
             )}
-            {mode === "signup" && (
+            {/* -- SIGNUP SUCCESS SCREEN -- */}
+            {mode === "signup" && signupDone && (
+              <div className="flex flex-col items-center justify-center py-8 space-y-4 text-center">
+                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-100">
+                  <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Account created!</h3>
+                <p className="text-sm text-gray-500">Redirecting you to sign in...</p>
+              </div>
+            )}
+
+            {mode === "signup" && !signupDone && (
               <p className="mt-2 text-sm text-gray-600">
                 Already have an account?{" "}
                 <button type="button" onClick={() => switchMode("login")} className="font-medium text-blue-600 hover:underline">
@@ -363,7 +374,20 @@ export function Auth() {
             )}
 
             {/* â”€â”€ SIGNUP FORM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-            {mode === "signup" && (
+            {/* -- SIGNUP SUCCESS SCREEN -- */}
+            {mode === "signup" && signupDone && (
+              <div className="flex flex-col items-center justify-center py-8 space-y-4 text-center">
+                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-100">
+                  <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Account created!</h3>
+                <p className="text-sm text-gray-500">Redirecting you to sign in...</p>
+              </div>
+            )}
+
+            {mode === "signup" && !signupDone && (
               <form className="space-y-5" onSubmit={signupForm.handleSubmit(handleSignup)}>
                 <div>
                   <label htmlFor="signup-email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -487,3 +511,5 @@ export function Auth() {
     </div>
   );
 }
+
+
