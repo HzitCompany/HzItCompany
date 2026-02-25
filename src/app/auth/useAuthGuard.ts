@@ -4,7 +4,7 @@ import { useAuth } from "./AuthProvider";
 
 export function useAuthGuard() {
   const navigate = useNavigate();
-  const { isAuthed, openAuthModal } = useAuth();
+  const { isAuthed } = useAuth();
 
   const guardNavigate = useCallback(
     (to: string) => {
@@ -12,10 +12,10 @@ export function useAuthGuard() {
         navigate(to);
         return;
       }
-
-      openAuthModal({ afterAuthNavigateTo: to });
+      // Redirect to sign-in page with a return URL
+      navigate(`/auth?next=${encodeURIComponent(to)}`);
     },
-    [isAuthed, navigate, openAuthModal]
+    [isAuthed, navigate]
   );
 
   return { guardNavigate };

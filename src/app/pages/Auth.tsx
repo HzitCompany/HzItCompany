@@ -1,9 +1,11 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "../lib/supabase";
+import { postJson } from "../services/apiClient";
+import { useAuth } from "../auth/AuthProvider";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
@@ -19,9 +21,20 @@ type AuthFormData = z.infer<typeof authSchema>;
 
 export function Auth() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextUrl = searchParams.get("next") || "/portal/dashboard";
+  const { isAuthed, isLoading } = useAuth();
+
+  // If already signed in, redirect to the intended destination
+  useEffect(() => {
+    if (!isLoading && isAuthed) {
+      navigate(nextUrl, { replace: true });
+    }
+  }, [isLoading, isAuthed, navigate, nextUrl]);
+
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
 
   const {
     register,
@@ -33,36 +46,61 @@ export function Auth() {
 
   const onSubmit = async (data: AuthFormData) => {
     setLoading(true);
-    setError(null);
+    setMessage(null);
 
     try {
       if (!supabase) {
-        throw new Error("Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
+        throw new Error("Authentication is not configured. Please contact support.");
       }
       if (isLogin) {
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: data.email,
           password: data.password,
         });
-        if (signInError) throw signInError;
-        navigate("/portal/dashboard"); // Redirect to portal after login
+        if (signInError) {
+          const msg = signInError.message?.toLowerCase() ?? "";
+          if (
+            msg.includes("invalid login credentials") ||
+            msg.includes("invalid credentials") ||
+            msg.includes("user not found") ||
+            msg.includes("no user found")
+          ) {
+            throw new Error(
+              "You are not signed in. No account was found with these credentials — please sign up first or check your email and password."
+            );
+          }
+          throw signInError;
+        }
+        navigate(nextUrl, { replace: true });
       } else {
-        const { error: signUpError } = await supabase.auth.signUp({
+        // Use server-side registration with auto email-confirm so users
+        // can log in immediately without waiting for a Supabase verification email.
+        try {
+          await postJson("/api/auth/register", {
+            email: data.email,
+            password: data.password,
+          });
+        } catch (regErr: any) {
+          const regMsg = regErr?.message?.toLowerCase() ?? "";
+          if (regMsg.includes("already registered") || regMsg.includes("already exists") || regMsg.includes("conflict") || regErr?.status === 409) {
+            // Account already exists — fall through and attempt sign-in
+          } else {
+            throw regErr;
+          }
+        }
+
+        // Sign in immediately (account is already confirmed)
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email: data.email,
           password: data.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/portal/dashboard`,
-          },
         });
-        if (signUpError) throw signUpError;
-        if (!signUpError) {
-             setError("Check your email for the confirmation link.");
-             setLoading(false);
-             return;
+        if (signInError) {
+          throw new Error(signInError.message || "Account created but login failed. Please try signing in.");
         }
+        navigate(nextUrl, { replace: true });
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred during authentication");
+      setMessage({ type: "error", text: err.message || "An error occurred during authentication" });
     } finally {
       setLoading(false);
     }
@@ -71,8 +109,8 @@ export function Auth() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Seo
-        title={isLogin ? "Login - HZ Company" : "Sign Up - HZ Company"}
-        description="Access your dashboard"
+        title={isLogin ? "Sign In - HZ Company" : "Sign Up - HZ Company"}
+        description="Sign in or create an account to submit hire and career requests."
       />
       <div className="flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
         <div className="w-full max-w-md space-y-8">
@@ -85,7 +123,7 @@ export function Auth() {
             <button
               onClick={() => {
                 setIsLogin(!isLogin);
-                setError(null);
+                setMessage(null);
               }}
               className="font-medium text-blue-600 hover:text-blue-500 hover:underline"
             >
@@ -95,9 +133,9 @@ export function Auth() {
         </div>
 
         <div className="mt-8 space-y-6 bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-            {error && (
-              <div className={`p-4 rounded-md text-sm ${error.includes("Check your email") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
-                {error}
+            {message && (
+              <div className={`p-4 rounded-md text-sm ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                {message.text}
               </div>
             )}
             

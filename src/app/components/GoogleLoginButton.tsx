@@ -18,7 +18,11 @@ export function GoogleLoginButton(props: GoogleLoginButtonProps) {
 
     // Persist intended post-auth destination across OAuth full-page redirect.
     try {
-      const path = `${window.location.pathname}${window.location.search}`;
+      const urlParams = new URLSearchParams(window.location.search);
+      const nextParam = urlParams.get("next");
+      const path = nextParam
+        ? nextParam // Use the explicit ?next= param if present
+        : `${window.location.pathname}${window.location.search}`;
       const next = path === "/admin/login" ? "/admin" : path === "/portal/login" ? "/portal" : path;
       window.localStorage.setItem("hz_after_auth_navigate_to", next);
     } catch {

@@ -71,10 +71,11 @@ adminRouter.get("/admin/submissions", requireAuth, requireAdmin, async (req: Aut
       [
         "select s.id, s.created_at, s.type, s.data,",
         "       coalesce(ca.status, s.data ->> 'adminStatus') as status,",
-        "       u.email as user_email, u.phone as user_phone",
+        "       coalesce(s.data ->> 'email', u.email) as user_email,",
+        "       coalesce(s.data ->> 'phone', u.phone) as user_phone",
         "from submissions s",
         "left join career_applications ca on ca.submission_id = s.id",
-        "join users u on u.id = s.user_id",
+        "left join users u on u.id = s.user_id",
         "where ($1::text is null or s.type = $1)",
         "and ($2::text = '' or s.data::text ilike ('%' || $2 || '%') or coalesce(u.email,'') ilike ('%' || $2 || '%') or coalesce(u.phone,'') ilike ('%' || $2 || '%'))",
         "order by s.created_at desc",

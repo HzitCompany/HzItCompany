@@ -273,8 +273,9 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                                                                         String(
                                                                             (data["subject"] ?? data["projectName"] ?? data["project_name"] ?? data["name"] ?? data["fullName"] ?? data["full_name"] ?? "")
                                                                         ).trim() || "—";
-                                                                    const email = String(sub.user_email ?? data["email"] ?? "").trim();
-                                                                    const phone = String(sub.user_phone ?? data["phone"] ?? "").trim();
+                                                                    // Prefer the email from the form submission data over the account email
+                                                                    const email = String(data["email"] ?? sub.user_email ?? "").trim();
+                                                                    const phone = String(data["phone"] ?? sub.user_phone ?? "").trim();
                                                                     const isExpanded = expandedSubmissionId === sub.id;
                                                                     const statusValue = typeof sub.status === "string" ? sub.status : "new";
 
@@ -491,8 +492,9 @@ export function AdminDashboard({ initialTab = "summary" }: { initialTab?: string
                                     ) : (
                                         orders.map((o: any) => {
                                             const data = (o.data ?? {}) as Record<string, unknown>;
-                                            const name = String(data["name"] ?? data["fullName"] ?? o.user_email ?? "—");
-                                            const email = String(o.user_email ?? data["email"] ?? "—");
+                                            const name = String(data["name"] ?? data["fullName"] ?? data["email"] ?? o.user_email ?? "—");
+                                            // Prefer the email from the form submission data over the account email
+                                            const email = String(data["email"] ?? o.user_email ?? "—");
                                             const phone = String(data["phone"] ?? o.user_phone ?? "—");
                                             const project = String(data["projectName"] ?? data["project_name"] ?? "—");
                                             const services = Array.isArray(data["services"])

@@ -21,6 +21,7 @@ export function Navbar() {
       { name: "Services", path: "/services" },
       { name: "Portfolio", path: "/portfolio" },
       { name: "Contact", path: "/contact" },
+      { name: "Sign In", path: "/auth", guestOnly: true },
       { name: "Careers", path: "/careers", protected: true },
     ],
     []
@@ -184,8 +185,11 @@ export function Navbar() {
 
               {/* Desktop Navigation */}
               <div className="hidden md:flex items-center space-x-8">
-                {navLinks.map((link) =>
-                  link.protected ? (
+                {navLinks.map((link) => {
+                  // Hide guest-only links when authenticated
+                  if ((link as any).guestOnly && isAuthed) return null;
+                  if ((link as any).protected) {
+                    return (
                     <button
                       key={link.path}
                       type="button"
@@ -206,7 +210,9 @@ export function Navbar() {
                         />
                       )}
                     </button>
-                  ) : (
+                  );
+                  }
+                  return (
                     <Link
                       key={link.path}
                       to={link.path}
@@ -226,8 +232,8 @@ export function Navbar() {
                         />
                       )}
                     </Link>
-                  )
-                )}
+                  );
+                })}
 
                 {isAuthed ? (
                   <div className="relative">
@@ -374,8 +380,10 @@ export function Navbar() {
 
                   <div className="space-y-1">
                     {navLinks.map((link) => {
+                      // Hide guest-only links in mobile menu when authenticated
+                      if ((link as any).guestOnly && isAuthed) return null;
                       const isActive = activePath === link.path;
-                      if (link.protected) {
+                      if ((link as any).protected) {
                         return (
                           <button
                             key={link.path}

@@ -51,3 +51,65 @@ authRouter.post("/auth/sync-profile", async (req, res, next) => {
     next(err);
   }
 });
+
+// ── Server-side registration with email auto-confirm ────────────────────────────
+// Creates a new user via the Supabase Admin API so email confirmation is
+// bypassed. The user can log in immediately after registration without
+// needing to click a verification link (which may not arrive if SMTP is
+// not configured in Supabase).
+const registerSchema = z
+  .object({
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+  })
+  .strict();
+
+authRouter.post("/auth/register", async (req, res, next) => {
+  try {
+    const parsed = registerSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, error: "Invalid request", details: parsed.error.flatten() });
+    }
+
+    const { email, password } = parsed.data;
+    const supabaseAdmin = getSupabaseAdmin();
+
+    // Create user with email already confirmed so login works immediately
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+
+    if (error) {
+      const errMsg = error.message?.toLowerCase() ?? "";
+      if (
+        errMsg.includes("already registered") ||
+        errMsg.includes("already been registered") ||
+        errMsg.includes("already exists") ||
+        errMsg.includes("duplicate")
+      ) {
+        // Return 409 so the client can detect "already exists" and attempt login
+        return res.status(409).json({ ok: false, error: "An account with this email already exists. Please sign in." });
+      }
+      throw new HttpError(400, error.message, true);
+    }
+
+    // Upsert Supabase profile so the backend role table is in sync
+    if (data?.user) {
+      const adminEmail = env.ADMIN_EMAIL?.trim().toLowerCase();
+      const role = adminEmail && email.trim().toLowerCase() === adminEmail ? "admin" : "user";
+      await supabaseAdmin
+        .from("profiles")
+        .upsert(
+          { id: data.user.id, email, full_name: email.split("@")[0], role },
+          { onConflict: "id" }
+        )
+        .catch(() => undefined); // Non-fatal
+    }
+
+    return res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});

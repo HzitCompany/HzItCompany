@@ -32,7 +32,10 @@ export const router = createBrowserRouter([
       },
       {
         path: "hire-us",
-        lazy: async () => ({ Component: (await import("./pages/HireUs")).HireUs }),
+        lazy: async () => {
+          const { HireUs } = await import("./pages/HireUs");
+          return { Component: () => <RequireAuth><HireUs /></RequireAuth> };
+        },
       },
       {
         path: "careers",
@@ -55,6 +58,10 @@ export const router = createBrowserRouter([
       },
       {
         path: "auth",
+        lazy: async () => ({ Component: (await import("./pages/Auth")).Auth }),
+      },
+      {
+        path: "login",
         lazy: async () => ({ Component: (await import("./pages/Auth")).Auth }),
       },
       {
