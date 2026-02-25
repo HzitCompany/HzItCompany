@@ -164,12 +164,22 @@ export function Auth() {
             registered = true; // account exists — just sign in below
             break;
           }
-          if (regMsg.includes("starting") || regErr?.status === 503) {
-            if (attempt < 2) {
-              setMessage({ type: "success", text: "Server is warming up, please wait a moment…" });
-              await new Promise((r) => setTimeout(r, 3000));
-              continue;
-            }
+          // Retry on any network-level failure (cold start / ERR_CONNECTION_CLOSED /
+          // ERR_CONNECTION_TIMED_OUT / 503 starting) — up to 3 attempts.
+          const isNetworkError =
+            regMsg.includes("failed to fetch") ||
+            regMsg.includes("network request failed") ||
+            regMsg.includes("networkerror") ||
+            regMsg.includes("connection closed") ||
+            regMsg.includes("connection reset") ||
+            regMsg.includes("starting") ||
+            regErr?.status === 503 ||
+            regErr?.status == null; // no HTTP status = network-level failure
+
+          if (isNetworkError && attempt < 2) {
+            setMessage({ type: "success", text: `Server is warming up, retrying… (attempt ${attempt + 2}/3)` });
+            await new Promise((r) => setTimeout(r, 3500));
+            continue;
           }
           throw normaliseError(regErr);
         }

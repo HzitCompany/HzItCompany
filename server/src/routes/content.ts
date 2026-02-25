@@ -29,12 +29,26 @@ contentRouter.get("/", async (req, res, next) => {
           .slice(0, 50)
       : [];
 
-    const rows = keys.length
-      ? await query(
+    let rows: any[] = [];
+    if (keys.length) {
+      try {
+        rows = await query(
           "select key, value, updated_at from site_content where key = any($1) order by key asc",
           [keys]
-        )
-      : [];
+        );
+      } catch (dbErr: any) {
+        // Gracefully handle missing table (schema not yet applied) — return empty list.
+        const code = dbErr?.code ?? dbErr?.message ?? "";
+        if (
+          String(code).includes("42P01") || // undefined_table
+          String(dbErr?.message ?? "").toLowerCase().includes("does not exist")
+        ) {
+          rows = [];
+        } else {
+          throw dbErr;
+        }
+      }
+    }
 
     return res.json({ ok: true, items: rows });
   } catch (err) {
