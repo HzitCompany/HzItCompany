@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { getSupabaseAdmin } from "../lib/supabase.js";
+import { getSupabaseAdmin, getSupabaseAuth } from "../lib/supabase.js";
 import { HttpError } from "../middleware/errorHandler.js";
 import { env } from "../lib/env.js";
 
@@ -52,7 +52,64 @@ authRouter.post("/auth/sync-profile", async (req, res, next) => {
   }
 });
 
-// ── Server-side registration with email auto-confirm ────────────────────────────
+// ── Server-side login proxy ──────────────────────────────────────────────────────
+// The browser may not be able to reach Supabase directly (cold-start timeout,
+// geo-blocking, free-tier pause). Routing login through the server avoids this.
+const loginSchema2 = z
+  .object({
+    email: z.string().email(),
+    password: z.string().min(1),
+  })
+  .strict();
+
+authRouter.post("/auth/login", async (req, res, next) => {
+  try {
+    const parsed = loginSchema2.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ ok: false, error: "Invalid request" });
+
+    const { email, password } = parsed.data;
+    const supabaseAuth = getSupabaseAuth();
+    const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
+
+    if (error || !data.session) {
+      const msg = error?.message ?? "Authentication failed";
+      const code = error?.status ?? 400;
+      return res.status(code).json({ ok: false, error: msg });
+    }
+
+    return res.json({
+      ok: true,
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+      expires_at: data.session.expires_at,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Server-side forgot-password proxy ─────────────────────────────────────────────
+const forgotSchema = z.object({ email: z.string().email(), redirectTo: z.string().url().optional() }).strict();
+
+authRouter.post("/auth/forgot-password", async (req, res, next) => {
+  try {
+    const parsed = forgotSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ ok: false, error: "Invalid request" });
+
+    const { email, redirectTo } = parsed.data;
+    const supabaseAuth = getSupabaseAuth();
+    const { error } = await supabaseAuth.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectTo ?? "https://www.hzitcompany.com/auth",
+    });
+
+    if (error) return res.status(400).json({ ok: false, error: error.message });
+    return res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Server-side registration with email auto-confirm ──────────────────────────────
 // Creates a new user via the Supabase Admin API so email confirmation is
 // bypassed. The user can log in immediately after registration without
 // needing to click a verification link (which may not arrive if SMTP is
@@ -99,13 +156,16 @@ authRouter.post("/auth/register", async (req, res, next) => {
     if (data?.user) {
       const adminEmail = env.ADMIN_EMAIL?.trim().toLowerCase();
       const role = adminEmail && email.trim().toLowerCase() === adminEmail ? "admin" : "user";
-      await supabaseAdmin
-        .from("profiles")
-        .upsert(
-          { id: data.user.id, email, full_name: email.split("@")[0], role },
-          { onConflict: "id" }
-        )
-        .catch(() => undefined); // Non-fatal
+      try {
+        await supabaseAdmin
+          .from("profiles")
+          .upsert(
+            { id: data.user.id, email, full_name: email.split("@")[0], role },
+            { onConflict: "id" }
+          );
+      } catch {
+        // Non-fatal
+      }
     }
 
     return res.json({ ok: true });

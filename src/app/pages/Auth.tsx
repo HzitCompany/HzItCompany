@@ -120,17 +120,26 @@ export function Auth() {
     setPageLoading(true);
     setMessage(null);
     try {
-      if (!supabase) throw new Error("Authentication is not configured. Please contact support.");
-      const { error } = await withTimeout(
-        supabase.auth.signInWithPassword({ email: data.email, password: data.password })
-      ).catch((e) => { throw normaliseError(e); });
+      // Route through our backend so the browser never calls Supabase directly.
+      // This fixes ERR_CONNECTION_TIMED_OUT when Supabase is temporarily unreachable.
+      let result: any;
+      try {
+        result = await withTimeout(postJson("/api/auth/login", { email: data.email, password: data.password }));
+      } catch (e: any) {
+        throw normaliseError(e);
+      }
 
-      if (error) {
-        const m = error.message?.toLowerCase() ?? "";
-        if (m.includes("invalid login credentials") || m.includes("invalid credentials") || m.includes("user not found")) {
-          throw new Error("No account was found with these credentials. Please check your email and password, or create a new account.");
+      if (!result?.ok) {
+        const msg = (result?.error ?? "").toLowerCase();
+        if (msg.includes("invalid") || msg.includes("credentials") || msg.includes("not found")) {
+          throw new Error("No account found with these credentials. Please check your email and password, or sign up.");
         }
-        throw normaliseError(error);
+        throw new Error(result?.error || "Login failed. Please try again.");
+      }
+
+      // Store session on the Supabase client — triggers onAuthStateChange in AuthProvider
+      if (supabase) {
+        await supabase.auth.setSession({ access_token: result.access_token, refresh_token: result.refresh_token });
       }
       navigate(nextUrl, { replace: true });
     } catch (err: any) {
@@ -188,11 +197,17 @@ export function Auth() {
       if (!registered) throw new Error("Could not reach the server. Please try again.");
       setMessage(null);
 
-      const { error: signInError } = await withTimeout(
-        supabase.auth.signInWithPassword({ email: data.email, password: data.password })
-      ).catch((e) => { throw normaliseError(e); });
-
-      if (signInError) throw normaliseError(signInError);
+      // Sign in via server proxy (same as handleLogin)
+      let loginResult: any;
+      try {
+        loginResult = await withTimeout(postJson("/api/auth/login", { email: data.email, password: data.password }));
+      } catch (e: any) {
+        throw normaliseError(e);
+      }
+      if (!loginResult?.ok) throw new Error(loginResult?.error || "Account created but login failed. Please try signing in.");
+      if (supabase) {
+        await supabase.auth.setSession({ access_token: loginResult.access_token, refresh_token: loginResult.refresh_token });
+      }
       navigate(nextUrl, { replace: true });
     } catch (err: any) {
       setMessage({ type: "error", text: err.message });
@@ -201,18 +216,21 @@ export function Auth() {
     }
   };
 
-  // â”€â”€ Forgot password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Forgot password (proxied through backend) ────────────────────────────
   const handleForgot = async (data: ForgotData) => {
     setPageLoading(true);
     setMessage(null);
     try {
-      if (!supabase) throw new Error("Authentication is not configured. Please contact support.");
-      const { error } = await withTimeout(
-        supabase.auth.resetPasswordForEmail(data.email, {
+      let result: any;
+      try {
+        result = await withTimeout(postJson("/api/auth/forgot-password", {
+          email: data.email,
           redirectTo: window.location.origin + "/auth",
-        })
-      ).catch((e) => { throw normaliseError(e); });
-      if (error) throw normaliseError(error);
+        }));
+      } catch (e: any) {
+        throw normaliseError(e);
+      }
+      if (!result?.ok) throw new Error(result?.error || "Failed to send reset email. Please try again.");
       setMessage({ type: "success", text: "Password reset link sent! Check your inbox (and spam folder)." });
     } catch (err: any) {
       setMessage({ type: "error", text: err.message });
