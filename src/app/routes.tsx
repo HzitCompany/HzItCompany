@@ -65,6 +65,10 @@ export const router = createBrowserRouter([
         lazy: async () => ({ Component: (await import("./pages/Auth")).Auth }),
       },
       {
+        path: "auth/callback",
+        lazy: async () => ({ Component: (await import("./pages/AuthCallback")).AuthCallback }),
+      },
+      {
         path: "portal",
         lazy: async () => ({ Component: (await import("./pages/PortalDashboard")).PortalDashboard }),
       },

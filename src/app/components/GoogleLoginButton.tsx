@@ -34,7 +34,7 @@ export function GoogleLoginButton(props: GoogleLoginButtonProps) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin
+          redirectTo: `${window.location.origin}/auth/callback`
         }
       });
       if (error) {
@@ -46,7 +46,7 @@ export function GoogleLoginButton(props: GoogleLoginButtonProps) {
       props.onError?.();
     } finally {
       if (!window.location.href.includes("accounts.google.com")) {
-          setLoading(false);
+        setLoading(false);
       }
     }
   }
