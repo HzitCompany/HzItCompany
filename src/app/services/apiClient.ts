@@ -6,10 +6,23 @@ export type ApiError = {
   details?: unknown;
 };
 
+// Hardcoded fallback — same pattern as supabase.ts.
+// This ensures the correct backend URL is used even if VITE_API_BASE_URL is
+// missing or misconfigured in the Vercel / host environment.
+const FALLBACK_API_BASE_URL = "https://hz-company-api.onrender.com";
+const SUPABASE_HOST_HINT = "supabase.co"; // guard against Supabase URL being set as API base
+
 function getBaseUrl() {
   const envAny = (import.meta as any).env ?? {};
   const base = (envAny.VITE_API_BASE_URL as string | undefined) ?? (envAny.VITE_API_URL as string | undefined);
-  const normalized = base?.replace(/\/$/, "") ?? "";
+  const normalized = base?.replace(/\/$/, "");
+
+  // If the env var is missing, empty, or was mistakenly set to the Supabase URL,
+  // fall back to the known backend URL in production.
+  if (!normalized || normalized.includes(SUPABASE_HOST_HINT)) {
+    return import.meta.env.PROD ? FALLBACK_API_BASE_URL : "";
+  }
+
   return normalized;
 }
 
