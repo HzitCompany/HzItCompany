@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -122,20 +122,46 @@ export function Auth() {
     setPageLoading(true);
     setMessage(null);
     try {
-      // Route through our backend so the browser never calls Supabase directly.
-      // This fixes ERR_CONNECTION_TIMED_OUT when Supabase is temporarily unreachable.
       let result: any;
       try {
         result = await withTimeout(postJson("/api/auth/login", { email: data.email, password: data.password }));
       } catch (e: any) {
+        const msg: string = (e?.message ?? "").toLowerCase();
+        const status = e?.status;
+
+        // When login fails with an auth error, probe whether the email is
+        // registered. If register returns 409 → email exists → wrong password.
+        // If register returns ok → email never existed → not signed up.
+        if (
+          msg.includes("invalid") ||
+          msg.includes("credentials") ||
+          msg.includes("password") ||
+          status === 400 ||
+          status === 401
+        ) {
+          let emailExists = true;
+          try {
+            const probe: any = await withTimeout(
+              postJson("/api/auth/register", { email: data.email, password: "__probe__hz__" }),
+              6000
+            );
+            if (probe?.ok) emailExists = false;
+          } catch (probeErr: any) {
+            const ps = probeErr?.status;
+            const pm = (probeErr?.message ?? "").toLowerCase();
+            emailExists = ps === 409 || pm.includes("already") || pm.includes("exists") || pm.includes("conflict");
+          }
+
+          if (!emailExists) {
+            throw new Error("You are not signed up yet. Please create an account first.");
+          } else {
+            throw new Error("Incorrect email or password. Please check and try again.");
+          }
+        }
         throw normaliseError(e);
       }
 
       if (!result?.ok) {
-        const msg = (result?.error ?? "").toLowerCase();
-        if (msg.includes("invalid") || msg.includes("credentials") || msg.includes("not found")) {
-          throw new Error("No account found with these credentials. Please check your email and password, or sign up.");
-        }
         throw new Error(result?.error || "Login failed. Please try again.");
       }
 
