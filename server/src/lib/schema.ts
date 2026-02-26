@@ -104,3 +104,39 @@ export async function ensureSchemaOrThrow() {
 
   logger.info("Database schema applied successfully");
 }
+
+// ── Incremental migrations ────────────────────────────────────────────────────
+// These run on every startup and are fully idempotent (safe to re-run).
+// Add new migrations here instead of modifying schema.sql when altering
+// existing live tables.
+const MIGRATIONS: { name: string; sql: string }[] = [
+  {
+    name: "make_submissions_user_id_nullable",
+    sql: `
+      DO $$ BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name   = 'submissions'
+            AND column_name  = 'user_id'
+            AND is_nullable  = 'NO'
+        ) THEN
+          ALTER TABLE submissions ALTER COLUMN user_id DROP NOT NULL;
+        END IF;
+      END $$;
+    `
+  }
+];
+
+export async function runMigrations() {
+  for (const migration of MIGRATIONS) {
+    try {
+      await pool.query(migration.sql);
+      logger.info({ migration: migration.name }, "Migration applied");
+    } catch (err) {
+      // Log but don't crash — a failed migration should not prevent the server
+      // from starting. The affected feature will surface its own error.
+      logger.error({ migration: migration.name, err }, "Migration failed (non-fatal)");
+    }
+  }
+}

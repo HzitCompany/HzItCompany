@@ -2,7 +2,7 @@ import { createApp } from "./app.js";
 import { env } from "./lib/env.js";
 import { logger } from "./lib/logger.js";
 import { initDb } from "./lib/db.js";
-import { ensureSchemaOrThrow } from "./lib/schema.js";
+import { ensureSchemaOrThrow, runMigrations } from "./lib/schema.js";
 import { pricingRoutes } from "./routes/pricing.js";
 import { contactRoutes } from "./routes/contact.js";
 import { hireUsRoutes } from "./routes/hireUs.js";
@@ -68,6 +68,8 @@ async function main() {
   let schemaReady = true;
   try {
     await ensureSchemaOrThrow();
+    // Always run incremental migrations (idempotent) after schema is confirmed.
+    await runMigrations();
   } catch (err) {
     schemaReady = false;
     logger.error(
