@@ -103,7 +103,8 @@ authRouter.post("/auth/check-email", async (req, res, next) => {
 
     // getUserByEmail is the correct Admin API method to look up a user by email.
     // It does NOT create any account — pure read operation.
-    const { data, error } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+    // Cast to any to bypass the TS error on older supabase-js versions where the type is missing.
+    const { data, error } = await (supabaseAdmin.auth.admin as any).getUserByEmail(email);
 
     if (error) {
       // If the error message indicates not found, the user doesn't exist.
