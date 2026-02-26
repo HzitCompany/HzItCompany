@@ -59,10 +59,22 @@ submissionsRouter.post("/submissions", optionalAuth, async (req: AuthedRequest, 
       );
     }
 
-    const inserted = await query<{ id: number; created_at: string }>(
-      "insert into submissions (user_id, supabase_uid, type, data) values ($1,$2,$3,$4) returning id, created_at",
-      [userId, supabaseUid, parsed.data.type, parsed.data.data]
-    );
+    // For anonymous submissions (contact/hire), omit user_id entirely so the
+    // nullable FK doesn't trip over a null value on DBs where the column was
+    // previously NOT NULL and the migration hasn't run yet.
+    let inserted: { id: number; created_at: string }[];
+    if (userId !== null) {
+      inserted = await query<{ id: number; created_at: string }>(
+        "insert into submissions (user_id, supabase_uid, type, data) values ($1,$2,$3,$4) returning id, created_at",
+        [userId, supabaseUid, parsed.data.type, parsed.data.data]
+      );
+    } else {
+      inserted = await query<{ id: number; created_at: string }>(
+        "insert into submissions (supabase_uid, type, data) values ($1,$2,$3) returning id, created_at",
+        [supabaseUid, parsed.data.type, parsed.data.data]
+      );
+    }
+
 
     const createdId = inserted[0]?.id;
     const createdAt = inserted[0]?.created_at;

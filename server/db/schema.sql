@@ -155,13 +155,26 @@ create index if not exists idx_sessions_expires on sessions (expires_at desc);
 create table if not exists submissions (
   id bigserial primary key,
   created_at timestamptz not null default now(),
-  user_id bigint not null references users(id) on delete cascade,
+  -- user_id is NULL for anonymous (non-logged-in) contact/hire submissions.
+  user_id bigint null references users(id) on delete cascade,
   -- Supabase auth UUID stored directly for reliable per-user filtering.
-  -- This bypasses the email-based local user_id lookup which can mismap users.
   supabase_uid text null,
   type text not null check (type in ('contact','hire','career')),
   data jsonb not null
 );
+
+-- Migration: make user_id nullable if table already exists with NOT NULL constraint.
+do $$ begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name   = 'submissions'
+      and column_name  = 'user_id'
+      and is_nullable  = 'NO'
+  ) then
+    alter table submissions alter column user_id drop not null;
+  end if;
+end $$;
 
 -- Migration: add supabase_uid if it doesn't already exist.
 do $$ begin
