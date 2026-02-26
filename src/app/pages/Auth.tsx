@@ -251,7 +251,7 @@ export function Auth() {
       />
 
       <div className="flex items-center justify-center px-4 py-16 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md space-y-6">
+        <div className="w-full max-w-md space-y-6" style={{ marginTop: '100px' }}>
 
           {/* â”€â”€ Page heading (always clearly visible) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <div className="text-center">
@@ -260,7 +260,7 @@ export function Auth() {
             </h1>
 
             {mode === "login" && (
-              <p className="mt-2 text-sm text-gray-600">
+              <p className="mt-6 text-sm text-gray-600">
                 Don&apos;t have an account?{" "}
                 <button type="button" onClick={() => switchMode("signup")} className="font-medium text-blue-600 hover:underline">
                   Sign up for free
