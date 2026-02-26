@@ -73,6 +73,11 @@ export const router = createBrowserRouter([
         lazy: async () => ({ Component: (await import("./pages/PortalDashboard")).PortalDashboard }),
       },
       {
+        // Alias — some auth redirects land here after login
+        path: "portal/dashboard",
+        lazy: async () => ({ Component: (await import("./pages/PortalDashboard")).PortalDashboard }),
+      },
+      {
         path: "profile",
         lazy: async () => {
           const { Profile } = await import("./pages/Profile");

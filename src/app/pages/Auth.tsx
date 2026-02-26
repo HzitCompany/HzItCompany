@@ -66,7 +66,7 @@ function EyeToggle({ show, onClick }: { show: boolean; onClick: () => void }) {
 export function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const nextUrl = searchParams.get("next") || "/portal/dashboard";
+  const nextUrl = searchParams.get("next") || "/portal";
   const { isAuthed, isLoading } = useAuth();
 
   useEffect(() => {
