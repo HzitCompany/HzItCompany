@@ -90,10 +90,6 @@ export function PortalLogin() {
         const msg: string = (e?.message ?? "").toLowerCase();
         const status = e?.status;
 
-        // Supabase / backend returns 400 "Invalid login credentials" when
-        // email+password combination is wrong, OR when email doesn't exist at all.
-        // We need to distinguish the two so we check if the email even exists
-        // via a lightweight register attempt (which returns 409 if it already exists).
         if (
           msg.includes("invalid") ||
           msg.includes("credentials") ||
@@ -101,47 +97,19 @@ export function PortalLogin() {
           status === 400 ||
           status === 401
         ) {
-          // Try to detect "not signed up" vs "wrong password":
-          // Attempt to register with a dummy password — if it succeeds the email
-          // was never registered (we immediately delete by logging out); if it
-          // returns 409 the email IS registered — so the password was just wrong.
-          let emailExists = true;
+          // Use the dedicated check-email endpoint — pure read, no side effects.
+          let emailExists: boolean | null = true;
           try {
-            const checkResult: any = await postJson("/api/auth/register", {
-              email: data.email,
-              password: "__probe__hz__",
-            });
-            // If register succeeded, the account didn't exist before — clean up
-            // (Supabase will have created it; we can ignore the cleanup for now,
-            //  but at least show the right message to the user).
-            if (checkResult?.ok) {
-              emailExists = false;
-              // Remove the accidentally created account via signOut
-              if (supabase) {
-                try { await supabase.auth.signOut(); } catch { /* ignore */ }
-              }
-            }
-          } catch (checkErr: any) {
-            const checkStatus = checkErr?.status;
-            const checkMsg = (checkErr?.message ?? "").toLowerCase();
-            if (
-              checkStatus === 409 ||
-              checkMsg.includes("already") ||
-              checkMsg.includes("exists") ||
-              checkMsg.includes("conflict")
-            ) {
-              emailExists = true;
-            } else {
-              // Can't determine — default to wrong-password message
-              emailExists = true;
-            }
+            const check: any = await postJson("/api/auth/check-email", { email: data.email });
+            if (check?.ok && check.exists !== null) emailExists = check.exists;
+          } catch {
+            // If check-email fails, fall back to generic wrong-password message
           }
 
-          if (!emailExists) {
-            throw new Error("You are not signed up. Please create an account first.");
-          } else {
-            throw new Error("Incorrect email or password. Please check and try again.");
+          if (emailExists === false) {
+            throw new Error("You are not signed up yet. Please create an account first.");
           }
+          throw new Error("Incorrect email or password. Please check and try again.");
         }
         throw new Error(e?.message || "Sign in failed. Please try again.");
       }

@@ -129,9 +129,6 @@ export function Auth() {
         const msg: string = (e?.message ?? "").toLowerCase();
         const status = e?.status;
 
-        // When login fails with an auth error, probe whether the email is
-        // registered. If register returns 409 → email exists → wrong password.
-        // If register returns ok → email never existed → not signed up.
         if (
           msg.includes("invalid") ||
           msg.includes("credentials") ||
@@ -139,24 +136,22 @@ export function Auth() {
           status === 400 ||
           status === 401
         ) {
-          let emailExists = true;
+          // Use the dedicated check-email endpoint — pure read, no side effects.
+          let emailExists: boolean | null = true;
           try {
-            const probe: any = await withTimeout(
-              postJson("/api/auth/register", { email: data.email, password: "__probe__hz__" }),
+            const check: any = await withTimeout(
+              postJson("/api/auth/check-email", { email: data.email }),
               6000
             );
-            if (probe?.ok) emailExists = false;
-          } catch (probeErr: any) {
-            const ps = probeErr?.status;
-            const pm = (probeErr?.message ?? "").toLowerCase();
-            emailExists = ps === 409 || pm.includes("already") || pm.includes("exists") || pm.includes("conflict");
+            if (check?.ok && check.exists !== null) emailExists = check.exists;
+          } catch {
+            // If check-email fails, fall back to generic wrong-password message
           }
 
-          if (!emailExists) {
+          if (emailExists === false) {
             throw new Error("You are not signed up yet. Please create an account first.");
-          } else {
-            throw new Error("Incorrect email or password. Please check and try again.");
           }
+          throw new Error("Incorrect email or password. Please check and try again.");
         }
         throw normaliseError(e);
       }

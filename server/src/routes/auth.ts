@@ -52,7 +52,7 @@ authRouter.post("/auth/sync-profile", async (req, res, next) => {
   }
 });
 
-// ── Server-side login proxy ──────────────────────────────────────────────────────
+// ── Server-side login proxy ──────────────────────────────────────────────────
 // The browser may not be able to reach Supabase directly (cold-start timeout,
 // geo-blocking, free-tier pause). Routing login through the server avoids this.
 const loginSchema2 = z
@@ -83,6 +83,40 @@ authRouter.post("/auth/login", async (req, res, next) => {
       refresh_token: data.session.refresh_token,
       expires_at: data.session.expires_at,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Check email existence (no side effects) ───────────────────────────────────
+// Used by the frontend to distinguish "wrong password" from "not signed up"
+// without creating ghost accounts. Uses Admin API getUserByEmail lookup.
+const checkEmailSchema = z.object({ email: z.string().email() }).strict();
+
+authRouter.post("/auth/check-email", async (req, res, next) => {
+  try {
+    const parsed = checkEmailSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ ok: false, error: "Invalid request" });
+
+    const { email } = parsed.data;
+    const supabaseAdmin = getSupabaseAdmin();
+
+    // getUserByEmail is the correct Admin API method to look up a user by email.
+    // It does NOT create any account — pure read operation.
+    const { data, error } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+
+    if (error) {
+      // If the error message indicates not found, the user doesn't exist.
+      const msg = (error.message ?? "").toLowerCase();
+      if (msg.includes("not found") || msg.includes("no user")) {
+        return res.json({ ok: true, exists: false });
+      }
+      // For any other admin API error (e.g., service role not configured),
+      // return null so the frontend degrades gracefully.
+      return res.json({ ok: true, exists: null });
+    }
+
+    return res.json({ ok: true, exists: !!data?.user });
   } catch (err) {
     next(err);
   }
