@@ -25,8 +25,9 @@ export function About() {
   return (
     <div className="min-h-screen">
       <Seo
-        title="About"
-        description="Learn how HZ IT Company partners with teams to design, build, and scale secure software—delivered by senior engineers with a product mindset."
+        title="About HZ IT Company — MSME Registered IT Company in Bihar, India"
+        description="HZ IT Company is a Government of India registered MSME (UDYAM-BR-03-0042718) based in Bihar. We deliver reliable web development, mobile apps & digital solutions to businesses across India."
+        keywords="HZ IT Company about, MSME IT company Bihar, registered IT company India, IT company Patna Bihar, HZ IT company founder, Manish Kumar Singh HZ IT, software company Bihar India"
         path="/about"
       />
       {/* Hero Section */}

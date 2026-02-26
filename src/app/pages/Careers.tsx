@@ -208,8 +208,9 @@ export function Careers() {
   return (
     <div className="min-h-screen">
       <Seo
-        title="Careers"
-        description="Explore open roles and apply to join HZ IT Company."
+        title="Careers at HZ IT Company — Join Our IT Team in India"
+        description="Join HZ IT Company — we're hiring Software Developers, Digital Marketers, UI/UX Designers, Cybersecurity experts and more in India. Apply online or WhatsApp us."
+        keywords="IT jobs India, software developer jobs Bihar, digital marketing jobs India, web developer jobs Bihar, UI UX designer jobs India, cybersecurity jobs India, IT company jobs Patna"
         path="/careers"
       />
 

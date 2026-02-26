@@ -1,10 +1,10 @@
 export const siteConfig = {
   name: "HZ IT Company",
   legalName: "HZ IT Company",
-  url: "https://hzitcompany.com",
-  tagline: "IT services and software development for growing teams",
-  defaultTitle: "HZ IT Company | IT Services & Software Development",
-  defaultDescription: "HZ IT Company (hz it company) — Custom web development, mobile apps, AI, cloud, cybersecurity & digital marketing services in India. Trusted IT partner for growing businesses.",
+  url: "https://www.hzitcompany.com",
+  tagline: "IT services and software development for growing teams in India",
+  defaultTitle: "HZ IT Company | IT Services & Software Development in India",
+  defaultDescription: "HZ IT Company — Registered MSME IT company in Bihar, India. Custom web development, mobile apps, cloud, cybersecurity & digital marketing. Trusted by businesses across India.",
   locale: "en_IN",
   themeColor: "#2563eb",
   contact: {
@@ -13,10 +13,10 @@ export const siteConfig = {
     whatsapp: "+91 8101515185",
   },
   address: {
-    streetAddress: "India",
-    addressLocality: "India",
-    addressRegion: "",
-    postalCode: "",
+    streetAddress: "Bihar",
+    addressLocality: "Patna",
+    addressRegion: "Bihar",
+    postalCode: "800001",
     addressCountry: "IN",
   },
   socials: {
@@ -26,7 +26,6 @@ export const siteConfig = {
     youtube: "https://youtube.com/@hzitcompany?si=2_3dECFCpkkOgNpr",
     linkedin: "https://www.linkedin.com/in/hzitcompany?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
   },
-  // Put a real hosted image in /public for best SEO. This path assumes you add it later.
   defaultOgImage: "/og-image.png",
 } as const;
 

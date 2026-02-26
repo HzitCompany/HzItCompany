@@ -1,4 +1,16 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://hzitcompany.com/sitemap.xml
+# Block private/auth routes from crawling
+Disallow: /portal
+Disallow: /portal/
+Disallow: /portal/dashboard
+Disallow: /admin
+Disallow: /admin/
+Disallow: /auth/callback
+Disallow: /submissions
+Disallow: /profile
+Disallow: /checkout
+
+# Sitemaps
+Sitemap: https://www.hzitcompany.com/sitemap.xml

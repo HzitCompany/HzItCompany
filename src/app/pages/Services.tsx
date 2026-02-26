@@ -252,8 +252,9 @@ export function Services() {
   return (
     <div className="min-h-screen">
       <Seo
-        title="Services"
-        description="End-to-end IT services: custom software development, cloud, cybersecurity, data analytics, and UI/UX—built to perform and scale."
+        title="IT Services in India — Web, Mobile, Cloud & More"
+        description="HZ IT Company offers web development, mobile apps, cloud solutions, cybersecurity, digital marketing, SEO, UI/UX design & IT consulting across India. Transparent pricing in INR."
+        keywords="web development services India, mobile app development India, cloud solutions India, cybersecurity services India, digital marketing India, SEO services India, IT consulting India, software development Bihar, UI UX design India"
         path="/services"
       />
       {/* Hero Section */}

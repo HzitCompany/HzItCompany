@@ -73,32 +73,74 @@ export function Home() {
   return (
     <div className="min-h-screen">
       <Seo
-        title="Premium IT Services"
-        description="HZ IT Company helps teams ship reliable software faster. Custom web and mobile development, cloud, cybersecurity, UI/UX, and consulting."
-        keywords="HZ IT Company, hz it company, hzitcompany, hz it, IT company India, web development India, AI solutions India, digital marketing India, software development India, cybersecurity India, mobile app development India, UI UX design India"
+        title="IT Services & Software Development in India"
+        description="HZ IT Company — Registered MSME IT company in Bihar, India. Custom web development, mobile apps, cloud solutions, cybersecurity & digital marketing. We deliver reliable digital solutions for businesses across India."
+        keywords="HZ IT Company, hz it company, hzitcompany, IT company India, IT company Bihar, IT company Patna, web development India, software development India, mobile app development India, cloud solutions India, cybersecurity India, digital marketing India, MSME IT company, custom software India, website development Bihar, IT services Patna"
         path="/"
         schema={{
           "@context": "https://schema.org",
-          "@type": "LocalBusiness",
-          name: siteConfig.legalName,
-          url: siteConfig.url,
-          telephone: siteConfig.contact.phone,
-          email: siteConfig.contact.email,
-          address: {
-            "@type": "PostalAddress",
-            streetAddress: siteConfig.address.streetAddress,
-            addressLocality: siteConfig.address.addressLocality,
-            addressRegion: siteConfig.address.addressRegion,
-            postalCode: siteConfig.address.postalCode,
-            addressCountry: siteConfig.address.addressCountry,
-          },
-          sameAs: [
-            siteConfig.socials.linkedin,
-            siteConfig.socials.instagram,
-            siteConfig.socials.x,
-            siteConfig.socials.facebook,
-            siteConfig.socials.youtube,
-          ],
+          "@graph": [
+            {
+              "@type": ["Organization", "LocalBusiness", "ProfessionalService"],
+              "@id": `${siteConfig.url}/#organization`,
+              name: siteConfig.legalName,
+              url: siteConfig.url,
+              telephone: siteConfig.contact.phone,
+              email: siteConfig.contact.email,
+              description: "Registered MSME IT company in Bihar, India providing custom web development, mobile apps, cloud, cybersecurity and digital marketing services.",
+              address: {
+                "@type": "PostalAddress",
+                addressLocality: "Patna",
+                addressRegion: "Bihar",
+                postalCode: "800001",
+                addressCountry: "IN",
+              },
+              areaServed: [
+                { "@type": "Country", name: "India" },
+                { "@type": "State", name: "Bihar" },
+              ],
+              hasOfferCatalog: {
+                "@type": "OfferCatalog",
+                name: "IT Services",
+                itemListElement: [
+                  { "@type": "Offer", itemOffered: { "@type": "Service", name: "Web Development" } },
+                  { "@type": "Offer", itemOffered: { "@type": "Service", name: "Mobile App Development" } },
+                  { "@type": "Offer", itemOffered: { "@type": "Service", name: "Digital Marketing" } },
+                  { "@type": "Offer", itemOffered: { "@type": "Service", name: "Cybersecurity" } },
+                  { "@type": "Offer", itemOffered: { "@type": "Service", name: "Cloud Solutions" } },
+                  { "@type": "Offer", itemOffered: { "@type": "Service", name: "SEO Services" } },
+                ],
+              },
+              sameAs: [
+                siteConfig.socials.linkedin,
+                siteConfig.socials.instagram,
+                siteConfig.socials.x,
+                siteConfig.socials.facebook,
+                siteConfig.socials.youtube,
+              ],
+            },
+            {
+              "@type": "FAQPage",
+              "@id": `${siteConfig.url}/#faq`,
+              mainEntity: [
+                {
+                  "@type": "Question",
+                  name: "What IT services does HZ IT Company offer?",
+                  acceptedAnswer: { "@type": "Answer", text: "HZ IT Company offers web development, mobile app development, cloud solutions, cybersecurity, digital marketing, SEO, UI/UX design, and IT consulting services across India." }
+                },
+                {
+                  "@type": "Question",
+                  name: "Is HZ IT Company a registered company in India?",
+                  acceptedAnswer: { "@type": "Answer", text: "Yes. HZ IT Company is a registered MSME under the Government of India (Udyam Registration No. UDYAM-BR-03-0042718), based in Bihar." }
+                },
+                {
+                  "@type": "Question",
+                  name: "How can I hire HZ IT Company for my project?",
+                  acceptedAnswer: { "@type": "Answer", text: "You can visit our Hire Us page, fill in your project details, and our team will respond within 1 business day with a proposal." }
+                },
+              ],
+            },
+          ]
         }}
       />
       {/* Hero Section */}
