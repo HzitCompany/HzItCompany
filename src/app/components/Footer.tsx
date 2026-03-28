@@ -31,7 +31,7 @@ export function Footer() {
           {/* Company Info */}
           <div>
             <div className="flex items-center mb-4">
-              <div className="h-12 w-12 rounded-2xl overflow-hidden">
+              <div className="h-12 w-12 rounded-2xl overflow-hidden bg-white p-1">
                 <img
                   src="/logo.png"
                   alt="HZ IT Logo"
@@ -183,7 +183,7 @@ export function Footer() {
         <div className="border-t border-white/10 mt-8 pt-8 text-sm text-gray-400">
           <div className="flex flex-col items-center gap-2 text-center">
             <div className="flex items-center justify-center gap-3">
-              <div className="h-8 w-8 rounded-lg overflow-hidden bg-white/10">
+              <div className="h-8 w-8 rounded-lg overflow-hidden bg-white p-0.5">
                 <img src="/logo.png" alt="HZ IT Logo" className="h-full w-full object-contain" />
               </div>
               <p>&copy; 2026 HZ IT Company. All rights reserved.</p>
